@@ -444,9 +444,9 @@ const instagramItems = instagramImages.map(
         <div className="max-w-3xl mx-auto">
           <div className="rounded-3xl bg-gradient-to-br from-[#F9F7F4] to-[#F4EEE8] border-2 border-[#E8E3DC] p-12 md:p-16 text-center">
             <span className="text-[#C78B7B] text-sm font-bold uppercase tracking-widest">Exclusive</span>
-            <h2 className="font-serif text-4xl md:text-5xl text-[#2E2E2E] mt-4 mb-4">
-              VIP Early Access
-            </h2>
+            <h2 className="font-luxury text-4xl md:text-5xl text-[#2E2E2E] mt-4 mb-4">
+  VIP Early Access
+</h2>
             <p className="text-[#6B6B6B] text-lg mb-10">
               Get 15% off your first purchase + exclusive access to limited editions before anyone else
             </p>

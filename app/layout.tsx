@@ -1,3 +1,4 @@
+import { Inter, Cormorant_Garamond } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/cart-context";
 import FloatingSocialButtons from "@/components/FloatingSocialButtons";
@@ -7,6 +8,27 @@ import { SettingsProvider } from "@/context/SettingsContext";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
+// ========================================
+// Fonts
+// ========================================
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  variable: "--font-cormorant",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+// ========================================
+// Metadata
+// ========================================
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://thegirlhose.com"),
@@ -97,6 +119,10 @@ export const metadata: Metadata = {
   },
 };
 
+// ========================================
+// Viewport
+// ========================================
+
 export const viewport: Viewport = {
   colorScheme: "light",
   themeColor: "#FCFAF7",
@@ -104,31 +130,38 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+// ========================================
+// Root Layout
+// ========================================
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-  <html lang="en">
-    <body>
-      <ToastProvider>
-        <SettingsProvider>
-          <AuthProvider>
-            <CartProvider>
-              <WishlistProvider>
-                {children}
-                <FloatingSocialButtons />
-              </WishlistProvider>
-            </CartProvider>
-          </AuthProvider>
-        </SettingsProvider>
-      </ToastProvider>
+    <html lang="en">
+      <body
+        className={`${inter.variable} ${cormorant.variable}`}
+      >
+        <AuthProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <ToastProvider>
+                <SettingsProvider>
+                  {children}
 
-      {process.env.NODE_ENV === "production" && (
-        <Analytics />
-      )}
-    </body>
-  </html>
-);
+                  <FloatingSocialButtons />
+
+                  {process.env.NODE_ENV === "production" && (
+                    <Analytics />
+                  )}
+                </SettingsProvider>
+              </ToastProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  );
 }

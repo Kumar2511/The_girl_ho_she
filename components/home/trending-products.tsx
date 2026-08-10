@@ -32,9 +32,9 @@ export default function TrendingProducts() {
               Trending
             </p>
 
-            <h2 className="mt-2 text-5xl font-serif">
-              Trending Collection
-            </h2>
+            <h2 className="font-luxury mt-2 text-5xl text-[#2E2E2E]">
+  Trending Collection
+</h2>
 
           </div>
 

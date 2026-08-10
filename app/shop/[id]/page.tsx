@@ -47,12 +47,12 @@ export default function ProductDetailsPage() {
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
 
   // ==========================================
-  // Quantity
+  // Quantity / Options
   // ==========================================
 
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState("");
-const [selectedSize, setSelectedSize] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
 
   // ==========================================
   // Reviews
@@ -69,7 +69,7 @@ const [selectedSize, setSelectedSize] = useState("");
   });
 
   // ==========================================
-  // Product Tab
+  // Product Tabs
   // ==========================================
 
   const [activeTab, setActiveTab] = useState<
@@ -107,17 +107,18 @@ const [selectedSize, setSelectedSize] = useState("");
 
       setProduct(productData);
 
-if (productData.images?.length > 0) {
-  setSelectedImage(productData.images[0]);
-}
+      // First image becomes main image
+      if (productData.images?.length > 0) {
+        setSelectedImage(productData.images[0]);
+      }
 
-if (productData.colors?.length > 0) {
-  setSelectedColor(productData.colors[0]);
-}
+      if (productData.colors?.length > 0) {
+        setSelectedColor(productData.colors[0]);
+      }
 
-if (productData.sizes?.length > 0) {
-  setSelectedSize(productData.sizes[0]);
-}
+      if (productData.sizes?.length > 0) {
+        setSelectedSize(productData.sizes[0]);
+      }
     } catch (error) {
       console.error("Product Error:", error);
     }
@@ -145,7 +146,8 @@ if (productData.sizes?.length > 0) {
           image:
             item.images?.[0] ||
             "/hero-jewelry.png",
-          hoverImage: item.hoverImage,
+          hoverImage:
+            item.images?.[1],
           category: item.category,
           badge: item.featured
             ? "Featured"
@@ -175,11 +177,15 @@ if (productData.sizes?.length > 0) {
       setReviews(response.data.reviews || []);
 
       setAverageRating(
-        Number(response.data.averageRating || 0)
+        Number(
+          response.data.averageRating || 0
+        )
       );
 
       setTotalReviews(
-        Number(response.data.totalReviews || 0)
+        Number(
+          response.data.totalReviews || 0
+        )
       );
     } catch (error) {
       console.error("Review Error:", error);
@@ -278,38 +284,38 @@ if (productData.sizes?.length > 0) {
   // ==========================================
 
   const handleAddToCart = () => {
-  if (product.stock <= 0) return;
+    if (product.stock <= 0) return;
 
-  if (
-    product.colors?.length > 0 &&
-    !selectedColor
-  ) {
-    alert("Please select a color.");
-    return;
-  }
+    if (
+      product.colors?.length > 0 &&
+      !selectedColor
+    ) {
+      alert("Please select a color.");
+      return;
+    }
 
-  if (
-    product.sizes?.length > 0 &&
-    !selectedSize
-  ) {
-    alert("Please select a size.");
-    return;
-  }
+    if (
+      product.sizes?.length > 0 &&
+      !selectedSize
+    ) {
+      alert("Please select a size.");
+      return;
+    }
 
-  addToCart({
-    _id: product._id,
-    name: product.name,
-    image:
-      product.images?.[0] ||
-      "/placeholder-product.jpg",
-    price: sellingPrice,
-    stock: product.stock,
-    quantity,
+    addToCart({
+      _id: product._id,
+      name: product.name,
+      image:
+        product.images?.[0] ||
+        "/placeholder-product.jpg",
+      price: sellingPrice,
+      stock: product.stock,
+      quantity,
+      color: selectedColor,
+      size: selectedSize,
+    });
+  };
 
-    color: selectedColor,
-    size: selectedSize,
-  });
-};
   // ==========================================
   // Wishlist
   // ==========================================
@@ -334,40 +340,39 @@ if (productData.sizes?.length > 0) {
   // ==========================================
 
   const handleBuyNow = () => {
-  if (product.stock <= 0) return;
+    if (product.stock <= 0) return;
 
-  if (
-    product.colors?.length > 0 &&
-    !selectedColor
-  ) {
-    alert("Please select a color.");
-    return;
-  }
+    if (
+      product.colors?.length > 0 &&
+      !selectedColor
+    ) {
+      alert("Please select a color.");
+      return;
+    }
 
-  if (
-    product.sizes?.length > 0 &&
-    !selectedSize
-  ) {
-    alert("Please select a size.");
-    return;
-  }
+    if (
+      product.sizes?.length > 0 &&
+      !selectedSize
+    ) {
+      alert("Please select a size.");
+      return;
+    }
 
-  addToCart({
-    _id: product._id,
-    name: product.name,
-    image:
-      product.images?.[0] ||
-      "/placeholder-product.jpg",
-    price: sellingPrice,
-    stock: product.stock,
-    quantity,
+    addToCart({
+      _id: product._id,
+      name: product.name,
+      image:
+        product.images?.[0] ||
+        "/placeholder-product.jpg",
+      price: sellingPrice,
+      stock: product.stock,
+      quantity,
+      color: selectedColor,
+      size: selectedSize,
+    });
 
-    color: selectedColor,
-    size: selectedSize,
-  });
-
-  router.push("/checkout");
-};
+    router.push("/checkout");
+  };
 
   // ==========================================
   // Delivery Check
@@ -386,6 +391,10 @@ if (productData.sizes?.length > 0) {
     );
   };
 
+  // ==========================================
+  // Render
+  // ==========================================
+
   return (
     <>
       <Navbar />
@@ -397,7 +406,6 @@ if (productData.sizes?.length > 0) {
         ====================================== */}
 
         <div className="mx-auto max-w-7xl px-5 pt-6 lg:px-8">
-
           <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
 
             <Link
@@ -425,7 +433,6 @@ if (productData.sizes?.length > 0) {
             </span>
 
           </div>
-
         </div>
 
         {/* ======================================
@@ -437,55 +444,72 @@ if (productData.sizes?.length > 0) {
           <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)] lg:gap-12">
 
             {/* ==================================
-                LEFT - IMAGES
+                LEFT - PRODUCT GALLERY
             ================================== */}
 
             <div className="grid gap-4 sm:grid-cols-[78px_minmax(0,1fr)]">
 
-              {/* Thumbnails */}
+              {/* ================================
+                  Product Thumbnails
+              ================================= */}
 
-              {product.images?.length > 1 ? (
-                <div className="order-2 flex gap-3 overflow-x-auto sm:order-1 sm:flex-col">
+              <div className="order-2 flex gap-3 overflow-x-auto sm:order-1 sm:flex-col">
 
-                  {product.images.map(
-                    (
-                      image: string,
-                      index: number
-                    ) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() =>
-                          setSelectedImage(image)
+                {product.images?.map(
+                  (
+                    image: string,
+                    index: number
+                  ) => (
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      onClick={() =>
+                        setSelectedImage(image)
+                      }
+                      aria-label={
+                        index === 0
+                          ? "View product image"
+                          : "View worn image"
+                      }
+                      className={`relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border-2 bg-white transition-all duration-300 ${
+                        selectedImage === image
+                          ? "border-[#C78B7B] ring-2 ring-[#C78B7B]/20"
+                          : "border-[#E7DED8] hover:border-[#C78B7B]"
+                      }`}
+                    >
+
+                      <Image
+                        src={
+                          image ||
+                          "/hero-jewelry.png"
                         }
-                        className={`relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg border bg-white transition ${
-                          selectedImage === image
-                            ? "border-[#C78B7B] ring-1 ring-[#C78B7B]"
-                            : "border-[#E7DED8] hover:border-[#C78B7B]"
+                        alt={`${product.name} ${
+                          index === 0
+                            ? "Product Image"
+                            : "Wear Image"
                         }`}
-                      >
-                        <Image
-                          src={
-                            image ||
-                            "/hero-jewelry.png"
-                          }
-                          alt={`${product.name} ${
-                            index + 1
-                          }`}
-                          fill
-                          sizes="72px"
-                          className="object-cover"
-                        />
-                      </button>
-                    )
-                  )}
+                        fill
+                        sizes="72px"
+                        className="object-cover"
+                      />
 
-                </div>
-              ) : (
-                <div className="hidden sm:block" />
-              )}
+                      {/* Thumbnail Label */}
 
-              {/* Main Image */}
+                      <span className="absolute bottom-0 left-0 right-0 bg-black/45 px-1 py-1 text-center text-[8px] font-medium uppercase tracking-wider text-white">
+                        {index === 0
+                          ? "Product"
+                          : "Wear"}
+                      </span>
+
+                    </button>
+                  )
+                )}
+
+              </div>
+
+              {/* ================================
+                  Main Image
+              ================================= */}
 
               <div className="order-1 sm:order-2">
 
@@ -504,13 +528,15 @@ if (productData.sizes?.length > 0) {
                     className="object-cover transition-transform duration-700 hover:scale-105"
                   />
 
-                  {/* Badge */}
+                  {/* Featured Badge */}
 
                   {product.featured && (
                     <span className="absolute left-5 top-5 rounded-full bg-[#C78B7B] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
                       Featured
                     </span>
                   )}
+
+                  {/* Discount Badge */}
 
                   {hasDiscount && (
                     <span className="absolute right-5 top-5 rounded-full bg-[#3A2528] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
@@ -626,20 +652,18 @@ if (productData.sizes?.length > 0) {
 
               {sellingPrice >= 499 && (
                 <div className="mt-4 flex items-center gap-2 text-sm text-[#596B55]">
-
                   <Truck size={16} />
 
                   <span>
                     Free delivery available
                   </span>
-
                 </div>
               )}
 
               {/* Description */}
 
               {product.description && (
-                <p className="mt-5 text-sm leading-7 text-[#6B6B6B]">
+                <p className="mt-5 whitespace-pre-line text-sm leading-7 text-[#6B6B6B]">
                   {product.description}
                 </p>
               )}
@@ -659,75 +683,96 @@ if (productData.sizes?.length > 0) {
                 )}
 
               </div>
+
               {/* Color Selection */}
 
-{product.colors?.length > 0 && (
-  <div className="mt-6">
+              {product.colors?.length > 0 && (
+                <div className="mt-6">
 
-    <div className="mb-3 flex items-center justify-between">
-      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
-        Color
-      </p>
+                  <div className="mb-3 flex items-center justify-between">
 
-      <span className="text-xs text-[#777]">
-        {selectedColor}
-      </span>
-    </div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
+                      Color
+                    </p>
 
-    <div className="flex flex-wrap gap-2">
-      {product.colors.map((color: string) => (
-        <button
-          key={color}
-          type="button"
-          onClick={() => setSelectedColor(color)}
-          className={`rounded-full border px-4 py-2 text-sm transition ${
-            selectedColor === color
-              ? "border-[#3A2528] bg-[#3A2528] text-white"
-              : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B]"
-          }`}
-        >
-          {color}
-        </button>
-      ))}
-    </div>
+                    <span className="text-xs text-[#777]">
+                      {selectedColor}
+                    </span>
 
-  </div>
-)}
+                  </div>
 
-{/* Size Selection */}
+                  <div className="flex flex-wrap gap-2">
 
-{product.sizes?.length > 0 && (
-  <div className="mt-5">
+                    {product.colors.map(
+                      (color: string) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() =>
+                            setSelectedColor(
+                              color
+                            )
+                          }
+                          className={`rounded-full border px-4 py-2 text-sm transition ${
+                            selectedColor ===
+                            color
+                              ? "border-[#3A2528] bg-[#3A2528] text-white"
+                              : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B]"
+                          }`}
+                        >
+                          {color}
+                        </button>
+                      )
+                    )}
 
-    <div className="mb-3 flex items-center justify-between">
-      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
-        Size
-      </p>
+                  </div>
 
-      <span className="text-xs text-[#777]">
-        {selectedSize}
-      </span>
-    </div>
+                </div>
+              )}
 
-    <div className="flex flex-wrap gap-2">
-      {product.sizes.map((size: string) => (
-        <button
-          key={size}
-          type="button"
-          onClick={() => setSelectedSize(size)}
-          className={`min-w-[52px] rounded-full border px-4 py-2 text-sm transition ${
-            selectedSize === size
-              ? "border-[#3A2528] bg-[#3A2528] text-white"
-              : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B]"
-          }`}
-        >
-          {size}
-        </button>
-      ))}
-    </div>
+              {/* Size Selection */}
 
-  </div>
-)}
+              {product.sizes?.length > 0 && (
+                <div className="mt-5">
+
+                  <div className="mb-3 flex items-center justify-between">
+
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
+                      Size
+                    </p>
+
+                    <span className="text-xs text-[#777]">
+                      {selectedSize}
+                    </span>
+
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+
+                    {product.sizes.map(
+                      (size: string) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() =>
+                            setSelectedSize(size)
+                          }
+                          className={`min-w-[52px] rounded-full border px-4 py-2 text-sm transition ${
+                            selectedSize ===
+                            size
+                              ? "border-[#3A2528] bg-[#3A2528] text-white"
+                              : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B]"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      )
+                    )}
+
+                  </div>
+
+                </div>
+              )}
 
               {/* Quantity */}
 
@@ -759,7 +804,8 @@ if (productData.sizes?.length > 0) {
                   <button
                     type="button"
                     disabled={
-                      quantity >= product.stock
+                      quantity >=
+                      product.stock
                     }
                     onClick={() =>
                       quantity <
@@ -999,7 +1045,7 @@ if (productData.sizes?.length > 0) {
                   Product Description
                 </h2>
 
-                <p className="mt-4 text-sm leading-8 text-[#666]">
+                <p className="mt-4 whitespace-pre-line text-sm leading-8 text-[#666]">
                   {product.description ||
                     "A beautiful jewellery piece designed to complement your everyday style and special occasions."}
                 </p>
@@ -1246,15 +1292,19 @@ if (productData.sizes?.length > 0) {
                           <option value={5}>
                             ★★★★★
                           </option>
+
                           <option value={4}>
                             ★★★★☆
                           </option>
+
                           <option value={3}>
                             ★★★☆☆
                           </option>
+
                           <option value={2}>
                             ★★☆☆☆
                           </option>
+
                           <option value={1}>
                             ★☆☆☆☆
                           </option>
@@ -1311,6 +1361,7 @@ if (productData.sizes?.length > 0) {
             <div className="mb-8 flex items-end justify-between">
 
               <div>
+
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#C78B7B]">
                   Complete Your Look
                 </p>
@@ -1318,6 +1369,7 @@ if (productData.sizes?.length > 0) {
                 <h2 className="mt-2 font-serif text-3xl text-[#2E2E2E]">
                   You May Also Like
                 </h2>
+
               </div>
 
               <Link

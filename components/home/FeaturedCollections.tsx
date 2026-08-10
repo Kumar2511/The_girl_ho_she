@@ -16,9 +16,9 @@ export default function FeaturedCollections() {
             Collections
           </span>
 
-          <h2 className="mt-6 font-serif text-4xl lg:text-6xl text-[#2E2E2E]">
-            Curated Collections
-          </h2>
+         <h2 className="font-luxury mt-6 text-4xl lg:text-6xl text-[#2E2E2E]">
+  Curated Collections
+</h2>
 
           <p className="mt-6 max-w-3xl mx-auto text-lg leading-8 text-[#6B6B6B]">
             Discover our hand-selected collections, each designed to capture

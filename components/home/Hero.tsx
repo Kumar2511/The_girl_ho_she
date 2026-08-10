@@ -117,8 +117,7 @@ export default function Hero({
 
             {/* Heading */}
 
-            <h1 className="mt-8 font-serif text-5xl md:text-6xl xl:text-7xl leading-[1] text-[#2E2E2E]">
-
+<h1 className="font-luxury mt-8 text-5xl md:text-6xl xl:text-7xl leading-[0.95] text-[#2E2E2E]">
               Crafted To Shine.
 
               <span className="block mt-3 text-[#C78B7B]">
@@ -206,7 +205,7 @@ export default function Hero({
             <div className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4">
 
               <div className="rounded-3xl border border-[#EFE4DD] bg-white/80 p-5 shadow-lg">
-                <h3 className="font-serif text-3xl text-[#C78B7B]">
+                <h3 className="font-luxury text-3xl text-[#C78B7B]">
                   50K+
                 </h3>
                 <p className="mt-2 text-sm text-[#6B6B6B]">
@@ -215,8 +214,8 @@ export default function Hero({
               </div>
 
               <div className="rounded-3xl border border-[#EFE4DD] bg-white/80 p-5 shadow-lg">
-                <h3 className="font-serif text-3xl text-[#C78B7B]">
-                  4.9★
+                <h3 className="font-luxury text-3xl text-[#C78B7B]">
+                  4.9 ★
                 </h3>
                 <p className="mt-2 text-sm text-[#6B6B6B]">
                   Customer Rating
@@ -224,7 +223,7 @@ export default function Hero({
               </div>
 
               <div className="rounded-3xl border border-[#EFE4DD] bg-white/80 p-5 shadow-lg">
-                <h3 className="font-serif text-3xl text-[#C78B7B]">
+                <h3 className="font-luxury text-3xl text-[#C78B7B]">
                   500+
                 </h3>
                 <p className="mt-2 text-sm text-[#6B6B6B]">
@@ -233,7 +232,7 @@ export default function Hero({
               </div>
 
               <div className="rounded-3xl border border-[#EFE4DD] bg-white/80 p-5 shadow-lg">
-                <h3 className="font-serif text-3xl text-[#C78B7B]">
+                <h3 className="font-luxury text-3xl text-[#C78B7B]">
                   10+
                 </h3>
                 <p className="mt-2 text-sm text-[#6B6B6B]">
@@ -310,7 +309,7 @@ export default function Hero({
                     "NEW ARRIVAL"}
                 </p>
 
-                <h3 className="mt-2 font-serif text-2xl text-[#2E2E2E]">
+                <h3 className="font-luxury mt-2 text-2xl text-[#2E2E2E]">
                   {currentBanner?.title ||
                     "Luxury Collection"}
                 </h3>
@@ -327,7 +326,7 @@ export default function Hero({
 
               <div className="absolute right-6 bottom-6 rounded-3xl bg-white/95 backdrop-blur-xl px-6 py-5 shadow-2xl">
 
-                <h3 className="font-serif text-4xl text-[#D6B36A]">
+                <h3 className="font-luxury text-4xl text-[#D6B36A]">
                   ★ 4.9
                 </h3>
 

@@ -117,7 +117,7 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-@edia (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark) {
   :root:not(.light) {
     color-scheme: dark;
     --background: oklch(0.145 0 0);
@@ -158,16 +158,20 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-  @apply bg-background text-foreground;
-  font-family: "Inter", sans-serif;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-}
 
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), sans-serif;
+    background: #FCFAF7;
+    color: #2E2E2E;
+  }
+
+  .font-luxury {
+    font-family: var(--font-cormorant), serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+}
 /* Premium Animations and Transitions */
 @layer utilities {
   /* Smooth fade in animations */

@@ -55,9 +55,9 @@ export default function DesignerCollections() {
             Collections
           </p>
 
-          <h2 className="mt-3 text-5xl font-serif text-[#2E2E2E]">
-            Designer Collections
-          </h2>
+          <h2 className="font-luxury mt-3 text-5xl text-[#2E2E2E]">
+  Designer Collections
+</h2>
 
           <p className="mt-4 text-[#777] text-lg">
             Discover timeless jewellery crafted for every occasion.
