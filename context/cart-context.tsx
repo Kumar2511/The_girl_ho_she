@@ -23,48 +23,64 @@ interface CartItem {
 
 interface CartContextType {
   cart: CartItem[];
+
   addToCart: (product: CartItem) => void;
+
   removeFromCart: (
     _id: string,
     color?: string,
     size?: string
   ) => void;
+
   increaseQuantity: (
     _id: string,
     color?: string,
     size?: string
   ) => void;
+
   decreaseQuantity: (
     _id: string,
     color?: string,
     size?: string
   ) => void;
+
   clearCart: () => void;
+
+  // Cart Drawer
+  isCartOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
 }
 
-const CartContext = createContext<CartContextType | undefined>(
-  undefined
-);
+const CartContext =
+  createContext<CartContextType | undefined>(
+    undefined
+  );
 
-// ==========================
+// ==========================================
 // Cart Provider
-// ==========================
+// ==========================================
 
 export const CartProvider = ({
   children,
 }: {
   children: ReactNode;
 }) => {
-  // ==========================
-  // Load Cart
-  // ==========================
-
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartLoaded, setCartLoaded] = useState(false);
+  const [cartLoaded, setCartLoaded] =
+    useState(false);
+
+  const [isCartOpen, setIsCartOpen] =
+    useState(false);
+
+  // ========================================
+  // Load Cart
+  // ========================================
 
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem("cart");
+      const savedCart =
+        localStorage.getItem("cart");
 
       if (savedCart) {
         setCart(JSON.parse(savedCart));
@@ -81,9 +97,9 @@ export const CartProvider = ({
     }
   }, []);
 
-  // ==========================
+  // ========================================
   // Save Cart
-  // ==========================
+  // ========================================
 
   useEffect(() => {
     if (!cartLoaded) return;
@@ -94,9 +110,9 @@ export const CartProvider = ({
     );
   }, [cart, cartLoaded]);
 
-  // ==========================
+  // ========================================
   // Variant Matcher
-  // ==========================
+  // ========================================
 
   const isSameVariant = (
     item: CartItem,
@@ -106,16 +122,20 @@ export const CartProvider = ({
   ) => {
     return (
       item._id === productId &&
-      (item.color || "") === (color || "") &&
-      (item.size || "") === (size || "")
+      (item.color || "") ===
+        (color || "") &&
+      (item.size || "") ===
+        (size || "")
     );
   };
 
-  // ==========================
+  // ========================================
   // Add To Cart
-  // ==========================
+  // ========================================
 
-  const addToCart = (product: CartItem) => {
+  const addToCart = (
+    product: CartItem
+  ) => {
     setCart((prevCart) => {
       const productColor =
         product.color || "";
@@ -126,20 +146,17 @@ export const CartProvider = ({
       const productQuantity =
         Number(product.quantity) || 1;
 
-      const existing = prevCart.find(
-        (item) =>
+      const existing =
+        prevCart.find((item) =>
           isSameVariant(
             item,
             product._id,
             productColor,
             productSize
           )
-      );
+        );
 
-      // ==========================
       // Existing Product
-      // ==========================
-
       if (existing) {
         const currentQuantity =
           Number(existing.quantity) || 0;
@@ -171,31 +188,35 @@ export const CartProvider = ({
           )
             ? {
                 ...item,
-                quantity: newQuantity,
+                quantity:
+                  newQuantity,
               }
             : item
         );
       }
 
-      // ==========================
       // New Product
-      // ==========================
-
       return [
         ...prevCart,
         {
           ...product,
-          quantity: productQuantity,
-          color: productColor,
-          size: productSize,
+          quantity:
+            productQuantity,
+          color:
+            productColor,
+          size:
+            productSize,
         },
       ];
     });
+
+    // Open drawer after adding
+    setIsCartOpen(true);
   };
 
-  // ==========================
+  // ========================================
   // Remove Product
-  // ==========================
+  // ========================================
 
   const removeFromCart = (
     _id: string,
@@ -215,9 +236,9 @@ export const CartProvider = ({
     );
   };
 
-  // ==========================
+  // ========================================
   // Increase Quantity
-  // ==========================
+  // ========================================
 
   const increaseQuantity = (
     _id: string,
@@ -263,9 +284,9 @@ export const CartProvider = ({
     );
   };
 
-  // ==========================
+  // ========================================
   // Decrease Quantity
-  // ==========================
+  // ========================================
 
   const decreaseQuantity = (
     _id: string,
@@ -299,27 +320,50 @@ export const CartProvider = ({
     );
   };
 
-  // ==========================
+  // ========================================
   // Clear Cart
-  // ==========================
+  // ========================================
 
   const clearCart = () => {
     setCart([]);
   };
 
-  // ==========================
-  // Context Provider
-  // ==========================
+  // ========================================
+  // Drawer Controls
+  // ========================================
+
+  const openCart = () => {
+    setIsCartOpen(true);
+  };
+
+  const closeCart = () => {
+    setIsCartOpen(false);
+  };
+
+  // ========================================
+  // Provider
+  // ========================================
 
   return (
     <CartContext.Provider
       value={{
         cart,
+
         addToCart,
+
         removeFromCart,
+
         increaseQuantity,
+
         decreaseQuantity,
+
         clearCart,
+
+        isCartOpen,
+
+        openCart,
+
+        closeCart,
       }}
     >
       {children}
@@ -327,12 +371,13 @@ export const CartProvider = ({
   );
 };
 
-// ==========================
+// ==========================================
 // useCart Hook
-// ==========================
+// ==========================================
 
 export const useCart = () => {
-  const context = useContext(CartContext);
+  const context =
+    useContext(CartContext);
 
   if (!context) {
     throw new Error(

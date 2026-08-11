@@ -3,6 +3,26 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Copy,
+  CreditCard,
+  Download,
+  FileText,
+  MapPin,
+  Package,
+  RotateCcw,
+  ShoppingBag,
+  Star,
+  Truck,
+  XCircle,
+} from "lucide-react";
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useCart } from "@/context/cart-context";
@@ -10,307 +30,420 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import api from "@/lib/api";
 
+interface OrderProduct {
+  productId?: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  color?: string;
+  size?: string;
+}
+
+interface Order {
+  _id: string;
+  createdAt: string;
+
+  customerName?: string;
+  phone?: string;
+  email?: string;
+
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+
+  products?: OrderProduct[];
+
+  totalAmount: number;
+
+  paymentMethod?: string;
+  paymentStatus?: string;
+  razorpayPaymentId?: string;
+
+  orderStatus?: string;
+
+  courierName?: string;
+  trackingNumber?: string;
+  estimatedDelivery?: string;
+}
+
 export default function OrderDetailsPage() {
-  const { id } = useParams();
+  const params = useParams();
+
+  const id =
+    typeof params.id === "string"
+      ? params.id
+      : Array.isArray(params.id)
+      ? params.id[0]
+      : "";
+
   const { addToCart } = useCart();
-  const [order, setOrder] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [reviewRatings, setReviewRatings] = useState<{
-  [key: string]: number;
-}>({});
 
-const [reviewComments, setReviewComments] = useState<{
-  [key: string]: string;
-}>({});
+  const [order, setOrder] =
+    useState<Order | null>(null);
 
-const [reviewSubmitting, setReviewSubmitting] = useState<{
-  [key: string]: boolean;
-}>({});
+  const [loading, setLoading] =
+    useState(true);
 
-  // ============================
-  // Fetch Order
-  // ============================
+  const [error, setError] =
+    useState("");
+
+  const [copied, setCopied] =
+    useState(false);
+
+  const [reviewRatings, setReviewRatings] =
+    useState<Record<string, number>>({});
+
+  const [reviewComments, setReviewComments] =
+    useState<Record<string, string>>({});
+
+  const [reviewSubmitting, setReviewSubmitting] =
+    useState<Record<string, boolean>>({});
+
+  const [cancelling, setCancelling] =
+    useState(false);
+
+  const [buyingAgain, setBuyingAgain] =
+    useState(false);
+
+  // ==========================================
+  // FETCH ORDER
+  // ==========================================
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      setError("Invalid order ID.");
+      return;
+    }
+
+    const fetchOrder = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const { data } =
+          await api.get(
+            `/orders/my-orders/${id}`
+          );
+
+        console.log(
+          "ORDER DETAILS:",
+          data
+        );
+
+        if (!data?.order) {
+          setError(
+            "We couldn't find this order."
+          );
+          return;
+        }
+
+        setOrder(data.order);
+      } catch (error: any) {
+        console.error(
+          "ORDER DETAILS ERROR:",
+          error
+        );
+
+        setError(
+          error?.response?.data?.message ||
+            "Unable to load order details."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchOrder();
   }, [id]);
 
-  const fetchOrder = async () => {
+  // ==========================================
+  // COPY ORDER ID
+  // ==========================================
+
+  const handleCopyOrderId = async () => {
+    if (!order?._id) return;
+
     try {
-      const { data } = await api.get(
-        `/orders/my-orders/${id}`
+      await navigator.clipboard.writeText(
+        order._id
       );
 
-      console.log("ORDER DETAILS:", data);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 1800);
+    } catch (error) {
+      console.error(
+        "Copy order ID failed:",
+        error
+      );
+    }
+  };
+
+  // ==========================================
+  // CANCEL ORDER
+  // ==========================================
+
+  const handleCancelOrder = async () => {
+    if (!order || cancelling) return;
+
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to cancel this order?"
+      );
+
+    if (!confirmed) return;
+
+    try {
+      setCancelling(true);
+
+      const { data } =
+        await api.put(
+          `/orders/my-orders/${order._id}/cancel`
+        );
+
+      console.log(
+        "CANCEL ORDER RESPONSE:",
+        data
+      );
 
       setOrder(data.order);
+
+      alert(
+        "Order cancelled successfully."
+      );
     } catch (error: any) {
       console.error(
-        "ORDER DETAILS ERROR:",
+        "CANCEL ORDER ERROR:",
         error
       );
 
-      console.error(
-        error.response?.data
+      alert(
+        error?.response?.data?.message ||
+          "Unable to cancel order."
       );
     } finally {
-      setLoading(false);
+      setCancelling(false);
     }
   };
-  const handleCancelOrder = async () => {
-  if (!order) return;
 
-  const confirmed = window.confirm(
-    "Are you sure you want to cancel this order?"
-  );
+  // ==========================================
+  // BUY AGAIN
+  // ==========================================
 
-  if (!confirmed) return;
-
-  try {
-    const { data } = await api.put(
-      `/orders/my-orders/${order._id}/cancel`
-    );
-
-    console.log(
-      "CANCEL ORDER RESPONSE:",
-      data
-    );
-
-    setOrder(data.order);
-
-    alert(
-      "Order cancelled successfully."
-    );
-  } catch (error: any) {
-    console.error(
-      "CANCEL ORDER ERROR:",
-      error
-    );
-
-    alert(
-      error.response?.data?.message ||
-        "Unable to cancel order."
-    );
-  }
-};
-const handleBuyAgain = async () => {
-  if (!order?.products?.length) {
-    alert("No products found in this order.");
-    return;
-  }
-
-  try {
-    for (const item of order.products) {
-      const { data } = await api.get(
-        `/products/${item.productId}`
-      );
-
-      const product = data.product;
-
-      if (!product) {
-        console.warn(
-          `Product ${item.name} is no longer available.`
-        );
-        continue;
-      }
-
-      const currentStock =
-        Number(product.stock) || 0;
-
-      if (currentStock <= 0) {
-        alert(
-          `${item.name} is currently out of stock.`
-        );
-        continue;
-      }
-
-      const quantity = Math.min(
-        Number(item.quantity) || 1,
-        currentStock
-      );
-
-      addToCart({
-        _id: product._id,
-        name: product.name,
-        image:
-          product.image ||
-          item.image ||
-          "/placeholder.jpg",
-        price:
-          Number(product.discountPrice) ||
-          Number(product.price) ||
-          Number(item.price) ||
-          0,
-        stock: currentStock,
-        quantity,
-        color: item.color || "",
-        size: item.size || "",
-        colors: product.colors || [],
-        sizes: product.sizes || [],
-      });
+  const handleBuyAgain = async () => {
+    if (
+      !order?.products?.length ||
+      buyingAgain
+    ) {
+      return;
     }
 
-    alert(
-      "Available products have been added to your cart!"
-    );
+    try {
+      setBuyingAgain(true);
 
-    window.location.href = "/cart";
-  } catch (error: any) {
-    console.error(
-      "BUY AGAIN ERROR:",
-      error
-    );
+      let addedCount = 0;
 
-    alert(
-      error.response?.data?.message ||
-        "Unable to add products to cart."
-    );
-  }
-};
-const handleSubmitReview = async (
-  productId: string
-) => {
-  const rating =
-    reviewRatings[productId] || 0;
+      for (const item of order.products) {
+        if (!item.productId) {
+          console.warn(
+            `Product ID missing for ${item.name}`
+          );
+          continue;
+        }
 
-  const comment =
-    reviewComments[productId]?.trim() || "";
+        try {
+          const { data } =
+            await api.get(
+              `/products/${item.productId}`
+            );
 
-  if (rating < 1) {
-    alert("Please select a rating.");
-    return;
-  }
+          const product =
+            data?.product;
 
-  if (!comment) {
-    alert("Please write a review.");
-    return;
-  }
+          if (!product) {
+            console.warn(
+              `Product ${item.name} is no longer available.`
+            );
+            continue;
+          }
 
-  try {
-    setReviewSubmitting((prev) => ({
-      ...prev,
-      [productId]: true,
-    }));
+          const currentStock =
+            Number(product.stock) || 0;
 
-    const { data } = await api.post(
-      "/reviews",
-      {
-        orderId: order._id,
-        productId,
-        rating,
-        comment,
+          if (currentStock <= 0) {
+            console.warn(
+              `${item.name} is currently out of stock.`
+            );
+            continue;
+          }
+
+          const quantity =
+            Math.min(
+              Number(item.quantity) || 1,
+              currentStock
+            );
+
+          addToCart({
+            _id: product._id,
+            name: product.name,
+            image:
+              product.images?.[0] ||
+              product.image ||
+              item.image ||
+              "/placeholder.jpg",
+            price:
+              Number(
+                product.discountPrice
+              ) ||
+              Number(product.price) ||
+              Number(item.price) ||
+              0,
+            stock: currentStock,
+            quantity,
+            color: item.color || "",
+            size: item.size || "",
+            colors:
+              product.colors || [],
+            sizes:
+              product.sizes || [],
+          });
+
+          addedCount++;
+        } catch (productError) {
+          console.error(
+            `Failed to load ${item.name}:`,
+            productError
+          );
+        }
       }
-    );
 
-    console.log(
-      "REVIEW RESPONSE:",
-      data
-    );
+      if (addedCount === 0) {
+        alert(
+          "None of the products from this order are currently available."
+        );
+        return;
+      }
 
-    alert(
-      "Review submitted successfully! It will appear after approval."
-    );
+      alert(
+        `${addedCount} product${
+          addedCount > 1 ? "s" : ""
+        } added to your cart.`
+      );
 
-    setReviewRatings((prev) => ({
-      ...prev,
-      [productId]: 0,
-    }));
+      window.location.href =
+        "/cart";
+    } catch (error: any) {
+      console.error(
+        "BUY AGAIN ERROR:",
+        error
+      );
 
-    setReviewComments((prev) => ({
-      ...prev,
-      [productId]: "",
-    }));
-  } catch (error: any) {
-    console.error(
-      "REVIEW ERROR:",
-      error
-    );
+      alert(
+        error?.response?.data?.message ||
+          "Unable to add products to cart."
+      );
+    } finally {
+      setBuyingAgain(false);
+    }
+  };
 
-    alert(
-      error.response?.data?.message ||
-        "Unable to submit review."
-    );
-  } finally {
-    setReviewSubmitting((prev) => ({
-      ...prev,
-      [productId]: false,
-    }));
-  }
-};
-  // ============================
-  // Loading
-  // ============================
+  // ==========================================
+  // REVIEW
+  // ==========================================
 
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <>
-          <Navbar />
+  const handleSubmitReview = async (
+    productId: string
+  ) => {
+    const rating =
+      reviewRatings[productId] || 0;
 
-          <main className="min-h-screen bg-[#FCFAF7] flex items-center justify-center">
-            <div className="luxury-card p-10 text-center">
+    const comment =
+      reviewComments[productId]?.trim() ||
+      "";
 
-              <div className="w-14 h-14 mx-auto border-4 border-[#C78B7B] border-t-transparent rounded-full animate-spin mb-6"></div>
+    if (rating < 1) {
+      alert(
+        "Please select a rating."
+      );
+      return;
+    }
 
-              <h2 className="text-2xl font-semibold">
-                Loading Order...
-              </h2>
+    if (!comment) {
+      alert(
+        "Please write a review."
+      );
+      return;
+    }
 
-            </div>
-          </main>
+    try {
+      setReviewSubmitting(
+        (prev) => ({
+          ...prev,
+          [productId]: true,
+        })
+      );
 
-          <Footer />
-        </>
-      </ProtectedRoute>
-    );
-  }
+      const { data } =
+        await api.post(
+          "/reviews",
+          {
+            orderId: order?._id,
+            productId,
+            rating,
+            comment,
+          }
+        );
 
-  // ============================
-  // Order Not Found
-  // ============================
+      console.log(
+        "REVIEW RESPONSE:",
+        data
+      );
 
-  if (!order) {
-    return (
-      <ProtectedRoute>
-        <>
-          <Navbar />
+      alert(
+        "Review submitted successfully! It will appear after approval."
+      );
 
-          <main className="min-h-screen bg-[#FCFAF7] flex items-center justify-center">
-            <div className="luxury-card p-10 text-center">
+      setReviewRatings(
+        (prev) => ({
+          ...prev,
+          [productId]: 0,
+        })
+      );
 
-              <div className="text-5xl mb-5">
-                📦
-              </div>
+      setReviewComments(
+        (prev) => ({
+          ...prev,
+          [productId]: "",
+        })
+      );
+    } catch (error: any) {
+      console.error(
+        "REVIEW ERROR:",
+        error
+      );
 
-              <h2 className="text-3xl font-bold mb-4">
-                Order Not Found
-              </h2>
+      alert(
+        error?.response?.data?.message ||
+          "Unable to submit review."
+      );
+    } finally {
+      setReviewSubmitting(
+        (prev) => ({
+          ...prev,
+          [productId]: false,
+        })
+      );
+    }
+  };
 
-              <p className="text-gray-500 mb-6">
-                We couldn't find this order.
-              </p>
-
-              <Link
-                href="/account/orders"
-                className="btn-primary inline-block"
-              >
-                Back to My Orders
-              </Link>
-
-            </div>
-          </main>
-
-          <Footer />
-        </>
-      </ProtectedRoute>
-    );
-  }
-
-  // ============================
-  // Tracking Status
-  // ============================
+  // ==========================================
+  // TRACKING
+  // ==========================================
 
   const trackingSteps = [
     {
@@ -318,43 +451,43 @@ const handleSubmitReview = async (
       title: "Order Placed",
       description:
         "Your order has been received.",
-      icon: "🛒",
+      icon: ShoppingBag,
     },
     {
       key: "Confirmed",
       title: "Confirmed",
       description:
         "Your order has been confirmed.",
-      icon: "✓",
+      icon: CheckCircle2,
     },
     {
       key: "Packed",
       title: "Packed",
       description:
-        "Your order has been packed.",
-      icon: "📦",
+        "Your jewellery has been carefully packed.",
+      icon: Package,
     },
     {
       key: "Shipped",
       title: "Shipped",
-      description: order.courierName
+      description: order?.courierName
         ? `Shipped via ${order.courierName}.`
         : "Your order has been shipped.",
-      icon: "🚚",
+      icon: Truck,
     },
     {
       key: "Out for Delivery",
       title: "Out for Delivery",
       description:
         "Your order is on the way.",
-      icon: "🏍️",
+      icon: Truck,
     },
     {
       key: "Delivered",
       title: "Delivered",
       description:
-        "Your order has been delivered.",
-      icon: "🏠",
+        "Your jewellery has been delivered.",
+      icon: Check,
     },
   ];
 
@@ -369,277 +502,460 @@ const handleSubmitReview = async (
 
   const currentStatusIndex =
     statusOrder.indexOf(
-      order.orderStatus
+      order?.orderStatus || "Pending"
     );
 
-  // ============================
-  // Status Color
-  // ============================
-
-  const getStatusClass = () => {
-    switch (order.orderStatus) {
+  const getStatusStyle = (
+    status?: string
+  ) => {
+    switch (status) {
       case "Delivered":
-        return "bg-green-100 text-green-700";
+        return "bg-[#F1F7EF] text-[#5D7D57] border-[#DCE8D8]";
 
       case "Shipped":
-        return "bg-blue-100 text-blue-700";
+        return "bg-[#F0F5FA] text-[#55738E] border-[#D9E4ED]";
 
       case "Out for Delivery":
-        return "bg-purple-100 text-purple-700";
-
-      case "Cancelled":
-        return "bg-red-100 text-red-700";
+        return "bg-[#F6F1FA] text-[#765B88] border-[#E5DAEC]";
 
       case "Packed":
-        return "bg-indigo-100 text-indigo-700";
+        return "bg-[#F2F2FA] text-[#62658B] border-[#DEDFEC]";
 
       case "Confirmed":
-        return "bg-emerald-100 text-emerald-700";
+        return "bg-[#F1F8F3] text-[#52775D] border-[#D8E8DD]";
+
+      case "Cancelled":
+        return "bg-[#FFF2F1] text-[#A45D5D] border-[#F0D8D5]";
 
       default:
-        return "bg-yellow-100 text-yellow-700";
+        return "bg-[#FFF8EC] text-[#99743E] border-[#F0E1C6]";
     }
   };
 
-  // ============================
-  // Main UI
-  // ============================
+  const formatDate = (
+    date?: string
+  ) => {
+    if (!date) return "—";
+
+    return new Date(
+      date
+    ).toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
+  };
+
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <>
+          <Navbar />
+
+          <main className="min-h-screen bg-[#FCFAF7] px-4 py-16">
+
+            <div className="mx-auto max-w-6xl animate-pulse">
+
+              <div className="h-4 w-32 rounded bg-[#EDE5DF]" />
+
+              <div className="mt-5 h-10 w-64 rounded bg-[#EDE5DF]" />
+
+              <div className="mt-8 h-48 rounded-3xl bg-white" />
+
+              <div className="mt-6 h-72 rounded-3xl bg-white" />
+
+              <div className="mt-6 h-80 rounded-3xl bg-white" />
+
+            </div>
+
+          </main>
+
+          <Footer />
+        </>
+      </ProtectedRoute>
+    );
+  }
+
+  // ==========================================
+  // ERROR / NOT FOUND
+  // ==========================================
+
+  if (error || !order) {
+    return (
+      <ProtectedRoute>
+        <>
+          <Navbar />
+
+          <main className="flex min-h-[75vh] items-center justify-center bg-[#FCFAF7] px-4 py-16">
+
+            <div className="w-full max-w-lg rounded-3xl border border-[#E8DFD9] bg-white p-10 text-center shadow-sm">
+
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#F8F0EC]">
+
+                <Package
+                  size={34}
+                  className="text-[#C78B7B]"
+                />
+
+              </div>
+
+              <h1 className="mt-6 font-serif text-3xl text-[#2E2E2E]">
+                Order Not Found
+              </h1>
+
+              <p className="mt-3 text-sm leading-6 text-[#777]">
+                {error ||
+                  "We couldn't find this order."}
+              </p>
+
+              <Link
+                href="/account/orders"
+                className="mt-7 inline-flex h-12 items-center gap-2 rounded-full bg-[#3A2528] px-7 text-sm font-semibold text-white transition hover:bg-[#29181B]"
+              >
+                <ArrowLeft
+                  size={15}
+                />
+                Back to My Orders
+              </Link>
+
+            </div>
+
+          </main>
+
+          <Footer />
+        </>
+      </ProtectedRoute>
+    );
+  }
+
+  // ==========================================
+  // MAIN
+  // ==========================================
 
   return (
     <ProtectedRoute>
       <>
         <Navbar />
 
-        <main className="min-h-screen bg-[#FCFAF7] py-12">
+        <main className="min-h-screen bg-[#FCFAF7]">
 
-          <div className="max-w-6xl mx-auto px-6">
+          {/* HEADER */}
 
-            {/* ============================
-                Header
-            ============================ */}
+          <section className="border-b border-[#EAE1DB] bg-white">
 
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between mb-8">
+            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
 
-              <div>
-
-                <Link
-                  href="/account/orders"
-                  className="text-sm font-semibold text-[#C78B7B] hover:underline"
-                >
-                  ← Back to My Orders
-                </Link>
-
-                <h1 className="page-title mt-4">
-                  Order Details
-                </h1>
-
-              </div>
-
-              <span
-                className={`w-fit px-5 py-2 rounded-full font-semibold ${getStatusClass()}`}
+              <Link
+                href="/account/orders"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-[#C78B7B] transition hover:text-[#9E6559]"
               >
-                {order.orderStatus}
-              </span>
+                <ArrowLeft
+                  size={14}
+                />
+                Back to My Orders
+              </Link>
 
-            </div>
+              <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
 
-            {/* ============================
-                Order Summary
-            ============================ */}
+                <div>
 
-            <div className="luxury-card p-8 mb-8">
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-
-                <div className="luxury-card p-5 text-center">
-
-                  <div className="text-4xl mb-3">
-                    🧾
-                  </div>
-
-                  <h3 className="font-semibold">
-                    Order ID
-                  </h3>
-
-                  <p className="mt-1 text-sm text-gray-500">
-                    #{order._id
-                      .slice(-8)
-                      .toUpperCase()}
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#C78B7B]">
+                    Your Purchase
                   </p>
 
-                </div>
+                  <h1 className="mt-2 font-serif text-4xl font-semibold text-[#2E2E2E] sm:text-5xl">
+                    Order Details
+                  </h1>
 
-                <div className="luxury-card p-5 text-center">
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
 
-                  <div className="text-4xl mb-3">
-                    📅
-                  </div>
+                    <span className="font-mono text-xs text-[#777]">
+                      #{order._id}
+                    </span>
 
-                  <h3 className="font-semibold">
-                    Ordered
-                  </h3>
-
-                  <p className="mt-1 text-sm text-gray-500">
-                    {new Date(
-                      order.createdAt
-                    ).toLocaleDateString(
-                      "en-IN",
-                      {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
+                    <button
+                      type="button"
+                      onClick={
+                        handleCopyOrderId
                       }
-                    )}
-                  </p>
+                      className="inline-flex items-center gap-1 rounded-full border border-[#E2D8D2] px-2.5 py-1 text-[10px] font-semibold text-[#777] transition hover:bg-[#FCF8F5]"
+                    >
+                      {copied ? (
+                        <>
+                          <Check
+                            size={11}
+                          />
+                          Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy
+                            size={11}
+                          />
+                          Copy ID
+                        </>
+                      )}
+                    </button>
 
-                </div>
-
-                <div className="luxury-card p-5 text-center">
-
-                  <div className="text-4xl mb-3">
-                    💳
                   </div>
 
-                  <h3 className="font-semibold">
-                    Payment
-                  </h3>
-
-                  <p className="mt-1 text-sm text-gray-500">
-                    {order.paymentStatus}
-                  </p>
-
                 </div>
 
-                <div className="luxury-card p-5 text-center">
-
-                  <div className="text-4xl mb-3">
-                    💰
-                  </div>
-
-                  <h3 className="font-semibold">
-                    Total
-                  </h3>
-
-                  <p className="mt-1 font-bold text-[#C78B7B]">
-                    ₹
-                    {Number(
-                      order.totalAmount
-                    ).toLocaleString(
-                      "en-IN"
-                    )}
-                  </p>
-
-                </div>
+                <span
+                  className={`inline-flex w-fit items-center rounded-full border px-4 py-2 text-xs font-semibold ${getStatusStyle(
+                    order.orderStatus
+                  )}`}
+                >
+                  {order.orderStatus ||
+                    "Processing"}
+                </span>
 
               </div>
 
             </div>
 
-            {/* ============================
-                Tracking
-            ============================ */}
+          </section>
 
-            <div className="luxury-card p-8 mb-8">
+          {/* CONTENT */}
 
-              <div className="flex flex-col gap-2 mb-8">
+          <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
 
-                <h2 className="text-2xl font-bold">
+            {/* SUMMARY */}
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+              <div className="rounded-2xl border border-[#E8DFD9] bg-white p-5 shadow-sm">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F0EC]">
+                  <FileText
+                    size={18}
+                    className="text-[#C78B7B]"
+                  />
+                </div>
+
+                <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-[#999]">
+                  Order Date
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-[#3D3632]">
+                  {formatDate(
+                    order.createdAt
+                  )}
+                </p>
+
+              </div>
+
+              <div className="rounded-2xl border border-[#E8DFD9] bg-white p-5 shadow-sm">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F0EC]">
+                  <CreditCard
+                    size={18}
+                    className="text-[#C78B7B]"
+                  />
+                </div>
+
+                <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-[#999]">
+                  Payment
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-[#3D3632]">
+                  {order.paymentMethod ||
+                    "—"}
+                </p>
+
+                <p className="mt-1 text-xs text-green-600">
+                  {order.paymentStatus ||
+                    "Pending"}
+                </p>
+
+              </div>
+
+              <div className="rounded-2xl border border-[#E8DFD9] bg-white p-5 shadow-sm">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F0EC]">
+                  <ShoppingBag
+                    size={18}
+                    className="text-[#C78B7B]"
+                  />
+                </div>
+
+                <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-[#999]">
+                  Items
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-[#3D3632]">
+                  {order.products?.reduce(
+                    (
+                      total,
+                      item
+                    ) =>
+                      total +
+                      Number(
+                        item.quantity ||
+                          0
+                      ),
+                    0
+                  ) || 0}{" "}
+                  item(s)
+                </p>
+
+              </div>
+
+              <div className="rounded-2xl border border-[#E8DFD9] bg-white p-5 shadow-sm">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F0EC]">
+                  <CreditCard
+                    size={18}
+                    className="text-[#C78B7B]"
+                  />
+                </div>
+
+                <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-[#999]">
+                  Total
+                </p>
+
+                <p className="mt-1 font-serif text-2xl font-semibold text-[#3A2528]">
+                  ₹
+                  {Number(
+                    order.totalAmount ||
+                      0
+                  ).toLocaleString(
+                    "en-IN"
+                  )}
+                </p>
+
+              </div>
+
+            </div>
+
+            {/* TRACKING */}
+
+            <div className="mt-6 rounded-3xl border border-[#E8DFD9] bg-white p-6 shadow-sm sm:p-8">
+
+              <div className="flex flex-col gap-2">
+
+                <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#C78B7B]">
+                  Order Journey
+                </p>
+
+                <h2 className="font-serif text-3xl text-[#2E2E2E]">
                   Track Your Order
                 </h2>
 
-                <p className="text-gray-500">
-                  Follow your order from placement
-                  to delivery.
+                <p className="text-sm text-[#777]">
+                  Follow your jewellery from
+                  confirmation to delivery.
                 </p>
 
               </div>
 
               {order.orderStatus ===
               "Cancelled" ? (
+                <div className="mt-8 rounded-2xl border border-[#F0D8D5] bg-[#FFF6F5] p-8 text-center">
 
-                <div className="rounded-2xl bg-red-50 border border-red-200 p-8 text-center">
+                  <XCircle
+                    size={42}
+                    className="mx-auto text-[#B65E5E]"
+                  />
 
-                  <div className="text-5xl mb-4">
-                    ❌
-                  </div>
-
-                  <h3 className="text-xl font-bold text-red-700">
+                  <h3 className="mt-4 font-serif text-2xl text-[#9B5151]">
                     Order Cancelled
                   </h3>
 
-                  <p className="mt-2 text-red-600">
-                    This order has been cancelled.
+                  <p className="mt-2 text-sm text-[#A66B6B]">
+                    This order has been
+                    cancelled.
                   </p>
 
                 </div>
-
               ) : (
-
-                <div>
+                <div className="mt-9">
 
                   {trackingSteps.map(
                     (
                       step,
                       index
                     ) => {
-
                       const stepIndex =
                         statusOrder.indexOf(
                           step.key
                         );
 
                       const completed =
-                        stepIndex <=
-                        currentStatusIndex;
+                        currentStatusIndex >=
+                        stepIndex;
 
                       const current =
-                        stepIndex ===
-                        currentStatusIndex;
+                        currentStatusIndex ===
+                        stepIndex;
+
+                      const StepIcon =
+                        step.icon;
 
                       return (
                         <div
-                          key={step.key}
+                          key={
+                            step.key
+                          }
                           className="relative"
                         >
 
-                          <div className="flex gap-5">
+                          <div className="flex gap-4 sm:gap-6">
 
-                            {/* Circle */}
+                            <div className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border transition sm:h-12 sm:w-12">
 
-                            <div
-                              className={`relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold transition ${
-                                completed
-                                  ? "bg-[#C78B7B] text-white"
-                                  : "bg-gray-200 text-gray-400"
-                              } ${
-                                current
-                                  ? "ring-4 ring-[#C78B7B]/20"
-                                  : ""
-                              }`}
-                            >
-                              {completed
-                                ? step.icon
-                                : "○"}
+                              <div
+                                className={`flex h-full w-full items-center justify-center rounded-full ${
+                                  completed
+                                    ? "bg-[#3A2528] text-white"
+                                    : "bg-[#F3EFEC] text-[#AAA19C]"
+                                } ${
+                                  current
+                                    ? "ring-4 ring-[#C78B7B]/15"
+                                    : ""
+                                }`}
+                              >
+                                {completed ? (
+                                  <StepIcon
+                                    size={
+                                      18
+                                    }
+                                  />
+                                ) : (
+                                  <span className="text-xs">
+                                    {index +
+                                      1}
+                                  </span>
+                                )}
+                              </div>
+
                             </div>
-
-                            {/* Content */}
 
                             <div className="flex-1 pb-8">
 
                               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
                                 <h3
-                                  className={`text-lg font-semibold ${
+                                  className={`font-semibold ${
                                     completed
                                       ? "text-[#2E2E2E]"
-                                      : "text-gray-400"
+                                      : "text-[#A8A09B]"
                                   }`}
                                 >
-                                  {step.title}
+                                  {
+                                    step.title
+                                  }
                                 </h3>
 
                                 {current && (
-                                  <span className="w-fit rounded-full bg-[#F4EEE8] px-3 py-1 text-xs font-semibold text-[#C78B7B]">
+                                  <span className="w-fit rounded-full bg-[#F8F0EC] px-3 py-1 text-[10px] font-semibold text-[#C78B7B]">
                                     Current Status
                                   </span>
                                 )}
@@ -649,97 +965,80 @@ const handleSubmitReview = async (
                               <p
                                 className={`mt-1 text-sm ${
                                   completed
-                                    ? "text-gray-500"
-                                    : "text-gray-400"
+                                    ? "text-[#777]"
+                                    : "text-[#AAA]"
                                 }`}
                               >
-                                {step.description}
+                                {
+                                  step.description
+                                }
                               </p>
-
-                              {/* Tracking Number */}
 
                               {step.key ===
                                 "Shipped" &&
                                 order.trackingNumber && (
+                                  <div className="mt-4 rounded-xl border border-[#E8DFD9] bg-[#FCFAF7] p-4">
 
-                                  <div className="mt-4 rounded-xl bg-[#FCFAF7] border border-[#ECE6E1] p-4">
-
-                                    <p className="text-sm text-gray-500">
+                                    <p className="text-[10px] uppercase tracking-[0.15em] text-[#999]">
                                       Tracking Number
                                     </p>
 
-                                    <p className="mt-1 font-semibold text-[#2E2E2E]">
+                                    <p className="mt-1 break-all font-mono text-sm font-semibold text-[#3A2528]">
                                       {
                                         order.trackingNumber
                                       }
                                     </p>
 
                                   </div>
-
                                 )}
-
-                              {/* Courier */}
 
                               {step.key ===
                                 "Shipped" &&
                                 order.courierName && (
-
-                                  <p className="mt-3 text-sm text-gray-500">
+                                  <p className="mt-3 text-xs text-[#777]">
                                     Courier:{" "}
-                                    <span className="font-semibold text-[#2E2E2E]">
+                                    <strong className="text-[#3A2528]">
                                       {
                                         order.courierName
                                       }
-                                    </span>
+                                    </strong>
                                   </p>
-
                                 )}
 
-                              {/* Estimated Delivery */}
-
-                              {order.estimatedDelivery &&
-                                (
-                                  step.key ===
-                                    "Shipped" ||
-                                  step.key ===
-                                    "Out for Delivery"
-                                ) && (
-
-                                  <p className="mt-3 text-sm font-medium text-[#C78B7B]">
-                                    Estimated Delivery:{" "}
-                                    {new Date(
-                                      order.estimatedDelivery
-                                    ).toLocaleDateString(
-                                      "en-IN",
-                                      {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "numeric",
+                              {(step.key ===
+                                "Shipped" ||
+                                step.key ===
+                                  "Out for Delivery") &&
+                                order.estimatedDelivery && (
+                                  <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#C78B7B]">
+                                    <CalendarDays
+                                      size={
+                                        13
                                       }
+                                    />
+                                    Estimated
+                                    Delivery:{" "}
+                                    {formatDate(
+                                      order.estimatedDelivery
                                     )}
                                   </p>
-
                                 )}
 
                             </div>
 
                           </div>
 
-                          {/* Connector */}
-
                           {index <
                             trackingSteps.length -
                               1 && (
-
                             <div
-                              className={`absolute left-[23px] top-12 h-[calc(100%-12px)] border-l-2 ${
+                              className={`absolute left-[22px] top-12 h-[calc(100%-12px)] w-px ${
                                 stepIndex <
                                 currentStatusIndex
-                                  ? "border-[#C78B7B]"
-                                  : "border-gray-200"
+                                  ? "bg-[#3A2528]"
+                                  : "bg-[#E5DDD8]"
                               }`}
                             />
-
                           )}
 
                         </div>
@@ -748,80 +1047,132 @@ const handleSubmitReview = async (
                   )}
 
                 </div>
-
               )}
 
             </div>
 
-            {/* ============================
-                Ordered Products
-            ============================ */}
+            {/* PRODUCTS */}
 
-            <div className="luxury-card p-8 mb-8">
+            <div className="mt-6 rounded-3xl border border-[#E8DFD9] bg-white shadow-sm">
 
-              <h2 className="text-2xl font-bold mb-6">
-                Ordered Products
-              </h2>
+              <div className="border-b border-[#EEE6E1] px-6 py-6 sm:px-8">
 
-              <div className="space-y-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[#C78B7B]">
+                  Your Jewellery
+                </p>
+
+                <h2 className="mt-1 font-serif text-3xl text-[#2E2E2E]">
+                  Ordered Products
+                </h2>
+
+              </div>
+
+              <div className="divide-y divide-[#EEE6E1] px-6 sm:px-8">
 
                 {order.products?.map(
                   (
-                    item: any,
-                    index: number
+                    item,
+                    index
                   ) => (
-
                     <div
-                      key={
-                        item.productId ||
-                        index
-                      }
-                      className="flex flex-col gap-5 sm:flex-row sm:justify-between py-5 border-b border-[#F4EEE8] last:border-b-0"
+                      key={`${item.productId || item.name}-${index}`}
+                      className="py-6"
                     >
 
-                      <div className="flex items-center gap-5">
+                      <div className="flex flex-col gap-5 sm:flex-row">
 
-                        <img
-                          src={
-                            item.image ||
-                            "/placeholder.jpg"
-                          }
-                          alt={
-                            item.name ||
-                            "Product"
-                          }
-                          className="w-24 h-24 rounded-xl object-cover border border-[#E8E3DC]"
-                        />
+                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-[#E8DFD9] bg-[#FAF7F4] sm:h-28 sm:w-28">
 
-                        <div>
-
-                          <p className="font-semibold text-lg">
-                            {item.name}
-                          </p>
-
-                          <p className="text-gray-500 mt-1">
-                            Qty:{" "}
-                            {item.quantity}
-                          </p>
-
-                          {item.color && (
-                            <p className="text-sm text-gray-500 mt-1">
-                              Color:{" "}
-                              {item.color}
-                            </p>
+                          {item.image ? (
+                            <img
+                              src={
+                                item.image
+                              }
+                              alt={
+                                item.name
+                              }
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <ShoppingBag
+                                size={
+                                  24
+                                }
+                                className="text-[#C8B8AF]"
+                              />
+                            </div>
                           )}
 
-                          {item.size && (
-                            <p className="text-sm text-gray-500 mt-1">
-                              Size:{" "}
-                              {item.size}
-                            </p>
-                          )}
+                        </div>
 
-                          <p className="text-[#C78B7B] font-semibold mt-2">
+                        <div className="flex-1">
+
+                          <h3 className="font-serif text-xl text-[#2E2E2E]">
+                            {
+                              item.name
+                            }
+                          </h3>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+
+                            <span className="rounded-full bg-[#F8F3EF] px-3 py-1 text-[10px] text-[#777]">
+                              Qty:{" "}
+                              {
+                                item.quantity
+                              }
+                            </span>
+
+                            {item.color && (
+                              <span className="rounded-full bg-[#F8F3EF] px-3 py-1 text-[10px] text-[#777]">
+                                Color:{" "}
+                                {
+                                  item.color
+                                }
+                              </span>
+                            )}
+
+                            {item.size && (
+                              <span className="rounded-full bg-[#F8F3EF] px-3 py-1 text-[10px] text-[#777]">
+                                Size:{" "}
+                                {
+                                  item.size
+                                }
+                              </span>
+                            )}
+
+                          </div>
+
+                          <p className="mt-4 text-sm text-[#777]">
                             ₹
                             {Number(
-                              item.price
+                              item.price ||
+                                0
+                            ).toLocaleString(
+                              "en-IN"
+                            )}{" "}
+                            each
+                          </p>
+
+                        </div>
+
+                        <div className="text-left sm:text-right">
+
+                          <p className="text-[10px] uppercase tracking-[0.15em] text-[#999]">
+                            Subtotal
+                          </p>
+
+                          <p className="mt-1 font-serif text-xl font-semibold text-[#3A2528]">
+                            ₹
+                            {(
+                              Number(
+                                item.price ||
+                                  0
+                              ) *
+                              Number(
+                                item.quantity ||
+                                  0
+                              )
                             ).toLocaleString(
                               "en-IN"
                             )}
@@ -831,126 +1182,126 @@ const handleSubmitReview = async (
 
                       </div>
 
-                      <div className="text-left sm:text-right">
+                      {/* REVIEW */}
 
-                        <p className="text-sm text-gray-500">
-                          Subtotal
-                        </p>
+                      {order.orderStatus ===
+                        "Delivered" &&
+                        item.productId && (
+                          <div className="mt-6 rounded-2xl border border-[#E8DFD9] bg-[#FCFAF7] p-5">
 
-                        <p className="text-lg font-bold text-[#2E2E2E]">
-                          ₹
-                          {(
-                            Number(
-                              item.price
-                            ) *
-                            Number(
-                              item.quantity
-                            )
-                          ).toLocaleString(
-                            "en-IN"
-                          )}
-                        </p>
+                            <div className="flex items-center gap-2">
 
-                                          </div>
+                              <Star
+                                size={17}
+                                className="fill-[#D6B36A] text-[#D6B36A]"
+                              />
 
-                      {/* ============================
-                          Product Review
-                      ============================ */}
+                              <h4 className="font-semibold text-[#2E2E2E]">
+                                Review this product
+                              </h4>
 
-                      {order.orderStatus === "Delivered" && (
-                        <div className="mt-5 rounded-2xl bg-[#FCFAF7] border border-[#ECE6E1] p-5">
+                            </div>
 
-                          <h3 className="font-semibold text-lg text-[#2E2E2E]">
-                            ⭐ Review this product
-                          </h3>
+                            <p className="mt-1 text-xs text-[#888]">
+                              How was your
+                              purchase?
+                            </p>
 
-                          <p className="mt-1 text-sm text-gray-500">
-                            How was your purchase?
-                          </p>
+                            <div className="mt-4 flex gap-1">
 
-                          {/* Rating */}
+                              {[1, 2, 3, 4, 5].map(
+                                (star) => (
+                                  <button
+                                    key={
+                                      star
+                                    }
+                                    type="button"
+                                    onClick={() =>
+                                      setReviewRatings(
+                                        (
+                                          prev
+                                        ) => ({
+                                          ...prev,
+                                          [item.productId!]:
+                                            star,
+                                        })
+                                      )
+                                    }
+                                    className="transition hover:scale-110"
+                                    aria-label={`Rate ${star} star`}
+                                  >
+                                    <Star
+                                      size={
+                                        25
+                                      }
+                                      className={
+                                        (
+                                          reviewRatings[
+                                            item
+                                              .productId!
+                                          ] ||
+                                          0
+                                        ) >=
+                                        star
+                                          ? "fill-[#D6B36A] text-[#D6B36A]"
+                                          : "text-[#D2CBC6]"
+                                      }
+                                    />
+                                  </button>
+                                )
+                              )}
 
-                          <div className="mt-4 flex gap-2">
+                            </div>
 
-                            {[1, 2, 3, 4, 5].map(
-                              (star) => (
-                                <button
-                                  key={star}
-                                  type="button"
-                                  onClick={() =>
-                                    setReviewRatings(
-                                      (prev) => ({
-                                        ...prev,
-                                        [item.productId]:
-                                          star,
-                                      })
-                                    )
-                                  }
-                                  className={`text-3xl transition ${
-                                    (reviewRatings[
-                                      item.productId
-                                    ] || 0) >= star
-                                      ? "text-[#D6B36A]"
-                                      : "text-gray-300"
-                                  }`}
-                                >
-                                  ★
-                                </button>
-                              )
-                            )}
+                            <textarea
+                              value={
+                                reviewComments[
+                                  item.productId
+                                ] ||
+                                ""
+                              }
+                              onChange={(e) =>
+                                setReviewComments(
+                                  (
+                                    prev
+                                  ) => ({
+                                    ...prev,
+                                    [item.productId!]:
+                                      e.target
+                                        .value,
+                                  })
+                                )
+                              }
+                              placeholder="Share your experience with this jewellery..."
+                              rows={4}
+                              className="mt-4 w-full resize-none rounded-xl border border-[#E2D9D3] bg-white p-4 text-sm text-[#333] outline-none transition placeholder:text-[#AAA] focus:border-[#C78B7B]"
+                            />
 
-                          </div>
-
-                          {/* Comment */}
-
-                          <textarea
-                            value={
-                              reviewComments[
-                                item.productId
-                              ] || ""
-                            }
-                            onChange={(e) =>
-                              setReviewComments(
-                                (prev) => ({
-                                  ...prev,
-                                  [item.productId]:
-                                    e.target.value,
-                                })
-                              )
-                            }
-                            placeholder="Write your review..."
-                            rows={4}
-                            className="mt-4 w-full rounded-xl border border-[#E8E3DC] bg-white p-4 outline-none focus:border-[#C78B7B]"
-                          />
-
-                          {/* Submit */}
-
-                          <button
-                            type="button"
-                            disabled={
-                              reviewSubmitting[
+                            <button
+                              type="button"
+                              disabled={
+                                reviewSubmitting[
+                                  item.productId
+                                ]
+                              }
+                              onClick={() =>
+                                handleSubmitReview(
+                                  item.productId!
+                                )
+                              }
+                              className="mt-4 inline-flex h-11 items-center justify-center rounded-full bg-[#3A2528] px-6 text-xs font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewSubmitting[
                                 item.productId
                               ]
-                            }
-                            onClick={() =>
-                              handleSubmitReview(
-                                item.productId
-                              )
-                            }
-                            className="mt-4 rounded-full bg-[#3A2528] px-6 py-3 font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {reviewSubmitting[
-                              item.productId
-                            ]
-                              ? "Submitting..."
-                              : "Submit Review"}
-                          </button>
+                                ? "Submitting..."
+                                : "Submit Review"}
+                            </button>
 
-                        </div>
-                      )}
+                          </div>
+                        )}
 
                     </div>
-
                   )
                 )}
 
@@ -958,169 +1309,229 @@ const handleSubmitReview = async (
 
             </div>
 
-            {/* ============================
-                Shipping Address
-            ============================ */}
+            {/* TWO COLUMN INFORMATION */}
 
-            <div className="luxury-card p-8 mb-8">
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
 
-              <h2 className="text-2xl font-bold mb-5">
-                Shipping Address
-              </h2>
+              {/* SHIPPING */}
 
-              <div className="space-y-1 text-gray-600">
+              <div className="rounded-3xl border border-[#E8DFD9] bg-white p-6 shadow-sm sm:p-8">
 
-                <p className="font-semibold text-[#2E2E2E]">
-                  {order.customerName}
-                </p>
+                <div className="flex items-center gap-3">
 
-                <p>
-                  {order.phone}
-                </p>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F0EC]">
+                    <MapPin
+                      size={18}
+                      className="text-[#C78B7B]"
+                    />
+                  </div>
 
-                {order.email && (
-                  <p>
-                    {order.email}
+                  <div>
+
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
+                      Shipping
+                    </p>
+
+                    <h2 className="font-serif text-2xl text-[#2E2E2E]">
+                      Delivery Address
+                    </h2>
+
+                  </div>
+
+                </div>
+
+                <div className="mt-6 rounded-2xl bg-[#FCFAF7] p-5 text-sm leading-6 text-[#706762]">
+
+                  <p className="font-semibold text-[#3D3632]">
+                    {order.customerName ||
+                      "Customer"}
                   </p>
-                )}
 
-                <p className="mt-3">
-                  {order.address}
-                </p>
+                  {order.phone && (
+                    <p className="mt-1">
+                      {order.phone}
+                    </p>
+                  )}
 
-                <p>
-                  {order.city},{" "}
-                  {order.state}
-                </p>
+                  {order.email && (
+                    <p className="break-all">
+                      {order.email}
+                    </p>
+                  )}
 
-                <p>
-                  {order.pincode}
-                </p>
+                  <div className="my-4 h-px bg-[#E7DDD7]" />
 
-              </div>
+                  <p>
+                    {order.address ||
+                      "—"}
+                  </p>
 
-            </div>
+                  <p>
+                    {order.city ||
+                      "—"}
+                    ,{" "}
+                    {order.state ||
+                      "—"}
+                  </p>
 
-            {/* ============================
-                Delivery Information
-            ============================ */}
-
-            <div className="luxury-card p-8 mb-8">
-
-              <h2 className="text-2xl font-bold mb-5">
-                Delivery Information
-              </h2>
-
-              <div className="space-y-4">
-
-                <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-
-                  <span className="text-gray-500">
-                    🚚 Courier
-                  </span>
-
-                  <strong>
-                    {order.courierName ||
-                      "Not Assigned"}
-                  </strong>
-
-                </div>
-
-                <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-
-                  <span className="text-gray-500">
-                    📦 Tracking Number
-                  </span>
-
-                  <strong>
-                    {order.trackingNumber ||
-                      "Not Available"}
-                  </strong>
-
-                </div>
-
-                <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
-
-                  <span className="text-gray-500">
-                    📅 Estimated Delivery
-                  </span>
-
-                  <strong>
-                    {order.estimatedDelivery
-                      ? new Date(
-                          order.estimatedDelivery
-                        ).toLocaleDateString(
-                          "en-IN",
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }
-                        )
-                      : "To Be Updated"}
-                  </strong>
+                  <p>
+                    {order.pincode ||
+                      "—"}
+                  </p>
 
                 </div>
 
               </div>
 
-            </div>
+              {/* DELIVERY */}
 
-            {/* ============================
-                Payment Details
-            ============================ */}
+              <div className="rounded-3xl border border-[#E8DFD9] bg-white p-6 shadow-sm sm:p-8">
 
-            <div className="luxury-card p-8 mb-8">
+                <div className="flex items-center gap-3">
 
-              <h2 className="text-2xl font-bold mb-5">
-                Payment Details
-              </h2>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F0EC]">
+                    <Truck
+                      size={18}
+                      className="text-[#C78B7B]"
+                    />
+                  </div>
 
-              <div className="space-y-4">
+                  <div>
 
-                <div className="flex justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
+                      Delivery
+                    </p>
 
-                  <span className="text-gray-500">
-                    Payment Method
-                  </span>
+                    <h2 className="font-serif text-2xl text-[#2E2E2E]">
+                      Delivery Information
+                    </h2>
 
-                  <span className="font-semibold">
-                    {order.paymentMethod}
-                  </span>
+                  </div>
 
                 </div>
 
-                <div className="flex justify-between">
+                <div className="mt-6 space-y-4">
 
-                  <span className="text-gray-500">
-                    Payment Status
-                  </span>
+                  <div className="flex justify-between gap-4 border-b border-[#EEE6E1] pb-4">
 
-                  <span
-                    className={`font-semibold ${
+                    <span className="text-sm text-[#777]">
+                      Courier
+                    </span>
+
+                    <span className="text-right text-sm font-semibold text-[#3D3632]">
+                      {order.courierName ||
+                        "Not Assigned"}
+                    </span>
+
+                  </div>
+
+                  <div className="flex justify-between gap-4 border-b border-[#EEE6E1] pb-4">
+
+                    <span className="text-sm text-[#777]">
+                      Tracking Number
+                    </span>
+
+                    <span className="break-all text-right font-mono text-xs font-semibold text-[#3D3632]">
+                      {order.trackingNumber ||
+                        "Not Available"}
+                    </span>
+
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+
+                    <span className="text-sm text-[#777]">
+                      Estimated Delivery
+                    </span>
+
+                    <span className="text-right text-sm font-semibold text-[#3D3632]">
+                      {formatDate(
+                        order.estimatedDelivery
+                      )}
+                    </span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* PAYMENT */}
+
+            <div className="mt-6 rounded-3xl border border-[#E8DFD9] bg-white p-6 shadow-sm sm:p-8">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8F0EC]">
+                  <CreditCard
+                    size={18}
+                    className="text-[#C78B7B]"
+                  />
+                </div>
+
+                <div>
+
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
+                    Payment
+                  </p>
+
+                  <h2 className="font-serif text-2xl text-[#2E2E2E]">
+                    Payment Details
+                  </h2>
+
+                </div>
+
+              </div>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                <div className="rounded-xl bg-[#FCFAF7] p-4">
+
+                  <p className="text-[10px] uppercase tracking-wide text-[#999]">
+                    Method
+                  </p>
+
+                  <p className="mt-1 text-sm font-semibold text-[#3D3632]">
+                    {order.paymentMethod ||
+                      "—"}
+                  </p>
+
+                </div>
+
+                <div className="rounded-xl bg-[#FCFAF7] p-4">
+
+                  <p className="text-[10px] uppercase tracking-wide text-[#999]">
+                    Status
+                  </p>
+
+                  <p
+                    className={`mt-1 text-sm font-semibold ${
                       order.paymentStatus ===
                       "Paid"
                         ? "text-green-600"
-                        : "text-orange-500"
+                        : "text-amber-600"
                     }`}
                   >
-                    {order.paymentStatus}
-                  </span>
+                    {order.paymentStatus ||
+                      "Pending"}
+                  </p>
 
                 </div>
 
                 {order.razorpayPaymentId && (
-                  <div className="flex flex-col gap-1 sm:flex-row sm:justify-between">
+                  <div className="rounded-xl bg-[#FCFAF7] p-4">
 
-                    <span className="text-gray-500">
+                    <p className="text-[10px] uppercase tracking-wide text-[#999]">
                       Payment ID
-                    </span>
+                    </p>
 
-                    <span className="font-mono text-sm">
+                    <p className="mt-1 break-all font-mono text-xs font-semibold text-[#3D3632]">
                       {
                         order.razorpayPaymentId
                       }
-                    </span>
+                    </p>
 
                   </div>
                 )}
@@ -1129,113 +1540,155 @@ const handleSubmitReview = async (
 
             </div>
 
-            {/* ============================
-    Total + Actions
-============================ */}
+            {/* TOTAL + ACTIONS */}
 
-<div className="luxury-card p-8 mb-8">
+            <div className="mt-6 rounded-3xl border border-[#E8DFD9] bg-white p-6 shadow-sm sm:p-8">
 
-  <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 
-    <div>
+                <div>
 
-      <p className="text-gray-500">
-        Total Amount
-      </p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#999]">
+                    Total Amount
+                  </p>
 
-      <p className="text-3xl font-bold text-[#C78B7B]">
-        ₹
-        {Number(
-          order.totalAmount
-        ).toLocaleString("en-IN")}
-      </p>
+                  <p className="mt-1 font-serif text-4xl font-semibold text-[#3A2528]">
+                    ₹
+                    {Number(
+                      order.totalAmount ||
+                        0
+                    ).toLocaleString(
+                      "en-IN"
+                    )}
+                  </p>
 
-    </div>
-
-    <div className="flex flex-wrap gap-3">
-
-      <Link
-        href="/account/orders"
-        className="btn-secondary"
-      >
-        Back to Orders
-      </Link>
-
-      <button
-        type="button"
-        className="btn-primary"
-        onClick={() => window.print()}
-      >
-        Download Invoice
-      </button>
-
-      {/* Cancel Order */}
-
-      {(order.orderStatus === "Pending" ||
-        order.orderStatus === "Confirmed") && (
-        <button
-          type="button"
-          onClick={handleCancelOrder}
-          className="rounded-full border border-red-300 bg-red-50 px-6 py-3 font-semibold text-red-600 transition hover:bg-red-600 hover:text-white"
-        >
-          Cancel Order
-        </button>
-      )}
-
-      {/* Buy Again */}
-
-      {order.orderStatus === "Delivered" && (
-        <button
-          type="button"
-          onClick={handleBuyAgain}
-          className="rounded-full bg-[#C78B7B] px-6 py-3 font-semibold text-white transition hover:bg-[#A96F62]"
-        >
-          🛒 Buy Again
-        </button>
-      )}
-
-    </div>
-
-  </div>
-
-</div>
-            {/* ============================
-                Delivered CTA
-            ============================ */}
-
-            {order.orderStatus ===
-              "Delivered" && (
-
-              <div className="luxury-card p-8 mb-8 text-center">
-
-                <div className="text-5xl mb-4">
-                  🎉
                 </div>
 
-                <h2 className="text-2xl font-bold text-[#2E2E2E]">
-                  Your order has been delivered!
-                </h2>
-
-                <p className="mt-2 text-gray-500">
-                  We hope you love your jewellery.
-                </p>
-
-                <div className="mt-6">
+                <div className="flex flex-wrap gap-3">
 
                   <Link
-                    href="/share-your-look"
-                    className="btn-primary inline-block"
+                    href="/account/orders"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#DCCFC8] px-5 text-xs font-semibold text-[#3A2528] transition hover:bg-[#FCF8F5]"
                   >
-                    ✨ Share Your Look
+                    <ArrowLeft
+                      size={14}
+                    />
+                    Back to Orders
                   </Link>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.print()
+                    }
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#DCCFC8] px-5 text-xs font-semibold text-[#3A2528] transition hover:bg-[#FCF8F5]"
+                  >
+                    <Download
+                      size={14}
+                    />
+                    Print / Save Invoice
+                  </button>
+
+                  {(
+                    [
+                      "Pending",
+                      "Confirmed",
+                    ] as string[]
+                  ).includes(
+                    order.orderStatus ||
+                      ""
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={
+                        handleCancelOrder
+                      }
+                      disabled={
+                        cancelling
+                      }
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#E5BABA] bg-[#FFF5F4] px-5 text-xs font-semibold text-[#A65B5B] transition hover:bg-[#A65B5B] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <XCircle
+                        size={14}
+                      />
+
+                      {cancelling
+                        ? "Cancelling..."
+                        : "Cancel Order"}
+                    </button>
+                  )}
+
+                  {order.orderStatus ===
+                    "Delivered" && (
+                    <button
+                      type="button"
+                      onClick={
+                        handleBuyAgain
+                      }
+                      disabled={
+                        buyingAgain
+                      }
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#3A2528] px-5 text-xs font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <RotateCcw
+                        size={14}
+                      />
+
+                      {buyingAgain
+                        ? "Adding..."
+                        : "Buy Again"}
+                    </button>
+                  )}
 
                 </div>
 
               </div>
 
+            </div>
+
+            {/* DELIVERED CTA */}
+
+            {order.orderStatus ===
+              "Delivered" && (
+              <div className="mt-6 overflow-hidden rounded-3xl border border-[#E6DDD7] bg-white p-8 text-center shadow-sm">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#F4F8F2]">
+
+                  <CheckCircle2
+                    size={32}
+                    className="text-[#6E8965]"
+                  />
+
+                </div>
+
+                <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#C78B7B]">
+                  Delivered With Care
+                </p>
+
+                <h2 className="mt-2 font-serif text-3xl text-[#2E2E2E]">
+                  We hope you love your jewellery.
+                </h2>
+
+                <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[#777]">
+                  Share your jewellery look
+                  with us and become part of
+                  our community.
+                </p>
+
+                <Link
+                  href="/share-your-look"
+                  className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#3A2528] px-7 text-xs font-semibold text-white transition hover:bg-[#29181B]"
+                >
+                  Share Your Look
+                  <ChevronRight
+                    size={14}
+                  />
+                </Link>
+
+              </div>
             )}
 
-          </div>
+          </section>
 
         </main>
 

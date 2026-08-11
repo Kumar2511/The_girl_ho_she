@@ -121,20 +121,22 @@ export default function WishlistPage() {
 
                     {/* Add To Cart */}
                     <button
-                      type="button"
-                      onClick={() =>
-                        addToCart({
-                          _id: item._id,
-                          name: item.name,
-                          image: item.image,
-                          price: item.price,
-                        })
-                      }
-                      className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 bg-[#3A2528] text-xs font-semibold text-white transition hover:bg-[#29181B] sm:h-10 sm:text-sm"
-                    >
-                      <ShoppingBag size={15} />
-                      Add to Cart
-                    </button>
+  type="button"
+  onClick={() => {
+    addToCart({
+      _id: item._id,
+      name: item.name,
+      image: item.image,
+      price: item.price,
+      stock: 1,
+      quantity: 1,
+    });
+  }}
+  className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 bg-[#3A2528] text-xs font-semibold text-white transition hover:bg-[#29181B] sm:h-10 sm:text-sm"
+>
+  <ShoppingBag size={15} />
+  Add to Cart
+</button>
 
                   </div>
 

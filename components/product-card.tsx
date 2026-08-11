@@ -208,12 +208,14 @@ export default function ProductCard({
   onClick={(e) => {
     e.preventDefault();
 
-    addToCart({
-      _id: id,
-      name,
-      image,
-      price,
-    });
+addToCart({
+  _id: id,
+  name,
+  image,
+  price,
+  stock,
+  quantity: 1,
+});
   }}
   className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#3A2528] text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:bg-[#281719]"
 >

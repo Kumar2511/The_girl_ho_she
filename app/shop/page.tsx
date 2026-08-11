@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { SlidersHorizontal, X } from "lucide-react";
 
 import api from "@/lib/api";
 
@@ -30,8 +31,11 @@ export default function ShopPage() {
   // State
   // ==========================================
 
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] =
+    useState<any[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
 
   const [sortBy, setSortBy] =
     useState("newest");
@@ -42,7 +46,13 @@ export default function ShopPage() {
   const [maxPrice, setMaxPrice] =
     useState(10000);
 
+  const [priceLimit, setPriceLimit] =
+    useState(10000);
+
   const [inStockOnly, setInStockOnly] =
+    useState(false);
+
+  const [showMobileFilters, setShowMobileFilters] =
     useState(false);
 
   // ==========================================
@@ -103,8 +113,7 @@ export default function ShopPage() {
         const fetchedProducts =
           response.data?.products || [];
 
-        // Same idea as Aadai Mart:
-        // only show active products
+        // Only show active products
         const activeProducts =
           fetchedProducts.filter(
             (product: any) =>
@@ -113,6 +122,36 @@ export default function ShopPage() {
           );
 
         setProducts(activeProducts);
+
+        // =====================================
+        // Dynamic Price Limit
+        // =====================================
+
+        const prices = activeProducts
+          .map((product: any) =>
+            Number(product.price) || 0
+          )
+          .filter((price: number) =>
+            Number.isFinite(price)
+          );
+
+        const highestPrice =
+          prices.length > 0
+            ? Math.max(...prices)
+            : 10000;
+
+        // Round up to nearest ₹500
+        const roundedPrice =
+          Math.ceil(
+            highestPrice / 500
+          ) * 500;
+
+        const finalPriceLimit =
+          Math.max(10000, roundedPrice);
+
+        setPriceLimit(finalPriceLimit);
+
+        setMaxPrice(finalPriceLimit);
       } catch (error) {
         console.error(
           "Failed to load products:",
@@ -120,6 +159,10 @@ export default function ShopPage() {
         );
 
         setProducts([]);
+
+        // Keep a safe fallback
+        setPriceLimit(10000);
+        setMaxPrice(10000);
       } finally {
         setLoading(false);
       }
@@ -140,7 +183,8 @@ export default function ShopPage() {
     // ----------------------------------------
 
     if (
-      selectedCategory !== "All Products"
+      selectedCategory !==
+      "All Products"
     ) {
       data = data.filter(
         (product) =>
@@ -269,13 +313,37 @@ export default function ShopPage() {
   ]);
 
   // ==========================================
+  // Check if filters are active
+  // ==========================================
+
+  const hasActiveFilters =
+    minPrice > 0 ||
+    maxPrice < priceLimit ||
+    inStockOnly ||
+    sortBy !== "newest";
+
+  // ==========================================
+  // Clear Filters
+  // ==========================================
+
+  const clearFilters = () => {
+    setMinPrice(0);
+    setMaxPrice(priceLimit);
+    setInStockOnly(false);
+    setSortBy("newest");
+  };
+
+  // ==========================================
   // Category Change
   // ==========================================
 
   const handleCategoryChange = (
     category: string
   ) => {
-    if (category === "All Products") {
+    if (
+      category ===
+      "All Products"
+    ) {
       router.push("/shop");
       return;
     }
@@ -288,23 +356,179 @@ export default function ShopPage() {
   };
 
   // ==========================================
+  // Loading Skeleton
+  // ==========================================
+
+  const ProductSkeleton = () => {
+    return (
+      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({
+          length: 8,
+        }).map((_, index) => (
+          <div
+            key={index}
+            className="animate-pulse"
+          >
+            {/* Image */}
+
+            <div className="aspect-[4/5] w-full rounded-2xl bg-[#EEE9E5]" />
+
+            {/* Content */}
+
+            <div className="mt-4 space-y-3">
+              <div className="h-3 w-20 rounded-full bg-[#E8E1DC]" />
+
+              <div className="h-4 w-4/5 rounded-full bg-[#E8E1DC]" />
+
+              <div className="h-4 w-1/3 rounded-full bg-[#E8E1DC]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ==========================================
+  // Filter Controls
+  // ==========================================
+
+  const FilterControls = ({
+    mobile = false,
+  }: {
+    mobile?: boolean;
+  }) => {
+    return (
+      <div
+        className={
+          mobile
+            ? "space-y-6"
+            : "flex flex-col gap-4 md:flex-row md:items-center"
+        }
+      >
+        {/* Price Range */}
+
+        <div
+          className={
+            mobile
+              ? "w-full"
+              : "w-full md:w-[240px]"
+          }
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="text-sm font-semibold tracking-wide text-[#2E2E2E]">
+              Price Range
+            </h4>
+
+            <span className="text-[10px] text-[#777]">
+              ₹
+              {minPrice.toLocaleString(
+                "en-IN"
+              )}
+              {" - "}
+              ₹
+              {maxPrice.toLocaleString(
+                "en-IN"
+              )}
+            </span>
+          </div>
+
+          <Slider
+            min={0}
+            max={priceLimit}
+            step={100}
+            value={[
+              minPrice,
+              maxPrice,
+            ]}
+            onValueChange={(value) => {
+              if (
+                Array.isArray(value) &&
+                value.length === 2
+              ) {
+                setMinPrice(
+                  Number(value[0])
+                );
+
+                setMaxPrice(
+                  Number(value[1])
+                );
+              }
+            }}
+            className="w-full"
+          />
+
+          <div className="mt-2 flex justify-between text-[9px] text-[#999]">
+            <span>
+              ₹0
+            </span>
+
+            <span>
+              ₹
+              {priceLimit.toLocaleString(
+                "en-IN"
+              )}
+            </span>
+          </div>
+        </div>
+
+        {/* Divider */}
+
+        {!mobile && (
+          <div className="hidden h-8 w-px bg-[#E7DFDA] md:block" />
+        )}
+
+        {/* Stock */}
+
+        <label className="flex shrink-0 cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={inStockOnly}
+            onChange={(e) =>
+              setInStockOnly(
+                e.target.checked
+              )
+            }
+            className="h-4 w-4 cursor-pointer accent-[#8D4E67]"
+          />
+
+          <span className="text-xs text-[#555]">
+            In Stock Only
+          </span>
+        </label>
+
+        {/* Clear */}
+
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8D4E67] transition hover:text-[#C78B7B]"
+          >
+            <X size={13} />
+            Clear Filters
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  // ==========================================
   // Render
   // ==========================================
 
   return (
-  <>
-    <Navbar />
+    <>
+      <Navbar />
 
-    <FindProductButton />
+      <FindProductButton />
+
       {/* =====================================
           Hero
       ====================================== */}
 
       <section className="border-b border-gray-200 bg-[#FAF8F6]">
         <div className="mx-auto max-w-[1450px] px-5 py-14 lg:px-10">
-
           <div className="max-w-3xl">
-
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.35em] text-[#C78B7B]">
               Mahalaksmi Artificial Jewellery
             </p>
@@ -317,257 +541,263 @@ export default function ShopPage() {
               {search
                 ? `Search Results for "${search}"`
                 : selectedCategory !==
-                    "All Products"
-                  ? `${selectedCategory} Collection`
-                  : "Discover premium artificial jewellery crafted for weddings, festivals and everyday elegance."}
+                  "All Products"
+                ? `${selectedCategory} Collection`
+                : "Discover premium artificial jewellery crafted for weddings, festivals and everyday elegance."}
             </p>
-
           </div>
-
         </div>
       </section>
 
       {/* =====================================
-    Shop
-====================================== */}
+          Shop
+      ====================================== */}
 
-<section className="mx-auto max-w-[1450px] px-5 py-8 lg:px-10">
+      <section className="mx-auto max-w-[1450px] px-5 py-8 lg:px-10">
+        {/* =====================================
+            Category Pills
+        ====================================== */}
 
-  {/* =====================================
-      Category Pills
-  ====================================== */}
+        <div className="mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map(
+              (category) => {
+                const isActive =
+                  selectedCategory ===
+                  category.name;
 
-  <div className="mb-6">
+                return (
+                  <button
+                    key={
+                      category.name
+                    }
+                    type="button"
+                    onClick={() =>
+                      handleCategoryChange(
+                        category.name
+                      )
+                    }
+                    className={`
+                      flex shrink-0 items-center gap-1.5
+                      rounded-full border
+                      px-4 py-2
+                      text-xs
+                      font-medium
+                      transition-all duration-200
+                      ${
+                        isActive
+                          ? "border-[#2E2024] bg-[#2E2024] text-white"
+                          : "border-[#E5DDD8] bg-white text-[#555] hover:border-[#C78B7B] hover:text-[#C78B7B]"
+                      }
+                    `}
+                  >
+                    <span>
+                      {category.icon}
+                    </span>
 
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-
-      {categories.map((category) => {
-        const isActive =
-          selectedCategory === category.name;
-
-        return (
-          <button
-            key={category.name}
-            type="button"
-            onClick={() =>
-              handleCategoryChange(
-                category.name
-              )
-            }
-            className={`
-              flex shrink-0 items-center gap-1.5
-              rounded-full border
-              px-4 py-2
-              text-xs
-              font-medium
-              transition-all duration-200
-              ${
-                isActive
-                  ? "border-[#2E2024] bg-[#2E2024] text-white"
-                  : "border-[#E5DDD8] bg-white text-[#555] hover:border-[#C78B7B] hover:text-[#C78B7B]"
+                    <span>
+                      {category.name ===
+                      "All Products"
+                        ? "All"
+                        : category.name}
+                    </span>
+                  </button>
+                );
               }
-            `}
-          >
-            <span>
-              {category.icon}
-            </span>
-
-            <span>
-              {category.name ===
-              "All Products"
-                ? "All"
-                : category.name}
-            </span>
-          </button>
-        );
-      })}
-
-    </div>
-
-  </div>
-
-  {/* =====================================
-    Compact Price + Availability
-====================================== */}
-
-<div className="border-y border-[#E7DFDA] py-4">
-
-  <div className="flex flex-col gap-4 md:flex-row md:items-center">
-
-    {/* Price Range */}
-
-<div className="w-[110px] shrink-0">
-  <div className="mb-2 flex items-center justify-between">
-
-    <h4 className="text-sm font-semibold tracking-wide text-[#2E2E2E]">
-      Price Range
-    </h4>
-
-    <span className="text-[10px] text-[#777]">
-      ₹{minPrice.toLocaleString("en-IN")}
-      {" - "}
-      ₹{maxPrice.toLocaleString("en-IN")}
-    </span>
-
-  </div>
-
-  <Slider
-    min={0}
-    max={10000}
-    step={100}
-    value={[minPrice, maxPrice]}
-   onValueChange={(value) => {
-  if (Array.isArray(value)) {
-    setMinPrice(value[0]);
-    setMaxPrice(value[1]);
-  }
-}}
-    className="w-full"
-  />
-
-  <div className="mt-2 flex justify-between text-[9px] text-[#999]">
-    <span>
-      ₹{minPrice.toLocaleString("en-IN")}
-    </span>
-
-    <span>
-      ₹{maxPrice.toLocaleString("en-IN")}
-    </span>
-  </div>
-
-</div>
-<div className="hidden h-8 w-px bg-[#E7DFDA] md:block" />
-
-<label className="flex shrink-0 cursor-pointer items-center gap-2">
-
-  <input
-    type="checkbox"
-    checked={inStockOnly}
-    onChange={(e) =>
-      setInStockOnly(e.target.checked)
-    }
-    className="h-4 w-4 cursor-pointer accent-[#8D4E67]"
-  />
-
-  <span className="text-[10px] text-[#555]">
-    In Stock Only
-  </span>
-
-</label>
-
-    </div>
-
-</div>
-
-  {/* =====================================
-      Products Toolbar
-  ====================================== */}
-
-  <div className="mt-7 flex items-center justify-between gap-4">
-
-    {/* Product Count */}
-
-    <div>
-
-      <p className="text-xs text-[#777]">
-
-        Showing{" "}
-
-        <span className="font-semibold text-[#2E2E2E]">
-          {filteredProducts.length}
-        </span>
-
-        {" "}Products
-
-      </p>
-
-    </div>
-
-    {/* Sort */}
-
-    <select
-      value={sortBy}
-      onChange={(e) =>
-        setSortBy(e.target.value)
-      }
-      className="
-        h-9
-        min-w-[145px]
-        border
-        border-[#E5DDD8]
-        bg-white
-        px-3
-        text-xs
-        text-[#555]
-        outline-none
-        transition
-        focus:border-[#C78B7B]
-      "
-    >
-
-      <option value="newest">
-        Newest First
-      </option>
-
-      <option value="price-low">
-        Price: Low to High
-      </option>
-
-      <option value="price-high">
-        Price: High to Low
-      </option>
-
-      <option value="oldest">
-        Oldest First
-      </option>
-
-    </select>
-
-  </div>
-
-  {/* =====================================
-      Products
-  ====================================== */}
-
-  <div className="mt-7">
-
-    {loading ? (
-
-      <div className="flex h-[500px] items-center justify-center">
-
-        <div className="text-center">
-
-          <div className="mx-auto mb-6 h-12 w-12 animate-spin rounded-full border-4 border-[#C78B7B] border-t-transparent" />
-
-          <p className="text-gray-500">
-            Loading Products...
-          </p>
-
+            )}
+          </div>
         </div>
 
-      </div>
+        {/* =====================================
+            Desktop Filters
+        ====================================== */}
 
-    ) : filteredProducts.length === 0 ? (
+        <div className="hidden border-y border-[#E7DFDA] py-4 md:block">
+          <div className="flex items-center justify-between gap-5">
+            <FilterControls />
 
-      <div className="flex h-[500px] items-center justify-center">
+            <div className="shrink-0">
+              <select
+                value={sortBy}
+                onChange={(e) =>
+                  setSortBy(
+                    e.target.value
+                  )
+                }
+                className="
+                  h-10
+                  min-w-[165px]
+                  rounded-lg
+                  border
+                  border-[#E5DDD8]
+                  bg-white
+                  px-3
+                  text-xs
+                  text-[#555]
+                  outline-none
+                  transition
+                  focus:border-[#C78B7B]
+                  focus:ring-2
+                  focus:ring-[#C78B7B]/10
+                "
+              >
+                <option value="newest">
+                  Newest First
+                </option>
 
-        <EmptyState />
+                <option value="price-low">
+                  Price: Low to High
+                </option>
 
-      </div>
+                <option value="price-high">
+                  Price: High to Low
+                </option>
 
-    ) : (
+                <option value="oldest">
+                  Oldest First
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-      <ProductGrid
-        products={
-          filteredProducts
-        }
-      />
+        {/* =====================================
+            Mobile Filter Button
+        ====================================== */}
 
+        <div className="border-y border-[#E7DFDA] py-3 md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setShowMobileFilters(
+                  !showMobileFilters
+                )
+              }
+              className="
+                inline-flex
+                items-center
+                gap-2
+                rounded-lg
+                border
+                border-[#E5DDD8]
+                bg-white
+                px-4
+                py-2.5
+                text-xs
+                font-semibold
+                text-[#2E2E2E]
+              "
+            >
+              <SlidersHorizontal
+                size={15}
+              />
+
+              Filters
+
+              {hasActiveFilters && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#2E2024] px-1 text-[10px] text-white">
+                  !
+                </span>
+              )}
+            </button>
+
+            <select
+              value={sortBy}
+              onChange={(e) =>
+                setSortBy(
+                  e.target.value
+                )
+              }
+              className="
+                h-10
+                min-w-[150px]
+                rounded-lg
+                border
+                border-[#E5DDD8]
+                bg-white
+                px-3
+                text-xs
+                text-[#555]
+                outline-none
+                focus:border-[#C78B7B]
+              "
+            >
+              <option value="newest">
+                Newest First
+              </option>
+
+              <option value="price-low">
+                Price: Low to High
+              </option>
+
+              <option value="price-high">
+                Price: High to Low
+              </option>
+
+              <option value="oldest">
+                Oldest First
+              </option>
+            </select>
+          </div>
+
+          {/* Mobile Filter Panel */}
+
+          {showMobileFilters && (
+            <div className="mt-4 rounded-xl border border-[#E7DFDA] bg-[#FAF8F6] p-4">
+              <FilterControls mobile />
+            </div>
+          )}
+        </div>
+
+        {/* =====================================
+    Products Toolbar
+====================================== */}
+
+<div className="mt-7">
+  <div>
+    <p className="text-xs text-[#777]">
+      Showing{" "}
+      <span className="font-semibold text-[#2E2E2E]">
+        {filteredProducts.length}
+      </span>{" "}
+      Products
+    </p>
+
+    {search && (
+      <p className="mt-1 text-xs text-[#999]">
+        Search:
+        <span className="ml-1 font-medium text-[#555]">
+          "{search}"
+        </span>
+      </p>
     )}
-
   </div>
+</div>
+        {/* =====================================
+            Products
+        ====================================== */}
 
-</section>
+        <div className="mt-7">
+          {loading ? (
+            <ProductSkeleton />
+          ) : filteredProducts.length ===
+            0 ? (
+            <div className="flex min-h-[500px] items-center justify-center">
+              <div className="w-full">
+                <EmptyState />
+              </div>
+            </div>
+          ) : (
+            <ProductGrid
+              products={
+                filteredProducts
+              }
+            />
+          )}
+        </div>
+      </section>
+
       <Footer />
     </>
   );
