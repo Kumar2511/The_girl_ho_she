@@ -1,619 +1,721 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-
 import {
-  Eye,
   Heart,
-  ShoppingBag,
-  Sparkles,
+  ShoppingCart,
   Star,
-  Tag,
   X,
-  Zap,
+  Bell,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
-export interface ProductCardData {
-  _id?: string;
+import { useCart } from "@/context/cart-context";
+import { useWishlist } from "@/context/wishlist-context";
+
+interface Product {
+  _id: string;
   id?: string;
 
   name: string;
-  description?: string;
-
   category?: string;
-  collection?: string;
+
+  image?: string;
+  images?: string[];
+  hoverImage?: string;
 
   price: number;
   discountPrice?: number;
+  originalPrice?: number;
 
-  images?: string[];
-
-  stock?: number;
-
-  featured?: boolean;
-  bestSeller?: boolean;
-  newArrival?: boolean;
-  trending?: boolean;
+  badge?: string;
 
   averageRating?: number;
   numReviews?: number;
 
-  createdAt?: string;
+  stock?: number;
 }
 
-export interface ProductCardProps {
-  product: ProductCardData;
-
-  onWishlistChange?: (
-    product: ProductCardData,
-    wishlisted: boolean
-  ) => void;
-
-  onQuickView?: (
-    product: ProductCardData
-  ) => void;
-
-  onAddToCart?: (
-    product: ProductCardData
-  ) => void;
-
-  onBuyNow?: (
-    product: ProductCardData
-  ) => void;
+interface ProductCardProps {
+  product: Product;
 }
 
-// ==========================================
-// Price Formatter
-// ==========================================
-
-function formatPrice(
-  value: number
-) {
-  return new Intl.NumberFormat(
-    "en-IN",
-    {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }
-  ).format(value);
-}
-
-// ==========================================
-// Rating
-// ==========================================
-
-function Rating({
-  rating = 0,
-  reviewCount = 0,
-}: {
-  rating?: number;
-  reviewCount?: number;
-}) {
-  const safeRating = Number(rating) || 0;
-
-  return (
-    <div
-      className="flex items-center gap-2"
-      aria-label={`${safeRating.toFixed(
-        1
-      )} out of 5 stars from ${reviewCount} reviews`}
-    >
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: 5 }).map(
-          (_, index) => (
-            <Star
-              key={index}
-              size={14}
-              className={
-                index <
-                Math.round(safeRating)
-                  ? "fill-[#D6B36A] text-[#D6B36A]"
-                  : "text-[#D6B36A]/30"
-              }
-            />
-          )
-        )}
-      </div>
-
-      <span className="text-xs text-[#777]">
-        {safeRating.toFixed(1)}{" "}
-        ({reviewCount})
-      </span>
-    </div>
-  );
-}
-
-// ==========================================
-// Product Card
-// ==========================================
-
-export function ProductCard({
+export default function ProductCard({
   product,
-  onWishlistChange,
-  onQuickView,
-  onAddToCart,
-  onBuyNow,
 }: ProductCardProps) {
-  const [wishlisted, setWishlisted] =
+  const [isHovered, setIsHovered] =
     useState(false);
 
-  const [isQuickViewOpen, setIsQuickViewOpen] =
+  const [showNotifyModal, setShowNotifyModal] =
     useState(false);
 
-  const productId =
-    product._id || product.id;
+  const [notifyEmail, setNotifyEmail] =
+    useState("");
+
+  const [notifyLoading, setNotifyLoading] =
+    useState(false);
+
+  const [notifySuccess, setNotifySuccess] =
+    useState(false);
+
+  const [notifyError, setNotifyError] =
+    useState("");
+
+  const { addToCart } = useCart();
+
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+  } = useWishlist();
+
+  // ======================================
+  // Product Data
+  // ======================================
+
+  const id =
+    product._id || product.id || "";
+
+  const name =
+    product.name || "Unnamed Product";
+
+  const category =
+    product.category || "Jewellery";
 
   const image =
+    product.image ||
     product.images?.[0] ||
     "/placeholder-product.jpg";
 
-  const secondImage =
-    product.images?.[1] || image;
+  const hoverImage =
+    product.hoverImage ||
+    product.images?.[1];
+
+  const price =
+    Number(
+      product.discountPrice &&
+        product.discountPrice > 0
+        ? product.discountPrice
+        : product.price
+    ) || 0;
 
   const originalPrice =
-    Number(product.price) || 0;
+    Number(
+      product.discountPrice &&
+        product.discountPrice > 0
+        ? product.price
+        : product.originalPrice || 0
+    ) || 0;
 
-  const salePrice =
-    Number(product.discountPrice) > 0 &&
-    Number(product.discountPrice) <
-      originalPrice
-      ? Number(product.discountPrice)
-      : originalPrice;
+  const averageRating =
+    Number(
+      product.averageRating ?? 4.8
+    );
 
-  const hasDiscount =
-    salePrice < originalPrice;
+  const numReviews =
+    Number(
+      product.numReviews ?? 0
+    );
 
-  const discountPercentage =
-    hasDiscount
+  // ======================================
+  // Stock
+  // ======================================
+
+  const currentStock =
+    Number(product.stock ?? 0);
+
+  const isOutOfStock =
+    currentStock <= 0;
+
+  const isLowStock =
+    currentStock > 0 &&
+    currentStock <= 3;
+
+  // ======================================
+  // Wishlist
+  // ======================================
+
+  const favorite =
+    isInWishlist(id);
+
+  // ======================================
+  // Discount
+  // ======================================
+
+  const discount =
+    originalPrice > price &&
+    originalPrice > 0
       ? Math.round(
-          ((originalPrice -
-            salePrice) /
+          ((originalPrice - price) /
             originalPrice) *
             100
         )
       : 0;
 
-  const stock =
-    Number(product.stock) || 0;
-
-  const isOutOfStock =
-    stock <= 0;
-
-  const isLowStock =
-    stock > 0 && stock <= 5;
-
-  // ========================================
-  // Wishlist
-  // ========================================
-
-  const toggleWishlist = (
-    e: React.MouseEvent
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const next = !wishlisted;
-
-    setWishlisted(next);
-
-    onWishlistChange?.(
-      product,
-      next
-    );
-  };
-
-  // ========================================
-  // Quick View
-  // ========================================
-
-  const openQuickView = (
-    e: React.MouseEvent
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setIsQuickViewOpen(true);
-
-    onQuickView?.(product);
-  };
-
-  // ========================================
-  // Add Cart
-  // ========================================
+  // ======================================
+  // Add To Cart
+  // ======================================
 
   const handleAddToCart = (
-    e: React.MouseEvent
+    e: React.MouseEvent<HTMLButtonElement>
   ) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isOutOfStock) return;
+    if (isOutOfStock) {
+      return;
+    }
 
-    onAddToCart?.(product);
+    addToCart({
+      _id: id,
+      name,
+      image,
+      price,
+      stock: currentStock,
+      quantity: 1,
+    });
   };
 
-  // ========================================
-  // Buy Now
-  // ========================================
+  // ======================================
+  // Open Notify Modal
+  // ======================================
 
-  const handleBuyNow = (
-    e: React.MouseEvent
+  const handleOpenNotify = (
+    e: React.MouseEvent<HTMLButtonElement>
   ) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isOutOfStock) return;
+    setNotifyError("");
+    setNotifySuccess(false);
 
-    onBuyNow?.(product);
+    setShowNotifyModal(true);
+  };
+
+  // ======================================
+  // Close Notify Modal
+  // ======================================
+
+  const handleCloseNotify = () => {
+    if (notifyLoading) {
+      return;
+    }
+
+    setShowNotifyModal(false);
+    setNotifyError("");
+    setNotifySuccess(false);
+  };
+
+  // ======================================
+  // Submit Notification Request
+  // ======================================
+
+  const handleNotifySubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    setNotifyError("");
+    setNotifySuccess(false);
+
+    const email =
+      notifyEmail.trim().toLowerCase();
+
+    // ======================================
+    // Email Validation
+    // ======================================
+
+    if (!email) {
+      setNotifyError(
+        "Please enter your email address."
+      );
+      return;
+    }
+
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      setNotifyError(
+        "Please enter a valid email address."
+      );
+      return;
+    }
+
+    // ======================================
+    // Product Availability Check
+    // ======================================
+
+    if (!isOutOfStock) {
+      setNotifyError(
+        "This product is already available."
+      );
+      return;
+    }
+
+    try {
+      setNotifyLoading(true);
+
+      const response =
+        await fetch(
+          `${
+            process.env
+              .NEXT_PUBLIC_API_URL ||
+            "http://localhost:5000/api"
+          }/stock-notifications`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              productId: id,
+              email,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Unable to subscribe for notification."
+        );
+      }
+
+      setNotifySuccess(true);
+
+      setNotifyEmail("");
+    } catch (error) {
+      console.error(
+        "Notify Me Error:",
+        error
+      );
+
+      setNotifyError(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setNotifyLoading(false);
+    }
   };
 
   return (
-    <article className="group flex h-full flex-col">
+    <>
+      {/* ======================================
+          PRODUCT CARD
+      ====================================== */}
 
-      {/* ====================================
-          Product Image
-      ===================================== */}
+      <div className="group overflow-hidden rounded-lg border border-[#E8E3DC] bg-white transition duration-300 hover:shadow-xl">
 
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[25px] bg-[#FCFAF7]">
+        {/* ======================================
+            IMAGE
+        ====================================== */}
 
-        <Link
-          href={
-            productId
-              ? `/shop/${productId}`
-              : "/shop"
-          }
-          className="absolute inset-0"
-        >
-
-          {/* Main Image */}
-
-          <Image
-            src={image}
-            alt={
-              product.name
+        <Link href={`/shop/${id}`}>
+          <div
+            className="relative aspect-square overflow-hidden bg-[#FAF7F4]"
+            onMouseEnter={() =>
+              setIsHovered(true)
             }
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover transition-all duration-700 ease-out group-hover:scale-105 group-hover:opacity-0"
-          />
-
-          {/* Hover Image */}
-
-          <Image
-            src={secondImage}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="object-cover opacity-0 transition-all duration-700 ease-out group-hover:scale-105 group-hover:opacity-100"
-          />
-
-          {/* Luxury Overlay */}
-
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.2),transparent_40%,rgba(199,139,123,0.12))]" />
-
-        </Link>
-
-        {/* =================================
-            Badges
-        ================================== */}
-
-        <div className="absolute left-4 top-4 z-10 flex max-w-[75%] flex-wrap gap-2">
-
-          {hasDiscount && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#C78B7B] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white shadow-lg">
-              <Tag size={12} />
-              {discountPercentage}% OFF
-            </span>
-          )}
-
-          {product.bestSeller && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#D6B36A] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2E2E2E] shadow-lg">
-              <Sparkles size={12} />
-              Bestseller
-            </span>
-          )}
-
-          {product.newArrival && (
-            <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#C78B7B] shadow-lg backdrop-blur-md">
-              New
-            </span>
-          )}
-
-        </div>
-
-        {/* =================================
-            Wishlist / Quick View
-        ================================== */}
-
-        <div className="absolute right-4 top-4 z-10 flex flex-col gap-2">
-
-          <button
-            type="button"
-            onClick={
-              toggleWishlist
+            onMouseLeave={() =>
+              setIsHovered(false)
             }
-            aria-label={
-              wishlisted
-                ? `Remove ${product.name} from wishlist`
-                : `Add ${product.name} to wishlist`
-            }
-            aria-pressed={
-              wishlisted
-            }
-            className="flex size-10 items-center justify-center rounded-full border border-white/65 bg-white/85 text-[#2E2E2E] shadow-lg backdrop-blur-md transition hover:bg-white hover:text-[#C78B7B]"
           >
-            <Heart
-              size={18}
-              className={
-                wishlisted
-                  ? "fill-[#C78B7B] text-[#C78B7B]"
-                  : ""
-              }
+            <Image
+              src={image}
+              alt={name}
+              fill
+              sizes="(max-width:768px)100vw,25vw"
+              className={`object-cover transition-all duration-700 ${
+                isOutOfStock
+                  ? "grayscale-[35%]"
+                  : "group-hover:scale-110"
+              }`}
             />
-          </button>
 
-          <button
-            type="button"
-            onClick={
-              openQuickView
-            }
-            aria-label={`Quick view ${product.name}`}
-            className="flex size-10 items-center justify-center rounded-full border border-white/65 bg-white/85 text-[#2E2E2E] shadow-lg backdrop-blur-md transition hover:bg-white hover:text-[#C78B7B]"
-          >
-            <Eye size={18} />
-          </button>
+            {/* Hover Image */}
 
-        </div>
-
-        {/* =================================
-            Stock Status
-        ================================== */}
-
-        {isLowStock && (
-          <div className="absolute bottom-4 left-4 z-10 rounded-full bg-[#2E2E2E]/85 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md">
-            Only {stock} left
-          </div>
-        )}
-
-        {isOutOfStock && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20">
-            <span className="rounded-full bg-white px-5 py-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#2E2E2E] shadow-lg">
-              Out of Stock
-            </span>
-          </div>
-        )}
-
-        {/* =================================
-            Add To Cart
-        ================================== */}
-
-        {!isOutOfStock && (
-          <button
-            type="button"
-            onClick={
-              handleAddToCart
-            }
-            className="absolute bottom-4 left-4 right-4 z-10 flex translate-y-3 items-center justify-center gap-2 rounded-full bg-white/95 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#2E2E2E] opacity-0 shadow-xl backdrop-blur-md transition-all duration-500 hover:bg-[#C78B7B] hover:text-white group-hover:translate-y-0 group-hover:opacity-100"
-          >
-            <ShoppingBag
-              size={16}
-            />
-            Add to Cart
-          </button>
-        )}
-
-      </div>
-
-      {/* ====================================
-          Product Information
-      ===================================== */}
-
-      <div className="flex flex-1 flex-col gap-3 px-2 pb-2 pt-5">
-
-        {/* Collection */}
-
-        {product.collection && (
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
-            {product.collection}
-          </p>
-        )}
-
-        {/* Product Name */}
-
-        <Link
-          href={
-            productId
-              ? `/shop/${productId}`
-              : "/shop"
-          }
-          className="font-serif text-xl leading-7 text-[#2E2E2E] transition hover:text-[#C78B7B]"
-        >
-          {product.name}
-        </Link>
-
-        {/* Rating */}
-
-        <Rating
-          rating={
-            product.averageRating
-          }
-          reviewCount={
-            product.numReviews
-          }
-        />
-
-        {/* Price */}
-
-        <div className="flex items-baseline gap-2">
-
-          <span className="font-serif text-lg font-semibold text-[#2E2E2E]">
-            {formatPrice(
-              salePrice
+            {hoverImage && (
+              <Image
+                src={hoverImage}
+                alt={name}
+                fill
+                sizes="(max-width:768px)100vw,25vw"
+                className={`absolute inset-0 object-cover transition-opacity duration-300 ${
+                  isHovered &&
+                  !isOutOfStock
+                    ? "opacity-100"
+                    : "opacity-0"
+                }`}
+              />
             )}
-          </span>
 
-          {hasDiscount && (
-            <span className="text-sm text-[#2E2E2E]/40 line-through">
-              {formatPrice(
-                originalPrice
+            {/* Badge */}
+
+            {product.badge &&
+  !isOutOfStock && (
+    <span className="absolute left-4 top-4 rounded bg-[#8B4A5A] px-2 py-1 text-xs font-semibold text-white">
+      {product.badge}
+    </span>
+  )}
+
+            {/* Discount */}
+
+            {discount > 0 &&
+              !isOutOfStock && (
+                <span className="absolute left-4 top-4 rounded bg-[#8B4A5A] px-2 py-1 text-xs font-semibold text-white">
+                  -{discount}%
+                </span>
+              )}
+
+            {/* ======================================
+                OUT OF STOCK OVERLAY
+            ====================================== */}
+
+            {isOutOfStock && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+                <span className="rounded-md bg-[#3A2528]/95 px-5 py-2.5 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-lg">
+                  Out of Stock
+                </span>
+              </div>
+            )}
+
+            {/* Low Stock */}
+
+            {isLowStock && (
+              <span className="absolute bottom-4 left-4 rounded-md bg-[#C78B7B] px-3 py-1.5 text-xs font-semibold text-white shadow-md">
+                Only {currentStock} left
+              </span>
+            )}
+
+            {/* Wishlist */}
+
+            <button
+              type="button"
+              aria-label={
+                favorite
+                  ? `Remove ${name} from wishlist`
+                  : `Add ${name} to wishlist`
+              }
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                favorite
+                  ? removeFromWishlist(id)
+                  : addToWishlist({
+                      _id: id,
+                      name,
+                      image,
+                      price,
+                    });
+              }}
+              className="absolute right-4 top-4 rounded-full bg-white p-2 shadow-md transition duration-300 hover:scale-110"
+            >
+              <Heart
+                className={`h-4 w-4 ${
+                  favorite
+                    ? "fill-[#C78B7B] text-[#C78B7B]"
+                    : "text-gray-600"
+                }`}
+              />
+            </button>
+          </div>
+        </Link>
+
+        {/* ======================================
+            PRODUCT INFO
+        ====================================== */}
+
+        <div className="space-y-3 p-5">
+
+          <p className="text-xs font-medium uppercase tracking-[0.25em] text-[#B68C7A]">
+            {category}
+          </p>
+
+          <Link href={`/shop/${id}`}>
+            <h3 className="line-clamp-2 font-serif text-[22px] leading-8 text-[#2E2E2E] transition hover:text-[#C78B7B]">
+              {name}
+            </h3>
+          </Link>
+
+          {/* Rating */}
+
+          <div className="flex items-center gap-1 text-sm">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+
+            <span className="text-sm font-medium text-gray-700">
+              {averageRating.toFixed(1)}
+            </span>
+
+            <span className="text-sm text-gray-500">
+              ({numReviews})
+            </span>
+          </div>
+
+          {/* Price */}
+
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold text-[#2E2E2E]">
+              ₹
+              {price.toLocaleString(
+                "en-IN"
               )}
             </span>
-          )}
 
+            {originalPrice > price && (
+              <span className="text-base text-gray-400 line-through">
+                ₹
+                {originalPrice.toLocaleString(
+                  "en-IN"
+                )}
+              </span>
+            )}
+          </div>
+
+          {/* ======================================
+              STOCK STATUS
+          ====================================== */}
+
+          <div className="min-h-[20px]">
+            {isOutOfStock ? (
+              <p className="text-sm font-semibold text-[#8B4A5A]">
+                Currently unavailable
+              </p>
+            ) : isLowStock ? (
+              <p className="text-sm font-medium text-[#C78B7B]">
+                Hurry! Only{" "}
+                {currentStock} left
+                in stock
+              </p>
+            ) : (
+              <p className="text-sm font-medium text-green-700">
+                In Stock
+              </p>
+            )}
+          </div>
+
+          {/* ======================================
+              BUTTON
+          ====================================== */}
+
+          <div className="mt-5">
+
+            {isOutOfStock ? (
+              <button
+                type="button"
+                onClick={
+                  handleOpenNotify
+                }
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#3A2528] bg-white text-sm font-semibold tracking-wide text-[#3A2528] transition-all duration-300 hover:bg-[#3A2528] hover:text-white"
+              >
+                <Bell className="h-4 w-4" />
+
+                NOTIFY ME WHEN AVAILABLE
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={
+                  handleAddToCart
+                }
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#3A2528] text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:bg-[#281719]"
+              >
+                <ShoppingCart className="h-4 w-4" />
+
+                ADD TO CART
+              </button>
+            )}
+
+          </div>
         </div>
-
-        {/* Buy Now */}
-
-        {!isOutOfStock && (
-          <button
-            type="button"
-            onClick={
-              handleBuyNow
-            }
-            className="mt-auto flex items-center justify-center gap-2 rounded-full border border-[#D6B36A]/60 bg-[#FCFAF7] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[#2E2E2E] transition-all hover:border-[#C78B7B] hover:bg-[#C78B7B] hover:text-white"
-          >
-            <Zap size={15} />
-            Buy Now
-          </button>
-        )}
-
       </div>
 
-      {/* ====================================
-          Quick View Modal
-      ===================================== */}
+      {/* ======================================
+          NOTIFY MODAL
+      ====================================== */}
 
-      {isQuickViewOpen && (
+      {showNotifyModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-5 backdrop-blur-sm"
-          onClick={() =>
-            setIsQuickViewOpen(false)
-          }
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          onClick={handleCloseNotify}
         >
-
           <div
-            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`notify-title-${id}`}
+            className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-2xl sm:p-8"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
 
-            <div className="flex items-start justify-between gap-4">
+            {/* Close */}
 
-              <div>
+            <button
+              type="button"
+              onClick={
+                handleCloseNotify
+              }
+              disabled={notifyLoading}
+              aria-label="Close notification dialog"
+              className="absolute right-4 top-4 rounded-full p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
-                  Quick View
-                </p>
+            {!notifySuccess ? (
+              <>
+                {/* Icon */}
 
-                <h4 className="font-serif text-2xl text-[#2E2E2E]">
-                  {product.name}
-                </h4>
-
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setIsQuickViewOpen(
-                    false
-                  )
-                }
-                className="flex size-9 items-center justify-center rounded-full bg-[#FCFAF7] text-[#2E2E2E] hover:text-[#C78B7B]"
-              >
-                <X size={18} />
-              </button>
-
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
-
-              <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#FCFAF7]">
-
-                <Image
-                  src={image}
-                  alt={product.name}
-                  fill
-                  sizes="300px"
-                  className="object-cover"
-                />
-
-              </div>
-
-              <div className="flex flex-col">
-
-                <Rating
-                  rating={
-                    product.averageRating
-                  }
-                  reviewCount={
-                    product.numReviews
-                  }
-                />
-
-                <p className="mt-4 text-sm leading-6 text-[#2E2E2E]/65">
-                  {product.description ||
-                    "A beautiful piece from the Mahalaksmi Jewellery collection."}
-                </p>
-
-                <div className="mt-5 flex items-baseline gap-2">
-
-                  <span className="font-serif text-2xl font-semibold text-[#2E2E2E]">
-                    {formatPrice(
-                      salePrice
-                    )}
-                  </span>
-
-                  {hasDiscount && (
-                    <span className="text-sm text-[#2E2E2E]/40 line-through">
-                      {formatPrice(
-                        originalPrice
-                      )}
-                    </span>
-                  )}
-
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[#F8ECE8]">
+                  <Bell className="h-5 w-5 text-[#8B4A5A]" />
                 </div>
 
-                <p className="mt-3 text-sm text-[#777]">
-                  Category:{" "}
-                  <span className="font-medium text-[#2E2E2E]">
-                    {product.category ||
-                      "Jewellery"}
-                  </span>
+                <h2
+                  id={`notify-title-${id}`}
+                  className="font-serif text-2xl text-[#2E2E2E]"
+                >
+                  Notify Me When Available
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  <strong>
+                    {name}
+                  </strong>{" "}
+                  is currently out of
+                  stock. Enter your email
+                  and we'll let you know
+                  when it's available
+                  again.
+                </p>
+
+                {/* Form */}
+
+                <form
+                  onSubmit={
+                    handleNotifySubmit
+                  }
+                  className="mt-6"
+                >
+
+                  <label
+                    htmlFor={`notify-email-${id}`}
+                    className="mb-2 block text-sm font-medium text-[#2E2E2E]"
+                  >
+                    Email Address
+                  </label>
+
+                  <input
+                    id={`notify-email-${id}`}
+                    type="email"
+                    value={notifyEmail}
+                    onChange={(e) => {
+                      setNotifyEmail(
+                        e.target.value
+                      );
+                      setNotifyError(
+                        ""
+                      );
+                    }}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    disabled={
+                      notifyLoading
+                    }
+                    className="h-11 w-full rounded-md border border-[#DDD5CF] px-4 text-sm outline-none transition focus:border-[#8B4A5A] focus:ring-2 focus:ring-[#8B4A5A]/10 disabled:bg-gray-100"
+                  />
+
+                  {/* Error */}
+
+                  {notifyError && (
+                    <p
+                      role="alert"
+                      className="mt-2 text-sm text-red-600"
+                    >
+                      {notifyError}
+                    </p>
+                  )}
+
+                  {/* Submit */}
+
+                  <button
+                    type="submit"
+                    disabled={
+                      notifyLoading
+                    }
+                    className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#3A2528] text-sm font-semibold text-white transition hover:bg-[#281719] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {notifyLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Bell className="h-4 w-4" />
+                        Notify Me
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                <p className="mt-4 text-center text-xs text-gray-500">
+                  We’ll only use your email
+                  to send the back-in-stock
+                  notification.
+                </p>
+              </>
+            ) : (
+              /* ======================================
+                 SUCCESS
+              ====================================== */
+
+              <div className="py-6 text-center">
+
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-50">
+                  <CheckCircle2 className="h-8 w-8 text-green-600" />
+                </div>
+
+                <h2 className="mt-5 font-serif text-2xl text-[#2E2E2E]">
+                  You're on the list!
+                </h2>
+
+                <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-gray-600">
+                  We'll send a notification
+                  to your email when{" "}
+                  <strong>
+                    {name}
+                  </strong>{" "}
+                  is back in stock.
                 </p>
 
                 <button
                   type="button"
                   onClick={
-                    handleAddToCart
+                    handleCloseNotify
                   }
-                  disabled={
-                    isOutOfStock
-                  }
-                  className="mt-auto flex items-center justify-center gap-2 rounded-full bg-[#2E2E2E] px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#C78B7B] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-6 h-11 rounded-md bg-[#3A2528] px-7 text-sm font-semibold text-white transition hover:bg-[#281719]"
                 >
-                  <ShoppingBag
-                    size={16}
-                  />
-                  {isOutOfStock
-                    ? "Out of Stock"
-                    : "Add to Cart"}
+                  Done
                 </button>
 
               </div>
-
-            </div>
-
+            )}
           </div>
-
         </div>
       )}
-
-    </article>
+    </>
   );
 }
-
-export default ProductCard;

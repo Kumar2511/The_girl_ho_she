@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+
 import {
   Trash2,
   Minus,
@@ -19,6 +21,16 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 
 import { useCart } from "@/context/cart-context";
+import api from "@/lib/api";
+
+type ShippingSettings = {
+  freeShippingEnabled: boolean;
+  freeShippingMinimum: number;
+  shippingCharge: number;
+  codCharge: number;
+  estimatedDelivery: string;
+  deliveryMessage: string;
+};
 
 export default function CartPage() {
   const {
@@ -27,6 +39,95 @@ export default function CartPage() {
     increaseQuantity,
     decreaseQuantity,
   } = useCart();
+
+  // ==========================================
+  // SHIPPING SETTINGS
+  // ==========================================
+
+  const [shippingSettings, setShippingSettings] =
+    useState<ShippingSettings>({
+      freeShippingEnabled: true,
+      freeShippingMinimum: 999,
+      shippingCharge: 80,
+      codCharge: 0,
+      estimatedDelivery: "3-7 Business Days",
+      deliveryMessage:
+        "Orders are delivered within 3-7 business days.",
+    });
+
+  const [shippingLoading, setShippingLoading] =
+    useState(true);
+
+  // ==========================================
+  // FETCH SHIPPING SETTINGS
+  // ==========================================
+
+  useEffect(() => {
+    const fetchShippingSettings = async () => {
+      try {
+        setShippingLoading(true);
+
+        const res = await api.get("/shipping");
+
+        if (res.data?.settings) {
+          setShippingSettings({
+            freeShippingEnabled:
+              res.data.settings
+                .freeShippingEnabled ?? true,
+
+            freeShippingMinimum:
+              Number(
+                res.data.settings
+                  .freeShippingMinimum
+              ) || 999,
+
+            shippingCharge:
+              Number(
+                res.data.settings
+                  .shippingCharge
+              ) || 80,
+
+            codCharge:
+              Number(
+                res.data.settings
+                  .codCharge
+              ) || 0,
+
+            estimatedDelivery:
+              res.data.settings
+                .estimatedDelivery ||
+              "3-7 Business Days",
+
+            deliveryMessage:
+              res.data.settings
+                .deliveryMessage ||
+              "Orders are delivered within 3-7 business days.",
+          });
+        }
+      } catch (error) {
+        console.error(
+          "Failed to load shipping settings:",
+          error
+        );
+
+        // Keep safe default values
+        setShippingSettings({
+          freeShippingEnabled: true,
+          freeShippingMinimum: 999,
+          shippingCharge: 80,
+          codCharge: 0,
+          estimatedDelivery:
+            "3-7 Business Days",
+          deliveryMessage:
+            "Orders are delivered within 3-7 business days.",
+        });
+      } finally {
+        setShippingLoading(false);
+      }
+    };
+
+    fetchShippingSettings();
+  }, []);
 
   // ==========================================
   // TOTAL ITEMS
@@ -54,13 +155,29 @@ export default function CartPage() {
   // SHIPPING
   // ==========================================
 
-  const FREE_SHIPPING_LIMIT = 499;
+  const FREE_SHIPPING_LIMIT =
+    Number(
+      shippingSettings.freeShippingMinimum
+    ) || 999;
+
+  const SHIPPING_CHARGE =
+    Number(
+      shippingSettings.shippingCharge
+    ) || 80;
+
+  const freeShippingEnabled =
+    shippingSettings.freeShippingEnabled;
+
+  const qualifiesForFreeShipping =
+    freeShippingEnabled &&
+    subtotal >= FREE_SHIPPING_LIMIT;
 
   const shipping =
-    subtotal === 0 ||
-    subtotal >= FREE_SHIPPING_LIMIT
+    subtotal === 0
       ? 0
-      : 49;
+      : qualifiesForFreeShipping
+      ? 0
+      : SHIPPING_CHARGE;
 
   const total = subtotal + shipping;
 
@@ -75,12 +192,18 @@ export default function CartPage() {
     );
 
   const shippingProgress =
-    Math.min(
-      (subtotal /
-        FREE_SHIPPING_LIMIT) *
-        100,
-      100
-    );
+    freeShippingEnabled
+      ? Math.min(
+          (subtotal /
+            FREE_SHIPPING_LIMIT) *
+            100,
+          100
+        )
+      : 0;
+
+  // ==========================================
+  // RENDER
+  // ==========================================
 
   return (
     <>
@@ -105,9 +228,7 @@ export default function CartPage() {
                 Home
               </Link>
 
-              <ChevronRight
-                size={13}
-              />
+              <ChevronRight size={13} />
 
               <span className="font-medium text-[#3A2528]">
                 Cart
@@ -156,6 +277,7 @@ export default function CartPage() {
           ====================================== */}
 
           {cart.length === 0 ? (
+
             <div className="overflow-hidden rounded-2xl border border-[#E8DFD9] bg-white">
 
               <div className="flex min-h-[480px] flex-col items-center justify-center px-6 py-16 text-center">
@@ -192,91 +314,97 @@ export default function CartPage() {
                 >
                   Continue Shopping
 
-                  <ArrowRight
-                    size={16}
-                  />
+                  <ArrowRight size={16} />
                 </Link>
 
               </div>
 
             </div>
+
           ) : (
+
             <>
 
               {/* =================================
                   FREE SHIPPING MESSAGE
               ================================= */}
 
-              <div className="mb-7 rounded-2xl border border-[#E8DFD9] bg-white p-5">
+              {freeShippingEnabled && (
+                <div className="mb-7 rounded-2xl border border-[#E8DFD9] bg-white p-5">
 
-                {subtotal >=
-                FREE_SHIPPING_LIMIT ? (
-                  <div className="flex items-center gap-3">
+                  {qualifiesForFreeShipping ? (
 
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EDF5E9]">
+                    <div className="flex items-center gap-3">
 
-                      <Truck
-                        size={17}
-                        className="text-[#55734E]"
-                      />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EDF5E9]">
+
+                        <Truck
+                          size={17}
+                          className="text-[#55734E]"
+                        />
+
+                      </div>
+
+                      <div>
+
+                        <p className="text-sm font-semibold text-[#55734E]">
+                          You've unlocked free
+                          shipping!
+                        </p>
+
+                        <p className="mt-0.5 text-xs text-[#817671]">
+                          Your order qualifies for
+                          complimentary delivery.
+                        </p>
+
+                      </div>
 
                     </div>
+
+                  ) : (
 
                     <div>
 
-                      <p className="text-sm font-semibold text-[#55734E]">
-                        You've unlocked free
-                        shipping!
-                      </p>
+                      <div className="flex items-center justify-between gap-4">
 
-                      <p className="mt-0.5 text-xs text-[#817671]">
-                        Your order qualifies for
-                        complimentary delivery.
-                      </p>
+                        <p className="text-sm text-[#5E5551]">
 
-                    </div>
+                          Add{" "}
 
-                  </div>
-                ) : (
-                  <div>
+                          <span className="font-semibold text-[#3A2528]">
+                            ₹
+                            {remainingForFreeShipping.toLocaleString(
+                              "en-IN"
+                            )}
+                          </span>{" "}
+                          more for free shipping
 
-                    <div className="flex items-center justify-between gap-4">
+                        </p>
 
-                      <p className="text-sm text-[#5E5551]">
+                        <Truck
+                          size={18}
+                          className="shrink-0 text-[#C78B7B]"
+                        />
 
-                        Add{" "}
-                        <span className="font-semibold text-[#3A2528]">
-                          ₹
-                          {remainingForFreeShipping.toLocaleString(
-                            "en-IN"
-                          )}
-                        </span>{" "}
-                        more for free shipping
+                      </div>
 
-                      </p>
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EEE6E1]">
 
-                      <Truck
-                        size={18}
-                        className="shrink-0 text-[#C78B7B]"
-                      />
+                        <div
+                          className="h-full rounded-full bg-[#C78B7B] transition-all duration-500"
+                          style={{
+                            width: `${shippingProgress}%`,
+                          }}
+                        />
+
+                      </div>
 
                     </div>
 
-                    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EEE6E1]">
+                  )}
 
-                      <div
-                        className="h-full rounded-full bg-[#C78B7B] transition-all duration-500"
-                        style={{
-                          width: `${shippingProgress}%`,
-                        }}
-                      />
-
-                    </div>
-
-                  </div>
-                )}
-
-              </div>
+                </div>
+              )}
 
               {/* =================================
                   MAIN GRID
@@ -379,6 +507,7 @@ export default function CartPage() {
 
                             {(item.color ||
                               item.size) && (
+
                               <div className="mt-3 flex flex-wrap gap-2">
 
                                 {item.color && (
@@ -441,9 +570,7 @@ export default function CartPage() {
                                   className="flex h-full w-9 items-center justify-center rounded-l-full text-[#3A2528] transition hover:bg-[#F7F2EF]"
                                   aria-label="Decrease quantity"
                                 >
-                                  <Minus
-                                    size={14}
-                                  />
+                                  <Minus size={14} />
                                 </button>
 
                                 <span className="flex h-full w-9 items-center justify-center border-x border-[#DED5D0] text-xs font-semibold">
@@ -462,9 +589,7 @@ export default function CartPage() {
                                   className="flex h-full w-9 items-center justify-center rounded-r-full text-[#3A2528] transition hover:bg-[#F7F2EF]"
                                   aria-label="Increase quantity"
                                 >
-                                  <Plus
-                                    size={14}
-                                  />
+                                  <Plus size={14} />
                                 </button>
 
                               </div>
@@ -632,118 +757,128 @@ export default function CartPage() {
                       >
                         Proceed to Checkout
 
-                        <ArrowRight
-                          size={16}
-                        />
-
+                        <ArrowRight size={16} />
                       </Link>
 
-                     {/* ==================================
-    TRUST & SERVICE FEATURES
-================================== */}
+                      {/* ==================================
+                          TRUST & SERVICE FEATURES
+                      ================================== */}
 
-<div className="mt-5 overflow-hidden rounded-2xl border border-[#E8DFD9] bg-[#FCFAF8]">
+                      <div className="mt-5 overflow-hidden rounded-2xl border border-[#E8DFD9] bg-[#FCFAF8]">
 
-  {/* Authenticity */}
+                        {/* Authenticity */}
 
-  <div className="flex gap-4 border-b border-[#E8DFD9] p-5">
+                        <div className="flex gap-4 border-b border-[#E8DFD9] p-5">
 
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-      <ShieldCheck
-        size={20}
-        className="text-[#A66F61]"
-      />
-    </div>
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
 
-    <div>
-      <h3 className="text-sm font-semibold text-[#3A302D]">
-        Authentic Jewellery
-      </h3>
+                            <ShieldCheck
+                              size={20}
+                              className="text-[#A66F61]"
+                            />
 
-      <p className="mt-1 text-xs leading-5 text-[#817772]">
-        Every piece is quality checked before
-        it is carefully prepared for dispatch.
-      </p>
-    </div>
+                          </div>
 
-  </div>
+                          <div>
 
+                            <h3 className="text-sm font-semibold text-[#3A302D]">
+                              Authentic Jewellery
+                            </h3>
 
-  {/* Packaging */}
+                            <p className="mt-1 text-xs leading-5 text-[#817772]">
+                              Every piece is quality checked before
+                              it is carefully prepared for dispatch.
+                            </p>
 
-  <div className="flex gap-4 border-b border-[#E8DFD9] p-5">
+                          </div>
 
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-      <Package
-        size={20}
-        className="text-[#A66F61]"
-      />
-    </div>
+                        </div>
 
-    <div>
-      <h3 className="text-sm font-semibold text-[#3A302D]">
-        Carefully Packed
-      </h3>
+                        {/* Packaging */}
 
-      <p className="mt-1 text-xs leading-5 text-[#817772]">
-        Your jewellery is securely packed to
-        help it reach you safely.
-      </p>
-    </div>
+                        <div className="flex gap-4 border-b border-[#E8DFD9] p-5">
 
-  </div>
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
 
+                            <Package
+                              size={20}
+                              className="text-[#A66F61]"
+                            />
 
-  {/* Returns */}
+                          </div>
 
-  <div className="flex gap-4 border-b border-[#E8DFD9] p-5">
+                          <div>
 
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-      <RotateCcw
-        size={20}
-        className="text-[#A66F61]"
-      />
-    </div>
+                            <h3 className="text-sm font-semibold text-[#3A302D]">
+                              Carefully Packed
+                            </h3>
 
-    <div>
-      <h3 className="text-sm font-semibold text-[#3A302D]">
-        Easy Returns
-      </h3>
+                            <p className="mt-1 text-xs leading-5 text-[#817772]">
+                              Your jewellery is securely packed to
+                              help it reach you safely.
+                            </p>
 
-      <p className="mt-1 text-xs leading-5 text-[#817772]">
-        Hassle-free return support for eligible
-        orders.
-      </p>
-    </div>
+                          </div>
 
-  </div>
+                        </div>
 
+                        {/* Returns */}
 
-  {/* Secure Payment */}
+                        <div className="flex gap-4 border-b border-[#E8DFD9] p-5">
 
-  <div className="flex gap-4 p-5">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
 
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
-      <ShieldCheck
-        size={20}
-        className="text-[#A66F61]"
-      />
-    </div>
+                            <RotateCcw
+                              size={20}
+                              className="text-[#A66F61]"
+                            />
 
-    <div>
-      <h3 className="text-sm font-semibold text-[#3A302D]">
-        Secure Checkout
-      </h3>
+                          </div>
 
-      <p className="mt-1 text-xs leading-5 text-[#817772]">
-        Your payment information is handled
-        through secure checkout.
-      </p>
-    </div>
+                          <div>
 
-  </div>
+                            <h3 className="text-sm font-semibold text-[#3A302D]">
+                              Easy Returns
+                            </h3>
 
-</div>
+                            <p className="mt-1 text-xs leading-5 text-[#817772]">
+                              Hassle-free return support for eligible
+                              orders.
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                        {/* Secure Payment */}
+
+                        <div className="flex gap-4 p-5">
+
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm">
+
+                            <ShieldCheck
+                              size={20}
+                              className="text-[#A66F61]"
+                            />
+
+                          </div>
+
+                          <div>
+
+                            <h3 className="text-sm font-semibold text-[#3A302D]">
+                              Secure Checkout
+                            </h3>
+
+                            <p className="mt-1 text-xs leading-5 text-[#817772]">
+                              Your payment information is handled
+                              through secure checkout.
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                      </div>
 
                     </div>
 

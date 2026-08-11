@@ -145,16 +145,63 @@ export default function CheckoutPage() {
   );
 
   // ==========================================
-  // SHIPPING
+  // SHIPPING SETTINGS
   // ==========================================
 
-  const FREE_SHIPPING_LIMIT = 499;
+  const [shippingSettings, setShippingSettings] =
+    useState({
+      freeShippingEnabled: true,
+      freeShippingMinimum: 999,
+      shippingCharge: 80,
+      codCharge: 0,
+    });
+
+  const [shippingLoading, setShippingLoading] =
+    useState(true);
+
+  useEffect(() => {
+    const fetchShippingSettings = async () => {
+      try {
+        setShippingLoading(true);
+
+        const res = await api.get("/shipping");
+
+        if (res.data?.settings) {
+          setShippingSettings({
+            freeShippingEnabled: Boolean(
+              res.data.settings.freeShippingEnabled
+            ),
+            freeShippingMinimum: Number(
+              res.data.settings.freeShippingMinimum ?? 999
+            ),
+            shippingCharge: Number(
+              res.data.settings.shippingCharge ?? 80
+            ),
+            codCharge: Number(
+              res.data.settings.codCharge ?? 0
+            ),
+          });
+        }
+      } catch (error) {
+        console.error(
+          "Shipping Settings Error:",
+          error
+        );
+      } finally {
+        setShippingLoading(false);
+      }
+    };
+
+    fetchShippingSettings();
+  }, []);
 
   const shipping =
-    totalAmount >= FREE_SHIPPING_LIMIT ||
     totalAmount === 0
       ? 0
-      : 49;
+      : shippingSettings.freeShippingEnabled &&
+          totalAmount >= shippingSettings.freeShippingMinimum
+        ? 0
+        : shippingSettings.shippingCharge;
 
   // ==========================================
   // AMOUNT AFTER DISCOUNT
@@ -318,18 +365,13 @@ export default function CheckoutPage() {
       const serverDiscount =
         Number(data.discount || 0);
 
-      const serverFinalAmount =
-        Number(
-          data.finalAmount ||
-            totalAmount
-        );
-
       setDiscount(
         serverDiscount
       );
 
       setFinalAmount(
-        serverFinalAmount
+        Math.max(totalAmount - serverDiscount, 0) +
+          shipping
       );
 
       setCouponCode(code);
@@ -498,10 +540,7 @@ export default function CheckoutPage() {
 
         shipping,
 
-        total:
-          couponApplied
-            ? finalAmount
-            : calculatedFinalAmount,
+        total: calculatedFinalAmount,
 
         couponCode:
           couponApplied
@@ -1390,9 +1429,7 @@ export default function CheckoutPage() {
                       <span className="font-serif text-2xl font-semibold text-[#2E2E2E]">
                         ₹
                         {(
-                          couponApplied
-                            ? finalAmount
-                            : calculatedFinalAmount
+                          calculatedFinalAmount
                         ).toLocaleString(
                           "en-IN"
                         )}
@@ -1408,15 +1445,18 @@ export default function CheckoutPage() {
                       }
                       disabled={
                         loading ||
+                        shippingLoading ||
                         !deliveryAvailable
                       }
                       className="mt-6 hidden h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-sm font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-60 lg:flex"
                     >
                       {loading
                         ? "Preparing Payment..."
+                        : shippingLoading
+                        ? "Loading..."
                         : "Continue to Payment"}
 
-                      {!loading && (
+                      {!loading && !shippingLoading && (
                         <ArrowRight
                           size={16}
                         />

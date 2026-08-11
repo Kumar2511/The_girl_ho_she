@@ -21,7 +21,15 @@ import Footer from "@/components/footer";
 import api from "@/lib/api";
 import { useCart } from "@/context/cart-context";
 
-type PaymentMethod = "RAZORPAY" | "COD";
+type PaymentMethod = "RAZORPAY" | "COD" | "UPI";
+
+interface UPISettings {
+  upiId: string;
+  accountName: string;
+  qrCode: string;
+  paymentInstructions: string;
+  enabled: boolean;
+}
 
 declare global {
   interface Window {
@@ -46,7 +54,37 @@ export default function PaymentPage() {
     useState("Preparing your order...");
 
   const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethod>("RAZORPAY");
+    useState<PaymentMethod>("COD");
+
+  const [upiSettings, setUPISettings] =
+    useState<UPISettings | null>(null);
+
+  const [upiLoading, setUPILoading] =
+    useState(true);
+
+  const [upiScreenshot, setUPIScreenshot] =
+    useState<File | null>(null);
+
+  const [upiScreenshotPreview, setUPIScreenshotPreview] =
+    useState("");
+
+  const [upiUploading, setUPIUploading] =
+    useState(false);
+
+  const [upiError, setUPIError] =
+    useState("");
+
+  // ==========================================
+  // CLEANUP UPI SCREENSHOT PREVIEW
+  // ==========================================
+
+  useEffect(() => {
+    return () => {
+      if (upiScreenshotPreview) {
+        URL.revokeObjectURL(upiScreenshotPreview);
+      }
+    };
+  }, [upiScreenshotPreview]);
 
   // ==========================================
   // LOAD RAZORPAY
@@ -104,12 +142,50 @@ export default function PaymentPage() {
   }, [router]);
 
   // ==========================================
+  // LOAD UPI SETTINGS
+  // ==========================================
+
+  useEffect(() => {
+    const loadUPISettings = async () => {
+      try {
+        setUPILoading(true);
+        setUPIError("");
+
+        const { data } = await api.get("/upi");
+
+        if (data?.success && data?.settings) {
+          setUPISettings({
+            upiId: data.settings.upiId || "",
+            accountName: data.settings.accountName || "",
+            qrCode: data.settings.qrCode || "",
+            paymentInstructions:
+              data.settings.paymentInstructions ||
+              "Scan the QR code using any UPI app and pay the exact order amount.",
+            enabled: data.settings.enabled ?? true,
+          });
+        }
+      } catch (error: any) {
+        console.error("UPI Settings Error:", error);
+        setUPIError(
+          error?.response?.data?.message ||
+            "Unable to load UPI payment details."
+        );
+      } finally {
+        setUPILoading(false);
+      }
+    };
+
+    loadUPISettings();
+  }, []);
+
+  // ==========================================
   // CREATE DATABASE ORDER
   // ==========================================
 
   const createOurOrder = async (
     paymentMethodValue:
       | "COD"
+      | "UPI"
       | "Razorpay",
     paymentDetails?: {
       razorpayOrderId?: string;
@@ -296,6 +372,181 @@ export default function PaymentPage() {
   };
 
   // ==========================================
+  // UPI MANUAL PAYMENT
+  // ==========================================
+
+  const handleUPIScreenshotChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setUPIError("");
+
+    const allowedTypes = [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setUPIError(
+        "Please upload a PNG, JPG, JPEG or WEBP screenshot."
+      );
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUPIError(
+        "Payment screenshot must be smaller than 5MB."
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setUPIScreenshot(file);
+
+    const previewUrl = URL.createObjectURL(file);
+    setUPIScreenshotPreview(previewUrl);
+  };
+
+  const removeUPIScreenshot = () => {
+    if (upiScreenshotPreview) {
+      URL.revokeObjectURL(upiScreenshotPreview);
+    }
+
+    setUPIScreenshot(null);
+    setUPIScreenshotPreview("");
+    setUPIError("");
+  };
+
+  const handleUPIPayment = async () => {
+    if (!checkoutData || loading) return;
+
+    if (!upiSettings?.enabled) {
+      alert("UPI payment is currently unavailable.");
+      return;
+    }
+
+    if (!upiSettings.qrCode || !upiSettings.upiId) {
+      alert("UPI payment details are not configured yet.");
+      return;
+    }
+
+    if (!upiScreenshot) {
+      setUPIError(
+        "Please upload your payment screenshot after completing the UPI payment."
+      );
+      return;
+    }
+
+    setLoading(true);
+    setProcessing(true);
+    setUPIUploading(true);
+    setUPIError("");
+
+    try {
+      // ======================================
+      // STEP 1 - Upload Screenshot
+      // ======================================
+
+      setProcessStep(
+        "Uploading your payment screenshot..."
+      );
+
+      const uploadData = new FormData();
+      uploadData.append("image", upiScreenshot);
+
+      const { data: uploadResponse } = await api.post(
+        "/upload",
+        uploadData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const screenshotUrl =
+        uploadResponse?.imageUrl ||
+        uploadResponse?.url ||
+        uploadResponse?.data?.imageUrl ||
+        "";
+
+      if (!uploadResponse?.success || !screenshotUrl) {
+        throw new Error(
+          uploadResponse?.message ||
+            "Unable to upload payment screenshot."
+        );
+      }
+
+      // ======================================
+      // STEP 2 - Create UPI Order
+      // ======================================
+
+      setProcessStep(
+        "Creating your order..."
+      );
+
+      const order = await createOurOrder("UPI");
+
+      // ======================================
+      // STEP 3 - Submit Payment Proof
+      // ======================================
+
+      setProcessStep(
+        "Submitting payment proof for verification..."
+      );
+
+      const { data: proofResponse } = await api.post(
+        `/orders/my-orders/${order._id}/upi-proof`,
+        {
+          screenshot: screenshotUrl,
+        }
+      );
+
+      if (!proofResponse?.success) {
+        throw new Error(
+          proofResponse?.message ||
+            "Unable to submit payment proof."
+        );
+      }
+
+      setProcessStep(
+        "Payment proof submitted successfully!"
+      );
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 900)
+      );
+
+      clearCart();
+      localStorage.removeItem("checkoutData");
+
+      router.push(
+        `/order-success?id=${order._id}&payment=pending`
+      );
+    } catch (error: any) {
+      console.error(
+        "UPI Payment Error:",
+        error
+      );
+
+      setProcessing(false);
+      setUPIError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to submit UPI payment proof."
+      );
+    } finally {
+      setUPIUploading(false);
+      setLoading(false);
+    }
+  };
+
+  // ==========================================
   // RAZORPAY
   // ==========================================
 
@@ -359,13 +610,25 @@ export default function PaymentPage() {
         );
 
         const { data } =
-          await api.post(
-            "/razorpay/create-order",
-            {
-              amount:
-                payableAmount,
-            }
-          );
+  await api.post(
+    "/razorpay/create-order",
+    {
+      products:
+        checkoutData.cart.map(
+          (item: any) => ({
+            productId:
+              item._id ||
+              item.productId,
+
+            quantity:
+              Number(item.quantity) || 1,
+          })
+        ),
+
+      couponCode:
+        checkoutData.couponCode || "",
+    }
+  );
 
         if (
           !data?.success ||
@@ -628,7 +891,16 @@ export default function PaymentPage() {
         return;
       }
 
-      await handleRazorpayPayment();
+      if (
+        paymentMethod ===
+        "UPI"
+      ) {
+        await handleUPIPayment();
+        return;
+      }
+
+      // Razorpay is currently Coming Soon.
+      alert("Razorpay online payment is coming soon.");
     };
 
   // ==========================================
@@ -871,89 +1143,42 @@ export default function PaymentPage() {
               <div className="p-5 sm:p-7">
 
                 {/* =================================
-                    RAZORPAY
+                    RAZORPAY - COMING SOON
                 ================================= */}
 
                 <button
                   type="button"
-                  disabled={loading}
-                  onClick={() =>
-                    setPaymentMethod(
-                      "RAZORPAY"
-                    )
-                  }
-                  className={`w-full rounded-2xl border p-5 text-left transition ${
-                    paymentMethod ===
-                    "RAZORPAY"
-                      ? "border-[#C78B7B] bg-[#FFF8F5] shadow-sm"
-                      : "border-[#E5DDD7] bg-white hover:border-[#C78B7B]"
-                  }`}
+                  disabled
+                  className="w-full cursor-not-allowed rounded-2xl border border-[#E5DDD7] bg-[#FAF8F6] p-5 text-left opacity-80"
                 >
-
                   <div className="flex items-start justify-between gap-4">
-
                     <div className="flex gap-4">
-
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#3A2528] shadow-sm">
-
-                        <CreditCard
-                          size={22}
-                        />
-
+                        <CreditCard size={22} />
                       </div>
 
                       <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-[#2E2E2E]">
+                            Razorpay
+                          </p>
 
-                        <p className="font-semibold text-[#2E2E2E]">
-                          Online Payment
-                        </p>
-
-                        <p className="mt-1 text-xs leading-5 text-[#777]">
-                          Pay securely using
-                          UPI, Card, Net
-                          Banking or Wallet.
-                        </p>
-
-                        <div className="mt-3 flex flex-wrap gap-2">
-
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] text-[#6E6560]">
-                            UPI
+                          <span className="rounded-full bg-[#F1E7E2] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#8A6257]">
+                            Coming Soon
                           </span>
-
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] text-[#6E6560]">
-                            Cards
-                          </span>
-
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] text-[#6E6560]">
-                            Net Banking
-                          </span>
-
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] text-[#6E6560]">
-                            Wallet
-                          </span>
-
                         </div>
 
+                        <p className="mt-1 text-xs leading-5 text-[#777]">
+                          Secure online payment with UPI, cards, net banking and wallets.
+                        </p>
                       </div>
-
                     </div>
 
-                    <div
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                        paymentMethod ===
-                        "RAZORPAY"
-                          ? "border-[#C78B7B]"
-                          : "border-[#CCC]"
-                      }`}
-                    >
-                      {paymentMethod ===
-                        "RAZORPAY" && (
-                        <div className="h-2.5 w-2.5 rounded-full bg-[#C78B7B]" />
-                      )}
-                    </div>
-
+                    <LockKeyhole
+                      size={18}
+                      className="mt-1 shrink-0 text-[#9A8F89]"
+                    />
                   </div>
-
                 </button>
 
                 {/* =================================
@@ -1023,71 +1248,307 @@ export default function PaymentPage() {
                 </button>
 
                 {/* =================================
+                    UPI PAYMENT
+                ================================= */}
+
+                <button
+                  type="button"
+                  disabled={loading || upiLoading || !upiSettings?.enabled}
+                  onClick={() => setPaymentMethod("UPI")}
+                  className={`mt-4 w-full rounded-2xl border p-5 text-left transition ${
+                    paymentMethod === "UPI"
+                      ? "border-[#C78B7B] bg-[#FFF8F5] shadow-sm"
+                      : "border-[#E5DDD7] bg-white hover:border-[#C78B7B]"
+                  } ${
+                    !upiSettings?.enabled
+                      ? "cursor-not-allowed opacity-60"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#3A2528] shadow-sm">
+                        <WalletCards size={22} />
+                      </div>
+
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-[#2E2E2E]">
+                            UPI Payment
+                          </p>
+
+                          {upiSettings?.enabled && (
+                            <span className="rounded-full bg-[#EDF6EA] px-2.5 py-1 text-[10px] font-semibold text-[#55714F]">
+                              Available
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-1 text-xs leading-5 text-[#777]">
+                          Pay directly using GPay, PhonePe, Paytm or any UPI app and upload your payment proof.
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-[#FCF8F5] px-2.5 py-1 text-[10px] text-[#6E6560]">
+                            GPay
+                          </span>
+                          <span className="rounded-full bg-[#FCF8F5] px-2.5 py-1 text-[10px] text-[#6E6560]">
+                            PhonePe
+                          </span>
+                          <span className="rounded-full bg-[#FCF8F5] px-2.5 py-1 text-[10px] text-[#6E6560]">
+                            Paytm
+                          </span>
+                          <span className="rounded-full bg-[#FCF8F5] px-2.5 py-1 text-[10px] text-[#6E6560]">
+                            UPI
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                        paymentMethod === "UPI"
+                          ? "border-[#C78B7B]"
+                          : "border-[#CCC]"
+                      }`}
+                    >
+                      {paymentMethod === "UPI" && (
+                        <div className="h-2.5 w-2.5 rounded-full bg-[#C78B7B]" />
+                      )}
+                    </div>
+                  </div>
+                </button>
+
+                {/* =================================
                     PAYMENT INFO
                 ================================= */}
 
-                {paymentMethod ===
-                  "RAZORPAY" && (
+                {paymentMethod === "RAZORPAY" && (
                   <div className="mt-5 rounded-2xl border border-[#EDE2DC] bg-[#FCF9F6] p-5">
-
                     <div className="flex gap-3">
-
-                      <ShieldCheck
+                      <LockKeyhole
                         size={19}
-                        className="mt-0.5 shrink-0 text-[#6D8B62]"
+                        className="mt-0.5 shrink-0 text-[#8B817C]"
                       />
-
                       <div>
-
                         <p className="text-sm font-semibold text-[#3E3734]">
-                          Secure online payment
+                          Razorpay is coming soon
                         </p>
-
                         <p className="mt-1 text-xs leading-5 text-[#777]">
-                          You will continue
-                          to Razorpay's
-                          secure checkout.
-                          Your card and UPI
-                          details are handled
-                          securely by the
-                          payment provider.
+                          Online Razorpay checkout is not available yet. Please choose Cash on Delivery or UPI Payment.
                         </p>
-
                       </div>
-
                     </div>
-
                   </div>
                 )}
 
-                {paymentMethod ===
-                  "COD" && (
+                {paymentMethod === "COD" && (
                   <div className="mt-5 rounded-2xl border border-[#DCE8D7] bg-[#F4F9F2] p-5">
-
                     <div className="flex gap-3">
-
                       <CheckCircle2
                         size={19}
                         className="mt-0.5 shrink-0 text-[#628159]"
                       />
-
                       <div>
-
                         <p className="text-sm font-semibold text-[#496343]">
                           Cash on Delivery
                         </p>
-
                         <p className="mt-1 text-xs leading-5 text-[#628159]">
-                          No online payment
-                          is required now.
-                          Pay when your
-                          order is delivered.
+                          No online payment is required now. Pay when your order is delivered.
                         </p>
-
                       </div>
-
                     </div>
+                  </div>
+                )}
 
+                {paymentMethod === "UPI" && (
+                  <div className="mt-5 rounded-2xl border border-[#EDE2DC] bg-[#FCF9F6] p-5 sm:p-6">
+                    {upiLoading ? (
+                      <div className="flex items-center gap-3 text-sm text-[#777]">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#E8DFD9] border-t-[#C78B7B]" />
+                        Loading UPI payment details...
+                      </div>
+                    ) : !upiSettings?.enabled ? (
+                      <div className="flex gap-3">
+                        <LockKeyhole
+                          size={19}
+                          className="mt-0.5 shrink-0 text-[#8B817C]"
+                        />
+                        <div>
+                          <p className="text-sm font-semibold text-[#3E3734]">
+                            UPI payment is currently unavailable
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-[#777]">
+                            Please choose another payment method.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-3">
+                          <ShieldCheck
+                            size={19}
+                            className="mt-0.5 shrink-0 text-[#6D8B62]"
+                          />
+                          <div>
+                            <p className="text-sm font-semibold text-[#3E3734]">
+                              Pay directly using UPI
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-[#777]">
+                              Complete the payment for the exact order amount, then upload your payment screenshot for verification.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 grid gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
+                          <div className="rounded-2xl border border-[#E5DDD7] bg-white p-4">
+                            {upiSettings.qrCode ? (
+                              <Image
+                                src={upiSettings.qrCode}
+                                alt="UPI payment QR code"
+                                width={420}
+                                height={420}
+                                className="mx-auto aspect-square w-full max-w-[190px] object-contain"
+                              />
+                            ) : (
+                              <div className="flex aspect-square items-center justify-center text-center text-xs text-[#999]">
+                                QR code is not configured.
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="rounded-2xl border border-[#E8DFD9] bg-white p-4">
+                              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#C78B7B]">
+                                Pay Exact Amount
+                              </p>
+
+                              <p className="mt-1 font-serif text-3xl font-semibold text-[#2E2E2E]">
+                                ₹{payableAmount.toLocaleString("en-IN")}
+                              </p>
+
+                              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide text-[#999]">
+                                    UPI ID
+                                  </p>
+                                  <p className="mt-1 break-all text-sm font-semibold text-[#3A2528]">
+                                    {upiSettings.upiId}
+                                  </p>
+                                </div>
+
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wide text-[#999]">
+                                    Account Name
+                                  </p>
+                                  <p className="mt-1 text-sm font-semibold text-[#3A2528]">
+                                    {upiSettings.accountName}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 rounded-xl bg-white p-4">
+                              <p className="text-xs leading-5 text-[#6E6560]">
+                                {upiSettings.paymentInstructions}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-5 rounded-2xl border border-[#E5DDD7] bg-white p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-[#3E3734]">
+                                Upload Payment Screenshot
+                              </p>
+                              <p className="mt-1 text-xs leading-5 text-[#777]">
+                                After completing the UPI payment, upload the screenshot here. Maximum 5MB.
+                              </p>
+                            </div>
+
+                            <span className="shrink-0 rounded-full bg-[#F8F0EC] px-2.5 py-1 text-[10px] font-semibold text-[#8A6257]">
+                              Required
+                            </span>
+                          </div>
+
+                          <input
+                            id="upi-payment-screenshot"
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            onChange={handleUPIScreenshotChange}
+                            disabled={loading || upiUploading}
+                            className="hidden"
+                          />
+
+                          {upiScreenshotPreview ? (
+                            <div className="mt-4">
+                              <div className="relative overflow-hidden rounded-xl border border-[#E8DFD9] bg-[#FAF7F4] p-2">
+                                <img
+                                  src={upiScreenshotPreview}
+                                  alt="Payment screenshot preview"
+                                  className="mx-auto max-h-[360px] w-full object-contain"
+                                />
+                              </div>
+
+                              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="truncate text-xs text-[#6E6560]">
+                                  {upiScreenshot?.name}
+                                </p>
+
+                                <div className="flex gap-2">
+                                  <label
+                                    htmlFor="upi-payment-screenshot"
+                                    className="cursor-pointer rounded-lg border border-[#DCD1CB] px-3 py-2 text-xs font-semibold text-[#5F5651] transition hover:border-[#C78B7B] hover:text-[#C78B7B]"
+                                  >
+                                    Replace
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={removeUPIScreenshot}
+                                    className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-500 transition hover:bg-red-50"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <label
+                              htmlFor="upi-payment-screenshot"
+                              className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#DCD1CB] px-5 py-8 text-center transition hover:border-[#C78B7B] hover:bg-[#FFFBF9]"
+                            >
+                              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#F8F0EC] text-[#C78B7B]">
+                                <ShoppingBag size={19} />
+                              </div>
+                              <p className="text-sm font-semibold text-[#3E3734]">
+                                Choose payment screenshot
+                              </p>
+                              <p className="mt-1 text-xs text-[#999]">
+                                PNG, JPG, JPEG or WEBP · Max 5MB
+                              </p>
+                            </label>
+                          )}
+
+                          {upiError && (
+                            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-5 text-red-600">
+                              {upiError}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-4 flex gap-3 rounded-xl border border-[#E8DFD9] bg-white p-4">
+                          <LockKeyhole
+                            size={16}
+                            className="mt-0.5 shrink-0 text-[#8C827D]"
+                          />
+                          <p className="text-[11px] leading-5 text-[#777]">
+                            Your payment proof will be reviewed by our team. The order remains pending until the payment is verified.
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -1348,19 +1809,24 @@ export default function PaymentPage() {
                       handlePayment
                     }
                     disabled={
-                      loading
+                      loading ||
+                      paymentMethod === "RAZORPAY" ||
+                      (paymentMethod === "UPI" &&
+                        (!upiSettings?.enabled ||
+                          !upiSettings?.qrCode ||
+                          !upiSettings?.upiId ||
+                          !upiScreenshot))
                     }
                     className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-sm font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-60"
                   >
 
                     {loading
                       ? "Processing..."
-                      : paymentMethod ===
-                        "COD"
+                      : paymentMethod === "COD"
                       ? "Place Order"
-                      : `Pay ₹${payableAmount.toLocaleString(
-                          "en-IN"
-                        )}`}
+                      : paymentMethod === "UPI"
+                      ? "Submit Payment Proof"
+                      : "Razorpay Coming Soon"}
 
                     {!loading && (
                       <ArrowRight
@@ -1379,7 +1845,7 @@ export default function PaymentPage() {
                     />
 
                     Secure checkout ·
-                    Safe payment
+                    Payment verification
 
                   </div>
 

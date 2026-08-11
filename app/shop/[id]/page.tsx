@@ -20,6 +20,8 @@ import {
   Volume2,
   VolumeX,
   CheckCircle2,
+  Bell,
+  X,
 } from "lucide-react";
 
 import api from "@/lib/api";
@@ -105,6 +107,22 @@ const [touchEndX, setTouchEndX] =
   const [selectedSize, setSelectedSize] =
     useState("");
 
+    // ==========================================
+// STOCK NOTIFICATION
+// ==========================================
+
+const [showNotifyModal, setShowNotifyModal] =
+  useState(false);
+
+const [notifyEmail, setNotifyEmail] =
+  useState("");
+
+const [notifyLoading, setNotifyLoading] =
+  useState(false);
+
+const [notifySuccess, setNotifySuccess] =
+  useState("");
+  
   // ==========================================
   // Reviews
   // ==========================================
@@ -1139,27 +1157,126 @@ const handleTouchEnd = () => {
       );
     };
 
-  // ==========================================
-  // Delivery
-  // ==========================================
+    // ==========================================
+// NOTIFY ME WHEN BACK IN STOCK
+// ==========================================
 
-  const checkDelivery = () => {
-    if (
-      !/^\d{6}$/.test(
-        pincode
-      )
-    ) {
-      setDeliveryMessage(
-        "Please enter a valid 6-digit pincode."
+const handleNotifyMe = async () => {
+  if (!product?._id) {
+    return;
+  }
+
+  if (!notifyEmail.trim()) {
+    alert("Please enter your email address.");
+    return;
+  }
+
+  const emailRegex =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(notifyEmail.trim())) {
+    alert("Please enter a valid email address.");
+    return;
+  }
+
+  try {
+    setNotifyLoading(true);
+    setNotifySuccess("");
+
+    const response = await api.post(
+  "/stock-notifications",
+  {
+    productId: product._id,
+    email: notifyEmail.trim(),
+  }
+);
+
+    if (response.data?.success) {
+      setNotifySuccess(
+        response.data?.message ||
+          "You will be notified when this product is back in stock."
       );
 
-      return;
+      setNotifyEmail("");
+
+      setTimeout(() => {
+        setShowNotifyModal(false);
+        setNotifySuccess("");
+      }, 2000);
+    } else {
+      throw new Error(
+        response.data?.message ||
+          "Unable to save your notification request."
+      );
     }
+  } catch (error: any) {
+    console.error(
+      "Notify Me Error:",
+      error
+    );
+
+    alert(
+      error?.response?.data?.message ||
+        error?.message ||
+        "Unable to save your notification request."
+    );
+  } finally {
+    setNotifyLoading(false);
+  }
+};
+  // ==========================================
+// Delivery
+// ==========================================
+
+const checkDelivery = async () => {
+  const trimmedPincode = pincode.trim();
+
+  // Basic validation
+  if (!/^\d{6}$/.test(trimmedPincode)) {
+    setDeliveryMessage(
+      "Please enter a valid 6-digit pincode."
+    );
+    return;
+  }
+
+  try {
+    setDeliveryMessage("Checking delivery availability...");
+
+    const response = await api.get(
+      `/shipping/check/${trimmedPincode}`
+    );
+
+    if (response.data?.success) {
+      const deliveryDays =
+        response.data?.deliveryDays;
+
+      if (deliveryDays) {
+        setDeliveryMessage(
+          `✓ Delivery available to your location. Estimated delivery: ${deliveryDays} business days.`
+        );
+      } else {
+        setDeliveryMessage(
+          "✓ Delivery available to your location."
+        );
+      }
+    } else {
+      setDeliveryMessage(
+        response.data?.message ||
+          "Sorry, delivery is not available to this pincode."
+      );
+    }
+  } catch (error: any) {
+    console.error(
+      "Check Delivery Error:",
+      error
+    );
 
     setDeliveryMessage(
-      "✓ Delivery available to your location. Estimated delivery: 3–5 business days."
+      error?.response?.data?.message ||
+        "Sorry, delivery is not available to this pincode."
     );
-  };
+  }
+};
 
   // ==========================================
   // Render
@@ -1958,59 +2075,85 @@ const handleTouchEnd = () => {
 
               </div>
 
-              {/* ACTIONS */}
+            {/* ==========================================
+    ACTIONS
+========================================== */}
 
-              <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
+<div className="mt-7">
 
-                <button
-                  type="button"
-                  disabled={
-                    product.stock <=
-                    0
-                  }
-                  onClick={
-                    handleAddToCart
-                  }
-                  className="flex h-14 items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#29181B] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <ShoppingCart
-                    size={18}
-                  />
+  {product.stock > 0 ? (
 
-                  {product.stock >
-                  0
-                    ? "Add to Cart"
-                    : "Out of Stock"}
-                </button>
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 
-                <button
-                  type="button"
-                  disabled={
-                    product.stock <=
-                    0
-                  }
-                  onClick={
-                    handleBuyNow
-                  }
-                  className="flex h-14 items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-lg transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Zap size={18} />
+      {/* ADD TO CART */}
 
-                  Buy Now
-                </button>
+      <button
+        type="button"
+        onClick={handleAddToCart}
+        className="flex h-14 items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#29181B] hover:shadow-xl"
+      >
+        <ShoppingCart size={18} />
 
-                <div className="sm:col-span-2 mt-1 flex items-center justify-center gap-2 text-center text-xs text-[#817671]">
+        Add to Cart
+      </button>
 
-                  <ShieldCheck
-                    size={14}
-                    className="text-[#C78B7B]"
-                  />
+      {/* BUY NOW */}
 
-                  Secure checkout · Carefully packed · Easy returns
+      <button
+        type="button"
+        onClick={handleBuyNow}
+        className="flex h-14 items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-lg transition hover:bg-[#29181B]"
+      >
+        <Zap size={18} />
 
-                </div>
+        Buy Now
+      </button>
 
-              </div>
+    </div>
+
+  ) : (
+
+    /* ======================================
+       OUT OF STOCK
+    ====================================== */
+
+    <div className="space-y-3">
+
+      <button
+        type="button"
+        onClick={() => {
+          setNotifySuccess("");
+          setShowNotifyModal(true);
+        }}
+        className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#29181B] hover:shadow-xl"
+      >
+        <Bell size={18} />
+
+        Notify Me When Available
+      </button>
+
+      <p className="text-center text-xs text-[#817671]">
+        We'll notify you when this product is back in stock.
+      </p>
+
+    </div>
+
+  )}
+
+  {/* SECURITY MESSAGE */}
+
+  <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#817671]">
+
+    <ShieldCheck
+      size={14}
+      className="text-[#C78B7B]"
+    />
+
+    Secure checkout · Carefully packed · Easy returns
+
+  </div>
+
+</div>
 
               {/* WISHLIST */}
 
@@ -2042,7 +2185,7 @@ const handleTouchEnd = () => {
               </button>
 
               {/* DELIVERY */}
-
+              {product.stock > 0 && (
               <div className="mt-6 rounded-2xl border border-[#E8E0DB] bg-white p-5">
 
                 <div className="mb-4 flex items-start gap-3">
@@ -2107,18 +2250,30 @@ const handleTouchEnd = () => {
                 </div>
 
                 {deliveryMessage && (
-                  <div className="mt-4 rounded-xl bg-[#F3F8F1] p-4">
-
-                    <p className="text-sm font-medium text-[#55734E]">
-                      {
-                        deliveryMessage
-                      }
-                    </p>
-
-                  </div>
-                )}
-
-              </div>
+  <div
+    className={`mt-4 rounded-xl p-4 ${
+      deliveryMessage.startsWith("✓")
+        ? "bg-[#F3F8F1]"
+        : deliveryMessage.includes("Checking")
+        ? "bg-[#F8F3EF]"
+        : "bg-[#FFF1F1]"
+    }`}
+  >
+    <p
+      className={`text-sm font-medium ${
+        deliveryMessage.startsWith("✓")
+          ? "text-[#55734E]"
+          : deliveryMessage.includes("Checking")
+          ? "text-[#8A6A62]"
+          : "text-red-600"
+      }`}
+    >
+      {deliveryMessage}
+    </p>
+  </div>
+)}
+</div>
+)}
 
               {/* TRUST / SERVICE FEATURES */}
 
@@ -3186,7 +3341,130 @@ const handleTouchEnd = () => {
 
           </div>
         )}
+        {/* ==========================================
+    NOTIFY ME MODAL
+========================================== */}
 
+{showNotifyModal && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+
+    <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+
+      {/* CLOSE */}
+
+      <button
+        type="button"
+        onClick={() => {
+          if (!notifyLoading) {
+            setShowNotifyModal(false);
+            setNotifySuccess("");
+          }
+        }}
+        className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#F7F2EF] text-[#3A2528] transition hover:bg-[#EDE2DD]"
+      >
+        <X size={18} />
+      </button>
+
+      {/* ICON */}
+
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#F8EEE9]">
+
+        <Bell
+          size={25}
+          className="text-[#C78B7B]"
+        />
+
+      </div>
+
+      {/* TITLE */}
+
+      <h2 className="mt-5 text-center font-serif text-2xl text-[#2E2E2E]">
+        Notify Me When Available
+      </h2>
+
+      <p className="mt-2 text-center text-sm leading-6 text-[#777]">
+        Enter your email address and we'll let you know when{" "}
+        <span className="font-semibold text-[#3A2528]">
+          {product.name}
+        </span>{" "}
+        is back in stock.
+      </p>
+
+      {/* SUCCESS */}
+
+      {notifySuccess ? (
+
+        <div className="mt-5 rounded-xl bg-[#F3F8F1] p-4 text-center">
+
+          <CheckCircle2
+            size={22}
+            className="mx-auto text-[#55734E]"
+          />
+
+          <p className="mt-2 text-sm font-medium text-[#55734E]">
+            {notifySuccess}
+          </p>
+
+        </div>
+
+      ) : (
+
+        <>
+          {/* EMAIL */}
+
+          <div className="mt-6">
+
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
+              Email Address
+            </label>
+
+            <input
+              type="email"
+              value={notifyEmail}
+              onChange={(e) =>
+                setNotifyEmail(e.target.value)
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleNotifyMe();
+                }
+              }}
+              placeholder="Enter your email"
+              disabled={notifyLoading}
+              className="h-12 w-full rounded-xl border border-[#DED5D0] bg-[#FCFAF8] px-4 text-sm outline-none transition focus:border-[#C78B7B] disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+          </div>
+
+          {/* SUBMIT */}
+
+          <button
+            type="button"
+            onClick={handleNotifyMe}
+            disabled={notifyLoading}
+            className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-sm font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+
+            <Bell size={17} />
+
+            {notifyLoading
+              ? "Saving..."
+              : "Notify Me"}
+
+          </button>
+
+          <p className="mt-3 text-center text-[11px] text-[#999]">
+            We only use your email to notify you about this product.
+          </p>
+
+        </>
+
+      )}
+
+    </div>
+
+  </div>
+)}
       <Footer />
     </>
   );

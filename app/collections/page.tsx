@@ -1,19 +1,24 @@
-'use client';
+"use client";
+
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import api from "@/lib/api";
-import Link from 'next/link';
-import Navbar from '@/components/navbar';
-import ProductCard from '@/components/product-card';
-import Footer from '@/components/footer';
-export default function CollectionsPage() {
+import Navbar from "@/components/navbar";
+import ProductCard from "@/components/shop/ProductCard";
+import Footer from "@/components/footer";
 
+export default function CollectionsPage() {
   const searchParams = useSearchParams();
 
   const selectedCollection =
     searchParams.get("collection");
 
   const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ==========================================
+  // FETCH PRODUCTS
+  // ==========================================
 
   useEffect(() => {
     fetchProducts();
@@ -21,14 +26,30 @@ export default function CollectionsPage() {
 
   const fetchProducts = async () => {
     try {
+      setIsLoading(true);
+
       const response = await api.get("/products");
 
-      setProducts(response.data.products);
-
+      setProducts(
+        Array.isArray(response.data?.products)
+          ? response.data.products
+          : []
+      );
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Collections Product Fetch Error:",
+        error
+      );
+
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // ==========================================
+  // FILTER COLLECTION
+  // ==========================================
 
   const filteredProducts = selectedCollection
     ? products.filter(
@@ -41,113 +62,136 @@ export default function CollectionsPage() {
     <main className="min-h-screen bg-[#FCFAF7]">
       <Navbar />
 
-      {/* Hero */}
-      <section className="bg-white border-b border-[#E8E3DC] py-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="font-serif text-5xl text-[#2E2E2E] mb-4">Collections</h1>
+      {/* ==========================================
+          HERO
+      ========================================== */}
+
+      <section className="border-b border-[#E8E3DC] bg-white py-16">
+        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <h1 className="mb-4 font-serif text-5xl text-[#2E2E2E]">
+            Collections
+          </h1>
+
           <p className="text-lg text-[#6B6B6B]">
-            Curated collections of premium artificial jewelry for every style and occasion
+            Curated collections of premium artificial
+            jewelry for every style and occasion
           </p>
         </div>
       </section>
 
-      {/* Collections */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          {filteredProducts.length > 0 ? (
-  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-    {filteredProducts.map((product: any) => (
-      <ProductCard
-        key={product._id}
-        id={product._id}
-        name={product.name}
-        price={product.discountPrice}
-        originalPrice={product.price}
-image={product.images?.[0] || "/placeholder-product.jpg"}        category={product.category}
-        badge={product.featured ? "Featured" : ""}
-      />
-    ))}
-  </div>
-) : (
-  <div className="text-center py-20">
-    <h2 className="text-3xl font-bold text-[#2E2E2E]">
-      No Products Found
-    </h2>
+      {/* ==========================================
+          COLLECTION PRODUCTS
+      ========================================== */}
 
-    <p className="text-gray-500 mt-2">
-      No products available in this collection.
-    </p>
-  </div>
-)}
-        </div>
-      </section>
+      <section className="px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
 
-      {/* Gift Collection CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="font-serif text-4xl text-[#2E2E2E] mb-6">Gift Collections</h2>
-              <p className="text-[#6B6B6B] mb-6 leading-relaxed">
-                Looking for the perfect gift? Our curated gift collections are beautifully packaged and ready to impress. From birthdays to anniversaries, we have something special for everyone.
+          {/* Loading */}
+          {isLoading ? (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map(
+                (_, index) => (
+                  <div
+                    key={index}
+                    className="h-[430px] animate-pulse rounded-lg bg-[#EEE8E3]"
+                  />
+                )
+              )}
+            </div>
+          ) : filteredProducts.length > 0 ? (
+
+            /* Products */
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {filteredProducts.map(
+                (product: any) => (
+                  <ProductCard
+                    key={product._id}
+                    product={{
+                      ...product,
+                      badge: product.featured
+                        ? "Featured"
+                        : product.badge || "",
+                    }}
+                  />
+                )
+              )}
+            </div>
+
+          ) : (
+
+            /* Empty State */
+            <div className="py-20 text-center">
+              <h2 className="text-3xl font-bold text-[#2E2E2E]">
+                No Products Found
+              </h2>
+
+              <p className="mt-2 text-gray-500">
+                No products available in this collection.
               </p>
-              <ul className="space-y-3 mb-8 text-[#2E2E2E]">
-                <li>✓ Complimentary gift wrapping</li>
-                <li>✓ Personalized message cards</li>
-                <li>✓ Express shipping available</li>
-                <li>✓ 100% satisfaction guaranteed</li>
-              </ul>
-              <Link
-                href="/shop?category=gift"
-                className="inline-block px-8 py-3 bg-[#C78B7B] hover:bg-[#B5776B] text-white font-semibold rounded-lg transition-colors"
-              >
-                Shop Gift Collections
-              </Link>
             </div>
-            <div className="bg-[#F4EEE8] rounded-lg h-96 flex items-center justify-center">
-              <div className="text-center text-[#C0B9AE]">
-                <p className="text-6xl mb-4">🎁</p>
-                <p>Premium Gift Packaging</p>
-              </div>
-            </div>
-          </div>
+          )}
+
         </div>
       </section>
 
-      {/* Seasonal Trends */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="font-serif text-4xl text-center text-[#2E2E2E] mb-12">Trending This Season</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+      {/* ==========================================
+          TRENDING THIS SEASON
+      ========================================== */}
+
+      <section className="px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+
+          <h2 className="mb-12 text-center font-serif text-4xl text-[#2E2E2E]">
+            Trending This Season
+          </h2>
+
+          <div className="grid gap-8 md:grid-cols-3">
+
             {[
               {
-                trend: 'Layered Necklaces',
-                description: 'Mix and match delicate chains for a sophisticated look',
-                icon: '✨',
+                trend: "Layered Necklaces",
+                description:
+                  "Mix and match delicate chains for a sophisticated look",
+                icon: "✨",
               },
               {
-                trend: 'Statement Rings',
-                description: 'Bold and beautiful rings that make a statement',
-                icon: '💎',
+                trend: "Statement Rings",
+                description:
+                  "Bold and beautiful rings that make a statement",
+                icon: "💎",
               },
               {
-                trend: 'Stacked Bracelets',
-                description: 'Combine our bracelet styles for a personalized aesthetic',
-                icon: '🌟',
+                trend: "Stacked Bracelets",
+                description:
+                  "Combine our bracelet styles for a personalized aesthetic",
+                icon: "🌟",
               },
             ].map((trend) => (
-              <div key={trend.trend} className="bg-white p-8 rounded-lg border border-[#E8E3DC] text-center">
-                <div className="text-5xl mb-4">{trend.icon}</div>
-                <h3 className="font-serif text-2xl text-[#2E2E2E] mb-3">{trend.trend}</h3>
-                <p className="text-[#6B6B6B] mb-6">{trend.description}</p>
-                <Link
+              <div
+                key={trend.trend}
+                className="rounded-lg border border-[#E8E3DC] bg-white p-8 text-center"
+              >
+                <div className="mb-4 text-5xl">
+                  {trend.icon}
+                </div>
+
+                <h3 className="mb-3 font-serif text-2xl text-[#2E2E2E]">
+                  {trend.trend}
+                </h3>
+
+                <p className="mb-6 text-[#6B6B6B]">
+                  {trend.description}
+                </p>
+
+                <a
                   href="/shop"
-                  className="inline-block text-[#C78B7B] hover:text-[#B5776B] font-semibold transition-colors"
+                  className="font-semibold text-[#C78B7B] transition-colors hover:text-[#B5776B]"
                 >
                   Explore →
-                </Link>
+                </a>
               </div>
             ))}
+
           </div>
         </div>
       </section>

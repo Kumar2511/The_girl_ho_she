@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -29,6 +30,7 @@ import { useCart } from "@/context/cart-context";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import api from "@/lib/api";
+import Toast from "@/components/toast";
 
 interface OrderProduct {
   productId?: string;
@@ -68,6 +70,21 @@ interface Order {
   estimatedDelivery?: string;
 }
 
+type CancellationFeedback = {
+  reason: string;
+  comment: string;
+};
+
+const cancellationReasons = [
+  "Changed my mind",
+  "Found a better price",
+  "Delivery time is too long",
+  "Product no longer needed",
+  "Payment issue",
+  "Ordered by mistake",
+  "Other",
+];
+
 export default function OrderDetailsPage() {
   const params = useParams();
 
@@ -106,6 +123,101 @@ export default function OrderDetailsPage() {
 
   const [buyingAgain, setBuyingAgain] =
     useState(false);
+
+  const [toast, setToast] =
+    useState<{
+      message: string;
+      type: "success" | "error";
+    } | null>(null);
+
+  const [showCancellationFeedback, setShowCancellationFeedback] =
+    useState(false);
+
+  const [cancellationFeedback, setCancellationFeedback] =
+    useState<CancellationFeedback>({
+      reason: "",
+      comment: "",
+    });
+
+  const [submittingCancellationFeedback, setSubmittingCancellationFeedback] =
+    useState(false);
+
+  useEffect(() => {
+    if (!toast) return;
+
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 3500);
+
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // ==========================================
+  // CANCELLATION FEEDBACK
+  // ==========================================
+
+  const closeCancellationFeedback = () => {
+    if (submittingCancellationFeedback) return;
+
+    setShowCancellationFeedback(false);
+
+    setCancellationFeedback({
+      reason: "",
+      comment: "",
+    });
+  };
+
+  const handleSubmitCancellationFeedback = async () => {
+    if (!order?._id || submittingCancellationFeedback) {
+      return;
+    }
+
+    if (!cancellationFeedback.reason) {
+      setToast({
+        type: "error",
+        message: "Please select a reason for cancelling your order.",
+      });
+      return;
+    }
+
+    try {
+      setSubmittingCancellationFeedback(true);
+
+      await api.post(
+        `/orders/my-orders/${order._id}/cancellation-feedback`,
+        {
+          reason: cancellationFeedback.reason,
+          comment: cancellationFeedback.comment.trim(),
+        }
+      );
+
+      setShowCancellationFeedback(false);
+
+      setCancellationFeedback({
+        reason: "",
+        comment: "",
+      });
+
+      setToast({
+        type: "success",
+        message: "Thank you. Your feedback helps us improve.",
+      });
+    } catch (error: any) {
+      console.error(
+        "CANCELLATION FEEDBACK ERROR:",
+        error
+      );
+
+      setToast({
+        type: "error",
+        message:
+          error?.response?.data?.message ||
+          "We couldn't save your feedback. Please try again.",
+      });
+    } finally {
+      setSubmittingCancellationFeedback(false);
+    }
+  };
 
   // ==========================================
   // FETCH ORDER
@@ -213,19 +325,24 @@ export default function OrderDetailsPage() {
 
       setOrder(data.order);
 
-      alert(
-        "Order cancelled successfully."
-      );
+      setToast({
+        type: "success",
+        message: "Your order has been cancelled successfully.",
+      });
+
+      setShowCancellationFeedback(true);
     } catch (error: any) {
       console.error(
         "CANCEL ORDER ERROR:",
         error
       );
 
-      alert(
-        error?.response?.data?.message ||
-          "Unable to cancel order."
-      );
+      setToast({
+        type: "error",
+        message:
+          error?.response?.data?.message ||
+          "Unable to cancel order.",
+      });
     } finally {
       setCancelling(false);
     }
@@ -323,17 +440,20 @@ export default function OrderDetailsPage() {
       }
 
       if (addedCount === 0) {
-        alert(
-          "None of the products from this order are currently available."
-        );
+        setToast({
+          type: "error",
+          message:
+            "None of the products from this order are currently available.",
+        });
         return;
       }
 
-      alert(
-        `${addedCount} product${
+      setToast({
+        type: "success",
+        message: `${addedCount} product${
           addedCount > 1 ? "s" : ""
-        } added to your cart.`
-      );
+        } added to your cart.`,
+      });
 
       window.location.href =
         "/cart";
@@ -343,10 +463,12 @@ export default function OrderDetailsPage() {
         error
       );
 
-      alert(
-        error?.response?.data?.message ||
-          "Unable to add products to cart."
-      );
+      setToast({
+        type: "error",
+        message:
+          error?.response?.data?.message ||
+          "Unable to add products to cart.",
+      });
     } finally {
       setBuyingAgain(false);
     }
@@ -367,16 +489,18 @@ export default function OrderDetailsPage() {
       "";
 
     if (rating < 1) {
-      alert(
-        "Please select a rating."
-      );
+      setToast({
+        type: "error",
+        message: "Please select a rating.",
+      });
       return;
     }
 
     if (!comment) {
-      alert(
-        "Please write a review."
-      );
+      setToast({
+        type: "error",
+        message: "Please write a review.",
+      });
       return;
     }
 
@@ -404,9 +528,11 @@ export default function OrderDetailsPage() {
         data
       );
 
-      alert(
-        "Review submitted successfully! It will appear after approval."
-      );
+      setToast({
+        type: "success",
+        message:
+          "Review submitted successfully! It will appear after approval.",
+      });
 
       setReviewRatings(
         (prev) => ({
@@ -427,10 +553,12 @@ export default function OrderDetailsPage() {
         error
       );
 
-      alert(
-        error?.response?.data?.message ||
-          "Unable to submit review."
-      );
+      setToast({
+        type: "error",
+        message:
+          error?.response?.data?.message ||
+          "Unable to submit review.",
+      });
     } finally {
       setReviewSubmitting(
         (prev) => ({
@@ -1084,13 +1212,11 @@ export default function OrderDetailsPage() {
                         <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-[#E8DFD9] bg-[#FAF7F4] sm:h-28 sm:w-28">
 
                           {item.image ? (
-                            <img
-                              src={
-                                item.image
-                              }
-                              alt={
-                                item.name
-                              }
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              width={112}
+                              height={112}
                               className="h-full w-full object-cover"
                             />
                           ) : (
@@ -1692,7 +1818,166 @@ export default function OrderDetailsPage() {
 
         </main>
 
+        {/* CANCELLATION FEEDBACK MODAL */}
+
+        {showCancellationFeedback && (
+          <div
+            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/45 px-4 py-6 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancellation-feedback-title"
+          >
+            <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-[#E8DFD9] bg-white shadow-[0_25px_80px_rgba(45,25,20,0.25)]">
+              <div className="p-6 sm:p-8">
+
+                <div className="text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#F4F8F2]">
+                    <CheckCircle2
+                      size={32}
+                      className="text-[#6E8965]"
+                    />
+                  </div>
+
+                  <p className="mt-5 text-[10px] font-semibold uppercase tracking-[0.25em] text-[#C78B7B]">
+                    Order Cancelled
+                  </p>
+
+                  <h2
+                    id="cancellation-feedback-title"
+                    className="mt-2 font-serif text-3xl text-[#2E2E2E] sm:text-4xl"
+                  >
+                    Your order has been cancelled
+                  </h2>
+
+                  <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#777]">
+                    We're sorry to see this order go. If you have a
+                    moment, we'd love to know what made you cancel.
+                  </p>
+                </div>
+
+                <div className="mt-7">
+                  <label className="block text-sm font-semibold text-[#3D3632]">
+                    What was the reason for cancelling?
+                  </label>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {cancellationReasons.map((reason) => {
+                      const selected =
+                        cancellationFeedback.reason === reason;
+
+                      return (
+                        <button
+                          key={reason}
+                          type="button"
+                          onClick={() =>
+                            setCancellationFeedback((prev) => ({
+                              ...prev,
+                              reason,
+                            }))
+                          }
+                          className={`flex min-h-11 items-center rounded-xl border px-4 py-3 text-left text-sm transition ${
+                            selected
+                              ? "border-[#C78B7B] bg-[#FCF4F0] font-semibold text-[#3A2528]"
+                              : "border-[#E2D9D3] bg-white text-[#6F6661] hover:border-[#C78B7B] hover:bg-[#FCFAF8]"
+                          }`}
+                          aria-pressed={selected}
+                        >
+                          <span
+                            className={`mr-3 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                              selected
+                                ? "border-[#C78B7B]"
+                                : "border-[#CFC5BF]"
+                            }`}
+                          >
+                            {selected && (
+                              <span className="h-2 w-2 rounded-full bg-[#C78B7B]" />
+                            )}
+                          </span>
+
+                          {reason}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <label
+                    htmlFor="cancellation-comment"
+                    className="block text-sm font-semibold text-[#3D3632]"
+                  >
+                    Additional feedback
+                    <span className="ml-1 font-normal text-[#999]">
+                      (Optional)
+                    </span>
+                  </label>
+
+                  <textarea
+                    id="cancellation-comment"
+                    value={cancellationFeedback.comment}
+                    onChange={(e) =>
+                      setCancellationFeedback((prev) => ({
+                        ...prev,
+                        comment: e.target.value,
+                      }))
+                    }
+                    placeholder="Tell us what happened or how we could improve..."
+                    rows={4}
+                    maxLength={500}
+                    className="mt-3 w-full resize-none rounded-2xl border border-[#E2D9D3] bg-white p-4 text-sm text-[#333] outline-none transition placeholder:text-[#AAA] focus:border-[#C78B7B] focus:ring-2 focus:ring-[#C78B7B]/10"
+                  />
+
+                  <p className="mt-1 text-right text-[11px] text-[#999]">
+                    {cancellationFeedback.comment.length}/500
+                  </p>
+                </div>
+
+                <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={closeCancellationFeedback}
+                    disabled={submittingCancellationFeedback}
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-[#DCCFC8] px-6 text-xs font-semibold text-[#3A2528] transition hover:bg-[#FCF8F5] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Maybe Later
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSubmitCancellationFeedback}
+                    disabled={submittingCancellationFeedback}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#3A2528] px-6 text-xs font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submittingCancellationFeedback ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Submit Feedback"
+                    )}
+                  </button>
+                </div>
+
+                <p className="mt-4 text-center text-[11px] leading-5 text-[#9A8E88]">
+                  Your feedback is optional and will only be used to
+                  improve our shopping experience.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Footer />
+
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+
       </>
     </ProtectedRoute>
   );

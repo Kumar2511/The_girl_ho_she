@@ -222,25 +222,21 @@ export default function Navbar() {
         )
       : [];
 
-  const matchingProducts =
-    searchTerm
-      ? products
-          .filter((product) => {
-            const name =
-              product.name
-                ?.toLowerCase() || "";
+const matchingProducts =
+  searchTerm
+    ? products.filter((product) => {
+        const name =
+          product.name?.toLowerCase() || "";
 
-            const category =
-              product.category
-                ?.toLowerCase() || "";
+        const category =
+          product.category?.toLowerCase() || "";
 
-            return (
-              name.includes(searchTerm) ||
-              category.includes(searchTerm)
-            );
-          })
-          .slice(0, 5)
-      : [];
+        return (
+          name.includes(searchTerm) ||
+          category.includes(searchTerm)
+        );
+      })
+    : [];
 
   // ==========================================
   // SEARCH
@@ -307,9 +303,9 @@ export default function Navbar() {
     setSearchOpen(false);
     setMobileOpen(false);
 
-    router.push(
-      `/product/${productId}`
-    );
+   router.push(
+  `/shop/${productId}`
+);
   };
 
   return (
@@ -427,7 +423,7 @@ export default function Navbar() {
                 ================================= */}
 
                 {searchOpen && (
-                  <div className="absolute left-0 top-12 z-[100] w-[390px] overflow-hidden rounded-2xl border border-[#E7DED8] bg-white shadow-[0_20px_50px_rgba(50,30,20,0.15)]">
+                  <div className="absolute left-0 top-12 z-[100] w-[390px] max-h-[70vh] overflow-y-auto rounded-2xl border border-[#E7DED8] bg-white shadow-[0_20px_50px_rgba(50,30,20,0.15)]">
 
                     {/* POPUP HEADER */}
 
