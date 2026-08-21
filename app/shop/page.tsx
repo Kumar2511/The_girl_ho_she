@@ -1,8 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { SlidersHorizontal, X } from "lucide-react";
+import {
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+
+import {
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 import api from "@/lib/api";
 
@@ -13,16 +26,23 @@ import ProductGrid from "./components/product-grid";
 import EmptyState from "./components/empty-state";
 import FindProductButton from "@/components/shop/FindProductButton";
 
-export default function ShopPage() {
+// ======================================================
+// SHOP CONTENT
+// ======================================================
+
+function ShopContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+
+  const searchParams =
+    useSearchParams();
 
   // ==========================================
   // URL Parameters
   // ==========================================
 
   const selectedCategory =
-    searchParams.get("category") || "All Products";
+    searchParams.get("category") ||
+    "All Products";
 
   const search =
     searchParams.get("search") || "";
@@ -52,8 +72,10 @@ export default function ShopPage() {
   const [inStockOnly, setInStockOnly] =
     useState(false);
 
-  const [showMobileFilters, setShowMobileFilters] =
-    useState(false);
+  const [
+    showMobileFilters,
+    setShowMobileFilters,
+  ] = useState(false);
 
   // ==========================================
   // Categories
@@ -103,70 +125,99 @@ export default function ShopPage() {
   // ==========================================
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
+    const fetchProducts =
+      async () => {
+        try {
+          setLoading(true);
 
-        const response =
-          await api.get("/products");
+          const response =
+            await api.get(
+              "/products"
+            );
 
-        const fetchedProducts =
-          response.data?.products || [];
+          const fetchedProducts =
+            response.data?.products ||
+            [];
 
-        // Only show active products
-        const activeProducts =
-          fetchedProducts.filter(
-            (product: any) =>
-              product.status === undefined ||
-              product.status === "active"
+          // Only show active products
+          const activeProducts =
+            fetchedProducts.filter(
+              (product: any) =>
+                product.status ===
+                  undefined ||
+                product.status ===
+                  "active"
+            );
+
+          setProducts(
+            activeProducts
           );
 
-        setProducts(activeProducts);
+          // =====================================
+          // Dynamic Price Limit
+          // =====================================
 
-        // =====================================
-        // Dynamic Price Limit
-        // =====================================
+          const prices =
+            activeProducts
+              .map(
+                (product: any) =>
+                  Number(
+                    product.price
+                  ) || 0
+              )
+              .filter(
+                (price: number) =>
+                  Number.isFinite(
+                    price
+                  )
+              );
 
-        const prices = activeProducts
-          .map((product: any) =>
-            Number(product.price) || 0
-          )
-          .filter((price: number) =>
-            Number.isFinite(price)
+          const highestPrice =
+            prices.length > 0
+              ? Math.max(
+                  ...prices
+                )
+              : 10000;
+
+          // Round up to nearest ₹500
+          const roundedPrice =
+            Math.ceil(
+              highestPrice / 500
+            ) * 500;
+
+          const finalPriceLimit =
+            Math.max(
+              10000,
+              roundedPrice
+            );
+
+          setPriceLimit(
+            finalPriceLimit
           );
 
-        const highestPrice =
-          prices.length > 0
-            ? Math.max(...prices)
-            : 10000;
+          setMaxPrice(
+            finalPriceLimit
+          );
+        } catch (error) {
+          console.error(
+            "Failed to load products:",
+            error
+          );
 
-        // Round up to nearest ₹500
-        const roundedPrice =
-          Math.ceil(
-            highestPrice / 500
-          ) * 500;
+          setProducts([]);
 
-        const finalPriceLimit =
-          Math.max(10000, roundedPrice);
+          // Keep a safe fallback
+          setPriceLimit(
+            10000
+          );
 
-        setPriceLimit(finalPriceLimit);
-
-        setMaxPrice(finalPriceLimit);
-      } catch (error) {
-        console.error(
-          "Failed to load products:",
-          error
-        );
-
-        setProducts([]);
-
-        // Keep a safe fallback
-        setPriceLimit(10000);
-        setMaxPrice(10000);
-      } finally {
-        setLoading(false);
-      }
-    };
+          setMaxPrice(
+            10000
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
 
     fetchProducts();
   }, []);
@@ -175,142 +226,167 @@ export default function ShopPage() {
   // Filter + Search + Sort
   // ==========================================
 
-  const filteredProducts = useMemo(() => {
-    let data = [...products];
+  const filteredProducts =
+    useMemo(() => {
+      let data = [...products];
 
-    // ----------------------------------------
-    // Category
-    // ----------------------------------------
+      // ----------------------------------------
+      // Category
+      // ----------------------------------------
 
-    if (
-      selectedCategory !==
-      "All Products"
-    ) {
-      data = data.filter(
-        (product) =>
-          product.category
-            ?.toLowerCase()
-            .trim() ===
-          selectedCategory
+      if (
+        selectedCategory !==
+        "All Products"
+      ) {
+        data = data.filter(
+          (product) =>
+            product.category
+              ?.toLowerCase()
+              .trim() ===
+            selectedCategory
+              .toLowerCase()
+              .trim()
+        );
+      }
+
+      // ----------------------------------------
+      // Search
+      // ----------------------------------------
+
+      if (search.trim()) {
+        const searchTerm =
+          search
             .toLowerCase()
-            .trim()
-      );
-    }
+            .trim();
 
-    // ----------------------------------------
-    // Search
-    // ----------------------------------------
+        data = data.filter(
+          (product) => {
+            const name =
+              product.name
+                ?.toLowerCase()
+                .trim() || "";
 
-    if (search.trim()) {
-      const searchTerm =
-        search.toLowerCase().trim();
+            const category =
+              product.category
+                ?.toLowerCase()
+                .trim() || "";
 
-      data = data.filter((product) => {
-        const name =
-          product.name
-            ?.toLowerCase()
-            .trim() || "";
+            const description =
+              product.description
+                ?.toLowerCase()
+                .trim() || "";
 
-        const category =
-          product.category
-            ?.toLowerCase()
-            .trim() || "";
-
-        const description =
-          product.description
-            ?.toLowerCase()
-            .trim() || "";
-
-        return (
-          name.includes(searchTerm) ||
-          category.includes(searchTerm) ||
-          description.includes(searchTerm)
+            return (
+              name.includes(
+                searchTerm
+              ) ||
+              category.includes(
+                searchTerm
+              ) ||
+              description.includes(
+                searchTerm
+              )
+            );
+          }
         );
-      });
-    }
+      }
 
-    // ----------------------------------------
-    // Price
-    // ----------------------------------------
+      // ----------------------------------------
+      // Price
+      // ----------------------------------------
 
-    data = data.filter((product) => {
-      const price =
-        Number(product.price) || 0;
-
-      return (
-        price >= minPrice &&
-        price <= maxPrice
-      );
-    });
-
-    // ----------------------------------------
-    // Stock
-    // ----------------------------------------
-
-    if (inStockOnly) {
       data = data.filter(
-        (product) =>
-          Number(product.stock) > 0
+        (product) => {
+          const price =
+            Number(
+              product.price
+            ) || 0;
+
+          return (
+            price >= minPrice &&
+            price <= maxPrice
+          );
+        }
       );
-    }
 
-    // ----------------------------------------
-    // Sorting
-    // ----------------------------------------
+      // ----------------------------------------
+      // Stock
+      // ----------------------------------------
 
-    switch (sortBy) {
-      case "price-low":
-        data.sort(
-          (a, b) =>
-            Number(a.price || 0) -
-            Number(b.price || 0)
+      if (inStockOnly) {
+        data = data.filter(
+          (product) =>
+            Number(
+              product.stock
+            ) > 0
         );
-        break;
+      }
 
-      case "price-high":
-        data.sort(
-          (a, b) =>
-            Number(b.price || 0) -
-            Number(a.price || 0)
-        );
-        break;
+      // ----------------------------------------
+      // Sorting
+      // ----------------------------------------
 
-      case "oldest":
-        data.sort(
-          (a, b) =>
-            new Date(
-              a.createdAt || 0
-            ).getTime() -
-            new Date(
-              b.createdAt || 0
-            ).getTime()
-        );
-        break;
+      switch (sortBy) {
+        case "price-low":
+          data.sort(
+            (a, b) =>
+              Number(
+                a.price || 0
+              ) -
+              Number(
+                b.price || 0
+              )
+          );
+          break;
 
-      case "newest":
-      default:
-        data.sort(
-          (a, b) =>
-            new Date(
-              b.createdAt || 0
-            ).getTime() -
-            new Date(
-              a.createdAt || 0
-            ).getTime()
-        );
-        break;
-    }
+        case "price-high":
+          data.sort(
+            (a, b) =>
+              Number(
+                b.price || 0
+              ) -
+              Number(
+                a.price || 0
+              )
+          );
+          break;
 
-    return data;
-  }, [
-    products,
-    selectedCategory,
-    search,
-    minPrice,
-    maxPrice,
-    inStockOnly,
-    sortBy,
-  ]);
+        case "oldest":
+          data.sort(
+            (a, b) =>
+              new Date(
+                a.createdAt || 0
+              ).getTime() -
+              new Date(
+                b.createdAt || 0
+              ).getTime()
+          );
+          break;
+
+        case "newest":
+        default:
+          data.sort(
+            (a, b) =>
+              new Date(
+                b.createdAt || 0
+              ).getTime() -
+              new Date(
+                a.createdAt || 0
+              ).getTime()
+          );
+          break;
+      }
+
+      return data;
+    }, [
+      products,
+      selectedCategory,
+      search,
+      minPrice,
+      maxPrice,
+      inStockOnly,
+      sortBy,
+    ]);
 
   // ==========================================
   // Check if filters are active
@@ -440,17 +516,25 @@ export default function ShopPage() {
               minPrice,
               maxPrice,
             ]}
-            onValueChange={(value) => {
+            onValueChange={(
+              value
+            ) => {
               if (
-                Array.isArray(value) &&
+                Array.isArray(
+                  value
+                ) &&
                 value.length === 2
               ) {
                 setMinPrice(
-                  Number(value[0])
+                  Number(
+                    value[0]
+                  )
                 );
 
                 setMaxPrice(
-                  Number(value[1])
+                  Number(
+                    value[1]
+                  )
                 );
               }
             }}
@@ -482,7 +566,9 @@ export default function ShopPage() {
         <label className="flex shrink-0 cursor-pointer items-center gap-2">
           <input
             type="checkbox"
-            checked={inStockOnly}
+            checked={
+              inStockOnly
+            }
             onChange={(e) =>
               setInStockOnly(
                 e.target.checked
@@ -501,7 +587,9 @@ export default function ShopPage() {
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={clearFilters}
+            onClick={
+              clearFilters
+            }
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8D4E67] transition hover:text-[#C78B7B]"
           >
             <X size={13} />
@@ -541,9 +629,9 @@ export default function ShopPage() {
               {search
                 ? `Search Results for "${search}"`
                 : selectedCategory !==
-                  "All Products"
-                ? `${selectedCategory} Collection`
-                : "Discover premium artificial jewellery crafted for weddings, festivals and everyday elegance."}
+                    "All Products"
+                  ? `${selectedCategory} Collection`
+                  : "Discover premium artificial jewellery crafted for weddings, festivals and everyday elegance."}
             </p>
           </div>
         </div>
@@ -592,7 +680,9 @@ export default function ShopPage() {
                     `}
                   >
                     <span>
-                      {category.icon}
+                      {
+                        category.icon
+                      }
                     </span>
 
                     <span>
@@ -751,29 +841,32 @@ export default function ShopPage() {
         </div>
 
         {/* =====================================
-    Products Toolbar
-====================================== */}
+            Products Toolbar
+        ====================================== */}
 
-<div className="mt-7">
-  <div>
-    <p className="text-xs text-[#777]">
-      Showing{" "}
-      <span className="font-semibold text-[#2E2E2E]">
-        {filteredProducts.length}
-      </span>{" "}
-      Products
-    </p>
+        <div className="mt-7">
+          <div>
+            <p className="text-xs text-[#777]">
+              Showing{" "}
+              <span className="font-semibold text-[#2E2E2E]">
+                {
+                  filteredProducts.length
+                }
+              </span>{" "}
+              Products
+            </p>
 
-    {search && (
-      <p className="mt-1 text-xs text-[#999]">
-        Search:
-        <span className="ml-1 font-medium text-[#555]">
-          "{search}"
-        </span>
-      </p>
-    )}
-  </div>
-</div>
+            {search && (
+              <p className="mt-1 text-xs text-[#999]">
+                Search:
+                <span className="ml-1 font-medium text-[#555]">
+                  "{search}"
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* =====================================
             Products
         ====================================== */}
@@ -800,5 +893,38 @@ export default function ShopPage() {
 
       <Footer />
     </>
+  );
+}
+
+// ======================================================
+// SHOP PAGE
+// Suspense Boundary for useSearchParams()
+// ======================================================
+
+export default function ShopPage() {
+  return (
+    <Suspense
+      fallback={
+        <>
+          <Navbar />
+
+          <main className="min-h-[70vh] bg-[#FAF8F6]">
+            <div className="flex min-h-[60vh] items-center justify-center">
+              <div className="text-center">
+                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#E8DFD9] border-t-[#C78B7B]" />
+
+                <p className="mt-5 text-sm text-[#777]">
+                  Loading shop...
+                </p>
+              </div>
+            </div>
+          </main>
+
+          <Footer />
+        </>
+      }
+    >
+      <ShopContent />
+    </Suspense>
   );
 }

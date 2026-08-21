@@ -15,7 +15,7 @@ import {
   Search,
   User,
   Heart,
-  ShoppingCart,
+  ShoppingBag,
   ArrowRight,
 } from "lucide-react";
 
@@ -24,53 +24,43 @@ import { useWishlist } from "@/context/wishlist-context";
 import { useAuth } from "@/context/AuthContext";
 import CartDrawer from "@/components/cart-drawer";
 
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
 const navLinks = [
   { name: "Home", href: "/" },
   { name: "Shop", href: "/shop" },
   { name: "Collections", href: "/collections" },
-  { name: "About Us", href: "/about" },
-  { name: "Contact", href: "/contact" },
+  { name: "Reviews", href: "/reviews" },
 ];
 
+/* =========================================================
+   COLLECTIONS
+   Used only inside MOBILE CATEGORIES.
+   These are NOT shown as search results.
+========================================================= */
+
 const collectionList = [
-  {
-    name: "Necklace",
-    icon: "📿",
-  },
-  {
-    name: "Earrings",
-    icon: "✨",
-  },
-  {
-    name: "Bangles",
-    icon: "💫",
-  },
-  {
-    name: "Rings",
-    icon: "💍",
-  },
-  {
-    name: "Bracelets",
-    icon: "👑",
-  },
-  {
-    name: "Anklets",
-    icon: "🦶",
-  },
-  {
-    name: "Hair Accessories",
-    icon: "🌸",
-  },
-  {
-    name: "Bridal Collection",
-    icon: "👰",
-  },
+  { name: "Necklace", icon: "📿" },
+  { name: "Earrings", icon: "✨" },
+  { name: "Bangles", icon: "💫" },
+  { name: "Rings", icon: "💍" },
+  { name: "Bracelets", icon: "👑" },
+  { name: "Anklets", icon: "🦶" },
+  { name: "Hair Accessories", icon: "🌸" },
+  { name: "Bridal Collection", icon: "👰" },
 ];
+
+/* =========================================================
+   PRODUCT TYPE
+========================================================= */
 
 type Product = {
   _id: string;
   name: string;
   price?: number;
+  discountPrice?: number;
   image?: string;
   images?: string[];
   category?: string;
@@ -78,16 +68,27 @@ type Product = {
   status?: string;
 };
 
+/* =========================================================
+   NAVBAR
+========================================================= */
+
 export default function Navbar() {
   const router = useRouter();
 
   const searchRef =
     useRef<HTMLDivElement | null>(null);
 
+  /* =======================================================
+     STATE
+  ======================================================= */
+
   const [mobileOpen, setMobileOpen] =
     useState(false);
 
-  const [accountOpen, setAccountOpen] =
+  const [categoriesOpen, setCategoriesOpen] =
+    useState(false);
+
+  const [accountSectionOpen, setAccountSectionOpen] =
     useState(false);
 
   const [search, setSearch] =
@@ -102,10 +103,11 @@ export default function Navbar() {
   const [searchLoading, setSearchLoading] =
     useState(false);
 
-  const {
-    cart,
-    openCart,
-  } = useCart();
+  /* =======================================================
+     CONTEXTS
+  ======================================================= */
+
+  const { cart, openCart } = useCart();
 
   const { wishlist } =
     useWishlist();
@@ -119,78 +121,122 @@ export default function Navbar() {
   const wishlistCount =
     wishlist?.length || 0;
 
-  // ==========================================
-  // FETCH PRODUCTS
-  // ==========================================
+  /* =======================================================
+     MOBILE MENU — LOCK BACKGROUND SCROLL
+  ======================================================= */
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setSearchLoading(true);
+    if (!mobileOpen) {
+      document.body.style.overflow = "";
+      return;
+    }
 
-        const response =
-          await fetch(
-            `${
-              process.env
-                .NEXT_PUBLIC_API_URL ||
-              "http://localhost:5000/api"
-            }/products`
-          );
+    const originalOverflow =
+      document.body.style.overflow;
 
-        if (!response.ok) {
-          throw new Error(
-            "Failed to fetch products"
-          );
-        }
+    document.body.style.overflow =
+      "hidden";
 
-        const data =
-          await response.json();
-
-        const fetched =
-          data?.products || [];
-
-        const activeProducts =
-          fetched.filter(
-            (product: Product) =>
-              product.status ===
-                undefined ||
-              product.status ===
-                "active"
-          );
-
-        setProducts(activeProducts);
-      } catch (error) {
-        console.error(
-          "Navbar search products error:",
-          error
-        );
-
-        setProducts([]);
-      } finally {
-        setSearchLoading(false);
-      }
+    return () => {
+      document.body.style.overflow =
+        originalOverflow;
     };
+  }, [mobileOpen]);
+
+ // ==========================================
+// SEARCH — LOCK BACKGROUND SCROLL
+// ==========================================
+
+useEffect(() => {
+  if (!searchOpen) {
+    return;
+  }
+
+  const originalOverflow =
+    document.body.style.overflow;
+
+  document.body.style.overflow = "hidden";
+
+  return () => {
+    document.body.style.overflow =
+      originalOverflow;
+  };
+}, [searchOpen]);
+
+  /* =======================================================
+     FETCH PRODUCTS FOR SEARCH
+  ======================================================= */
+
+  useEffect(() => {
+    const fetchProducts =
+      async () => {
+        try {
+          setSearchLoading(true);
+
+          const response =
+            await fetch(
+              `${
+                process.env
+                  .NEXT_PUBLIC_API_URL ||
+                "http://localhost:5000/api"
+              }/products`
+            );
+
+          if (!response.ok) {
+            throw new Error(
+              "Failed to fetch products"
+            );
+          }
+
+          const data =
+            await response.json();
+
+          const fetched =
+            data?.products || [];
+
+          const activeProducts =
+            fetched.filter(
+              (product: Product) =>
+                product.status ===
+                  undefined ||
+                product.status ===
+                  "active"
+            );
+
+          setProducts(
+            activeProducts
+          );
+        } catch (error) {
+          console.error(
+            "Navbar search products error:",
+            error
+          );
+
+          setProducts([]);
+        } finally {
+          setSearchLoading(false);
+        }
+      };
 
     fetchProducts();
   }, []);
 
-  // ==========================================
-  // CLOSE SEARCH WHEN CLICKING OUTSIDE
-  // ==========================================
+  /* =======================================================
+     CLOSE SEARCH WHEN CLICKING OUTSIDE
+  ======================================================= */
 
   useEffect(() => {
-    const handleOutsideClick = (
-      event: MouseEvent
-    ) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(
-          event.target as Node
-        )
-      ) {
-        setSearchOpen(false);
-      }
-    };
+    const handleOutsideClick =
+      (event: MouseEvent) => {
+        if (
+          searchRef.current &&
+          !searchRef.current.contains(
+            event.target as Node
+          )
+        ) {
+          setSearchOpen(false);
+        }
+      };
 
     document.addEventListener(
       "mousedown",
@@ -205,590 +251,712 @@ export default function Navbar() {
     };
   }, []);
 
-  // ==========================================
-  // SEARCH RESULTS
-  // ==========================================
+  /* =======================================================
+     SEARCH TERM
+  ======================================================= */
 
   const searchTerm =
-    search.trim().toLowerCase();
+    search
+      .trim()
+      .toLowerCase();
 
-  const matchingCollections =
+  /* =======================================================
+     SEARCH SUGGESTIONS
+
+     IMPORTANT:
+     We DO NOT use collectionList here.
+
+     Suggestions are generated from:
+     - Product names
+     - Product categories
+
+     This prevents the whole category catalog
+     from appearing when user types "n".
+  ======================================================= */
+
+  const searchSuggestions =
     searchTerm
-      ? collectionList.filter(
-          (collection) =>
-            collection.name
-              .toLowerCase()
-              .includes(searchTerm)
+      ? Array.from(
+          new Set(
+            products
+              .flatMap((product) => [
+                product.name,
+                product.category,
+              ])
+              .filter(
+                (
+                  value
+                ): value is string =>
+                  Boolean(value)
+              )
+              .filter((value) =>
+                value
+                  .toLowerCase()
+                  .includes(searchTerm)
+              )
+          )
+        )
+          .sort((a, b) => {
+            const aLower =
+              a.toLowerCase();
+
+            const bLower =
+              b.toLowerCase();
+
+            /*
+              Prefer suggestions that START
+              with the entered keyword.
+            */
+
+            const aStarts =
+              aLower.startsWith(
+                searchTerm
+              );
+
+            const bStarts =
+              bLower.startsWith(
+                searchTerm
+              );
+
+            if (
+              aStarts &&
+              !bStarts
+            ) {
+              return -1;
+            }
+
+            if (
+              !aStarts &&
+              bStarts
+            ) {
+              return 1;
+            }
+
+            return a.length - b.length;
+          })
+          .slice(0, 7)
+      : [];
+
+  /* =======================================================
+     MATCHING PRODUCTS
+  ======================================================= */
+
+  const matchingProducts =
+    searchTerm
+      ? products.filter(
+          (product) => {
+            const name =
+              product.name
+                ?.toLowerCase() ||
+              "";
+
+            const category =
+              product.category
+                ?.toLowerCase() ||
+              "";
+
+            return (
+              name.includes(
+                searchTerm
+              ) ||
+              category.includes(
+                searchTerm
+              )
+            );
+          }
         )
       : [];
 
-const matchingProducts =
-  searchTerm
-    ? products.filter((product) => {
-        const name =
-          product.name?.toLowerCase() || "";
+  /* =======================================================
+     SEARCH
+  ======================================================= */
 
-        const category =
-          product.category?.toLowerCase() || "";
+  const handleSearch =
+    () => {
+      const value =
+        search.trim();
 
-        return (
-          name.includes(searchTerm) ||
-          category.includes(searchTerm)
-        );
-      })
-    : [];
+      /*
+        IMPORTANT:
+        Clicking the search icon itself
+        ONLY opens the search UI.
 
-  // ==========================================
-  // SEARCH
-  // ==========================================
+        Navigation happens only when:
+        - Enter is pressed
+        - Search submit button is clicked
+        - "Search for..." is clicked
+      */
 
-  const handleSearch = () => {
-    const value =
-      search.trim();
+      if (!value) {
+        setSearchOpen(false);
+        return;
+      }
 
-    if (!value) {
       setSearchOpen(false);
-      router.push("/shop");
-      return;
-    }
+      setMobileOpen(false);
 
-    setSearchOpen(false);
-    setMobileOpen(false);
+      router.push(
+        `/shop?search=${encodeURIComponent(
+          value
+        )}`
+      );
+    };
 
-    router.push(
-      `/shop?search=${encodeURIComponent(
-        value
-      )}`
-    );
-  };
+  /* =======================================================
+     SEARCH KEYBOARD
+  ======================================================= */
 
-  const handleSearchKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
+  const handleSearchKeyDown =
+    (
+      e: React.KeyboardEvent<HTMLInputElement>
+    ) => {
+      if (
+        e.key === "Enter"
+      ) {
+        e.preventDefault();
 
-      handleSearch();
-    }
+        handleSearch();
+      }
 
-    if (e.key === "Escape") {
+      if (
+        e.key === "Escape"
+      ) {
+        setSearchOpen(false);
+      }
+    };
+
+  /* =======================================================
+     SUGGESTION CLICK
+  ======================================================= */
+
+  const handleSuggestionClick =
+    (
+      suggestion: string
+    ) => {
+      /*
+        Do NOT navigate immediately.
+
+        Just put the suggestion
+        inside the search box.
+      */
+
+      setSearch(
+        suggestion
+      );
+
+      setSearchOpen(true);
+    };
+
+  /* =======================================================
+     COLLECTION CLICK
+     Used by MOBILE CATEGORIES.
+  ======================================================= */
+
+  const handleCollectionClick =
+    (
+      collection: string
+    ) => {
       setSearchOpen(false);
-    }
-  };
+      setMobileOpen(false);
+      setCategoriesOpen(false);
 
-  // ==========================================
-  // COLLECTION CLICK
-  // ==========================================
+      router.push(
+        `/shop?category=${encodeURIComponent(
+          collection
+        )}`
+      );
+    };
 
-  const handleCollectionClick = (
-    collection: string
-  ) => {
-    setSearchOpen(false);
-    setMobileOpen(false);
+  /* =======================================================
+     PRODUCT CLICK
+  ======================================================= */
 
-    router.push(
-      `/shop?category=${encodeURIComponent(
-        collection
-      )}`
-    );
-  };
+  const handleProductClick =
+    (
+      productId: string
+    ) => {
+      setSearchOpen(false);
+      setMobileOpen(false);
 
-  // ==========================================
-  // PRODUCT CLICK
-  // ==========================================
+      router.push(
+        `/shop/${productId}`
+      );
+    };
 
-  const handleProductClick = (
-    productId: string
-  ) => {
-    setSearchOpen(false);
-    setMobileOpen(false);
+  /* =======================================================
+     CLOSE MOBILE MENU
+  ======================================================= */
 
-   router.push(
-  `/shop/${productId}`
-);
-  };
+  const closeMobileMenu =
+    () => {
+      setMobileOpen(false);
+      setCategoriesOpen(false);
+      setAccountSectionOpen(false);
+    };
+
+  /* =======================================================
+     RENDER
+  ======================================================= */
 
   return (
     <>
-      {/* =====================================
-          HEADER
-      ====================================== */}
+      {/* ===================================================
+          MAIN NAVBAR
+      =================================================== */}
 
-      <header className="sticky top-0 z-50 border-b border-[#EFE8E3] bg-white">
+      <header
+        className="
+          relative
+          z-50
+          w-full
+          border-b
+          border-[#EEE5DE]
+          bg-white
+        "
+      >
 
-        {/* ===================================
-            TOP HEADER
-        =================================== */}
+        {/* =================================================
+            MAIN HEADER ROW
+        ================================================= */}
 
-        <div className="mx-auto max-w-7xl px-4">
+        <div
+          className="
+            mx-auto
+            w-full
+            max-w-[1450px]
+            px-4
+            sm:px-6
+            lg:px-8
+          "
+        >
 
-          <div className="relative flex h-14 items-center justify-between">
+          <div
+            className="
+              relative
+              flex
+              h-[64px]
+              items-center
+              justify-between
+              sm:h-[70px]
+            "
+          >
 
-            {/* MOBILE MENU */}
+            {/* =================================================
+                MOBILE LEFT SIDE
+                MENU + SEARCH
+            ================================================= */}
+
+            <div
+              className="
+                flex
+                items-center
+                gap-1
+                lg:hidden
+              "
+            >
+
+              {/* MOBILE MENU */}
+
+              <button
+                type="button"
+                onClick={() =>
+                  setMobileOpen(
+                    !mobileOpen
+                  )
+                }
+                aria-label={
+                  mobileOpen
+                    ? "Close menu"
+                    : "Open menu"
+                }
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  text-[#3A302D]
+                  transition
+                  hover:text-[#A86C58]
+                "
+              >
+                {mobileOpen ? (
+                  <X
+                    className="
+                      h-5
+                      w-5
+                    "
+                  />
+                ) : (
+                  <Menu
+                    className="
+                      h-5
+                      w-5
+                    "
+                  />
+                )}
+              </button>
+
+              {/* MOBILE SEARCH */}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen(
+                    !searchOpen
+                  );
+
+                  setMobileOpen(
+                    false
+                  );
+                }}
+                aria-label="Search jewellery"
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  text-[#3A302D]
+                  transition
+                  hover:text-[#A86C58]
+                "
+              >
+                <Search
+                  className="
+                    h-[18px]
+                    w-[18px]
+                  "
+                />
+              </button>
+
+            </div>
+
+            {/* =================================================
+                DESKTOP SEARCH
+                LEFT SIDE OF LOGO
+            ================================================= */}
 
             <button
               type="button"
-              onClick={() =>
+              onClick={() => {
+                setSearchOpen(
+                  !searchOpen
+                );
+
                 setMobileOpen(
-                  !mobileOpen
-                )
-              }
-              className="flex h-8 w-8 items-center justify-center lg:hidden"
-              aria-label="Toggle menu"
+                  false
+                );
+              }}
+              aria-label="Search jewellery"
+              className="
+                hidden
+                h-10
+                w-10
+                items-center
+                justify-center
+                text-[#3A302D]
+                transition
+                hover:text-[#A86C58]
+                lg:flex
+              "
             >
-              {mobileOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
+              <Search
+                className="
+                  h-[18px]
+                  w-[18px]
+                "
+              />
             </button>
 
-            {/* LOGO */}
+            {/* =================================================
+                CENTER — BRAND
+            ================================================= */}
 
             <Link
               href="/"
-              className="absolute left-1/2 flex -translate-x-1/2 flex-col items-center"
+              onClick={closeMobileMenu}
+              className="
+                absolute
+                left-1/2
+                top-1/2
+                -translate-x-1/2
+                -translate-y-1/2
+                text-center
+              "
             >
-              <div className="text-sm leading-none text-pink-500">
-                🌸
-              </div>
-
-              <h1 className="font-serif text-[24px] leading-none text-[#5A3542]">
-                The_girl_ho_se
-              </h1>
-            </Link>
-
-            {/* RIGHT SIDE */}
-
-            <div className="ml-auto flex items-center gap-1.5">
-
-              {/* =================================
-                  DESKTOP SEARCH
-              ================================= */}
-
               <div
-                ref={searchRef}
-                className="relative hidden lg:flex"
+                className="
+                  flex
+                  flex-col
+                  items-center
+                "
               >
 
-                <Search
-                  className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
-                />
-
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(
-                      e.target.value
-                    );
-
-                    setSearchOpen(
-                      e.target.value.trim()
-                        .length > 0
-                    );
-                  }}
-                  onFocus={() => {
-                    if (
-                      search.trim()
-                    ) {
-                      setSearchOpen(
-                        true
-                      );
-                    }
-                  }}
-                  onKeyDown={
-                    handleSearchKeyDown
-                  }
-                  placeholder="Search jewellery..."
-                  aria-label="Search jewellery"
-                  className="w-56 rounded-full border border-[#E6DDD6] bg-[#FBFAF8] py-2 pl-9 pr-10 text-sm outline-none transition focus:border-[#C98F7B]"
-                />
-
-                {/* SEARCH BUTTON */}
-
-                <button
-                  type="button"
-                  onClick={
-                    handleSearch
-                  }
-                  aria-label="Search"
-                  className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[#5A3542] text-white transition hover:bg-[#432630]"
+                <span
+                  className="
+                    mb-0.5
+                    text-[11px]
+                    leading-none
+                    text-[#C98F7B]
+                  "
                 >
-                  <Search className="h-3.5 w-3.5" />
-                </button>
+                  ✦
+                </span>
 
-                {/* =================================
-                    SEARCH POPUP
-                ================================= */}
+                <span
+                  className="
+                    whitespace-nowrap
+                    font-serif
+                    text-[18px]
+                    leading-none
+                    tracking-[-0.02em]
+                    text-[#5A3542]
+                    sm:text-[24px]
+                  "
+                >
+                  The_girl_ho_se
+                </span>
 
-                {searchOpen && (
-                  <div className="absolute left-0 top-12 z-[100] w-[390px] max-h-[70vh] overflow-y-auto rounded-2xl border border-[#E7DED8] bg-white shadow-[0_20px_50px_rgba(50,30,20,0.15)]">
-
-                    {/* POPUP HEADER */}
-
-                    <div className="border-b border-[#F0E8E3] px-5 py-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#A78C82]">
-                        Search Results
-                      </p>
-
-                      <p className="mt-1 text-sm text-[#4A403D]">
-                        Results for{" "}
-                        <span className="font-semibold text-[#5A3542]">
-                          "{search}"
-                        </span>
-                      </p>
-                    </div>
-
-                    {/* LOADING */}
-
-                    {searchLoading && (
-                      <div className="px-5 py-6 text-center text-sm text-gray-500">
-                        Searching...
-                      </div>
-                    )}
-
-                    {!searchLoading &&
-                      searchTerm &&
-                      matchingCollections.length ===
-                        0 &&
-                      matchingProducts.length ===
-                        0 && (
-                        <div className="px-5 py-8 text-center">
-                          <div className="text-2xl">
-                            🔍
-                          </div>
-
-                          <p className="mt-2 text-sm font-semibold text-[#3A302D]">
-                            No results found
-                          </p>
-
-                          <p className="mt-1 text-xs text-gray-500">
-                            Try another jewellery
-                            name or collection.
-                          </p>
-                        </div>
-                      )}
-
-                    {/* COLLECTIONS */}
-
-                    {!searchLoading &&
-                      matchingCollections.length >
-                        0 && (
-                        <div className="border-b border-[#F0E8E3] px-5 py-4">
-
-                          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#A78C82]">
-                            Collections
-                          </p>
-
-                          <div className="space-y-1">
-
-                            {matchingCollections.map(
-                              (
-                                collection
-                              ) => (
-                                <button
-                                  key={
-                                    collection.name
-                                  }
-                                  type="button"
-                                  onClick={() =>
-                                    handleCollectionClick(
-                                      collection.name
-                                    )
-                                  }
-                                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-[#FAF5F2]"
-                                >
-                                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F8F0EC] text-sm">
-                                    {
-                                      collection.icon
-                                    }
-                                  </span>
-
-                                  <span className="text-sm font-medium text-[#3A302D]">
-                                    {
-                                      collection.name
-                                    }
-                                  </span>
-
-                                  <ArrowRight
-                                    size={14}
-                                    className="ml-auto text-[#B99A8E]"
-                                  />
-                                </button>
-                              )
-                            )}
-
-                          </div>
-
-                        </div>
-                      )}
-
-                    {/* PRODUCTS */}
-
-                    {!searchLoading &&
-                      matchingProducts.length >
-                        0 && (
-                        <div className="px-5 py-4">
-
-                          <div className="mb-3 flex items-center justify-between">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#A78C82]">
-                              Products
-                            </p>
-
-                            <span className="text-[10px] text-gray-400">
-                              {matchingProducts.length}{" "}
-                              found
-                            </span>
-                          </div>
-
-                          <div className="space-y-2">
-
-                            {matchingProducts.map(
-                              (
-                                product
-                              ) => {
-                                const image =
-                                  product.image ||
-                                  product.images?.[0] ||
-                                  "/placeholder-product.jpg";
-
-                                return (
-                                  <button
-                                    key={
-                                      product._id
-                                    }
-                                    type="button"
-                                    onClick={() =>
-                                      handleProductClick(
-                                        product._id
-                                      )
-                                    }
-                                    className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-[#FAF5F2]"
-                                  >
-
-                                    {/* IMAGE */}
-
-                                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#F8F4F1]">
-                                      <img
-                                        src={image}
-                                        alt={
-                                          product.name
-                                        }
-                                        className="h-full w-full object-cover"
-                                      />
-                                    </div>
-
-                                    {/* DETAILS */}
-
-                                    <div className="min-w-0 flex-1">
-
-                                      <p className="truncate text-sm font-semibold text-[#3A302D]">
-                                        {
-                                          product.name
-                                        }
-                                      </p>
-
-                                      <p className="mt-0.5 text-[11px] text-gray-500">
-                                        {
-                                          product.category
-                                        }
-                                      </p>
-
-                                      {product.price !==
-                                        undefined && (
-                                        <p className="mt-1 text-xs font-semibold text-[#8D4E67]">
-                                          ₹
-                                          {Number(
-                                            product.price
-                                          ).toLocaleString(
-                                            "en-IN"
-                                          )}
-                                        </p>
-                                      )}
-
-                                    </div>
-
-                                    <ArrowRight
-                                      size={14}
-                                      className="shrink-0 text-[#B99A8E]"
-                                    />
-
-                                  </button>
-                                );
-                              }
-                            )}
-
-                          </div>
-
-                        </div>
-                      )}
-
-                    {/* VIEW ALL */}
-
-                    {!searchLoading &&
-                      searchTerm && (
-                        <button
-                          type="button"
-                          onClick={
-                            handleSearch
-                          }
-                          className="flex w-full items-center justify-center gap-2 border-t border-[#F0E8E3] bg-[#FAF7F4] px-5 py-3.5 text-xs font-bold text-[#5A3542] transition hover:bg-[#F5ECE7]"
-                        >
-                          View all results
-                          <ArrowRight
-                            size={14}
-                          />
-                        </button>
-                      )}
-
-                  </div>
-                )}
+                <span
+                  className="
+                    mt-1
+                    text-[6px]
+                    uppercase
+                    tracking-[0.3em]
+                    text-[#9A7B70]
+                    sm:text-[8px]
+                  "
+                >
+                  Jewellery
+                </span>
 
               </div>
+            </Link>
 
-              {/* ACCOUNT */}
+            {/* =================================================
+                RIGHT SIDE
+                WISHLIST + ACCOUNT + CART
+            ================================================= */}
 
-              <div className="relative">
+            <div
+              className="
+                ml-auto
+                flex
+                items-center
+                gap-1
+              "
+            >
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setAccountOpen(
-                      !accountOpen
-                    )
-                  }
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-gray-100"
-                  aria-label="Account"
-                >
-                  <User className="h-4 w-4 text-[#444]" />
-                </button>
-
-                {accountOpen && (
-                  <div className="absolute right-0 top-10 w-64 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-
-                    {!user ? (
-                      <>
-                        <Link
-                          href="/login"
-                          onClick={() =>
-                            setAccountOpen(
-                              false
-                            )
-                          }
-                          className="block px-5 py-3 text-[#2E2E2E] transition hover:bg-[#F8F8F8]"
-                        >
-                          Login
-                        </Link>
-
-                        <Link
-                          href="/register"
-                          onClick={() =>
-                            setAccountOpen(
-                              false
-                            )
-                          }
-                          className="block px-5 py-3 text-[#2E2E2E] transition hover:bg-[#F8F8F8]"
-                        >
-                          Register
-                        </Link>
-                      </>
-                    ) : (
-                      <>
-                        <div className="border-b px-5 py-4">
-                          <p className="font-semibold text-[#333]">
-                            {user.name}
-                          </p>
-
-                          <p className="text-sm text-gray-500">
-                            {user.email}
-                          </p>
-                        </div>
-
-                        <Link
-                          href="/account/profile"
-                          onClick={() =>
-                            setAccountOpen(
-                              false
-                            )
-                          }
-                          className="block px-5 py-3 hover:bg-[#F8F8F8]"
-                        >
-                          My Profile
-                        </Link>
-
-                        <Link
-                          href="/account/orders"
-                          onClick={() =>
-                            setAccountOpen(
-                              false
-                            )
-                          }
-                          className="block px-5 py-3 hover:bg-[#F8F8F8]"
-                        >
-                          My Orders
-                        </Link>
-
-                        <Link
-                          href="/wishlist"
-                          onClick={() =>
-                            setAccountOpen(
-                              false
-                            )
-                          }
-                          className="block px-5 py-3 hover:bg-[#F8F8F8]"
-                        >
-                          Wishlist
-                        </Link>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            logout();
-                            setAccountOpen(
-                              false
-                            );
-                          }}
-                          className="w-full border-t px-5 py-3 text-left text-red-600 hover:bg-red-50"
-                        >
-                          Logout
-                        </button>
-                      </>
-                    )}
-
-                  </div>
-                )}
-
-              </div>
-
-              {/* WISHLIST */}
+              {/* =================================================
+                  WISHLIST
+              ================================================= */}
 
               <Link
                 href="/wishlist"
-                className="relative flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-gray-100"
+                onClick={() => {
+                  setMobileOpen(false);
+                  setCategoriesOpen(false);
+                  setAccountSectionOpen(false);
+                }}
                 aria-label="Wishlist"
+                className="
+                  relative
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  text-[#3A302D]
+                  transition
+                  hover:text-[#A86C58]
+                "
               >
-                <Heart className="h-4 w-4 text-[#444]" />
+                <Heart
+                  className="
+                    h-[18px]
+                    w-[18px]
+                  "
+                />
 
-                {wishlistCount > 0 && (
-                  <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#B86A6A] text-[9px] text-white">
+                {wishlistCount >
+                  0 && (
+                  <span
+                    className="
+                      absolute
+                      right-0.5
+                      top-0.5
+                      flex
+                      h-[16px]
+                      min-w-[16px]
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-[#B86A6A]
+                      px-1
+                      text-[8px]
+                      font-bold
+                      text-white
+                    "
+                  >
                     {wishlistCount}
                   </span>
                 )}
               </Link>
 
-              {/* CART */}
+              {/* =================================================
+                  DESKTOP ACCOUNT
+              ================================================= */}
+
+              <div
+                className="
+                  hidden
+                  items-center
+                  gap-1
+                  lg:flex
+                "
+              >
+
+                {!user ? (
+                  <>
+                    {/* LOGIN */}
+
+                    <Link
+                      href="/login"
+                      className="
+                        flex
+                        h-10
+                        items-center
+                        gap-2
+                        px-3
+                        text-[11px]
+                        font-medium
+                        uppercase
+                        tracking-[0.08em]
+                        text-[#4A403D]
+                        transition
+                        hover:text-[#A86C58]
+                      "
+                    >
+                      <User
+                        className="
+                          h-[16px]
+                          w-[16px]
+                        "
+                      />
+
+                      <span>
+                        Login
+                      </span>
+                    </Link>
+
+                    {/* REGISTER */}
+
+                    <Link
+                      href="/register"
+                      className="
+                        flex
+                        h-10
+                        items-center
+                        px-2
+                        text-[11px]
+                        font-medium
+                        uppercase
+                        tracking-[0.08em]
+                        text-[#8D7B73]
+                        transition
+                        hover:text-[#A86C58]
+                      "
+                    >
+                      Register
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href="/account/profile"
+                    className="
+                      flex
+                      h-10
+                      items-center
+                      gap-2
+                      px-3
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.08em]
+                      text-[#4A403D]
+                      transition
+                      hover:text-[#A86C58]
+                    "
+                  >
+                    <User
+                      className="
+                        h-[16px]
+                        w-[16px]
+                      "
+                    />
+
+                    <span
+                      className="
+                        max-w-[110px]
+                        truncate
+                      "
+                    >
+                      {user.name ||
+                        "My Account"}
+                    </span>
+                  </Link>
+                )}
+
+              </div>
+
+              {/* =================================================
+                  CART
+              ================================================= */}
 
               <button
                 type="button"
                 onClick={openCart}
-                className="relative flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-gray-100"
                 aria-label="Open cart"
+                className="
+                  relative
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  text-[#3A302D]
+                  transition
+                  hover:text-[#A86A58]
+                "
               >
-                <ShoppingCart className="h-4 w-4 text-[#444]" />
+                <ShoppingBag
+                  className="
+                    h-[19px]
+                    w-[19px]
+                  "
+                />
 
-                {cartCount > 0 && (
-                  <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#B86A6A] text-[9px] text-white">
+                {cartCount >
+                  0 && (
+                  <span
+                    className="
+                      absolute
+                      right-0.5
+                      top-0.5
+                      flex
+                      h-[16px]
+                      min-w-[16px]
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-[#B86A6A]
+                      px-1
+                      text-[8px]
+                      font-bold
+                      text-white
+                    "
+                  >
                     {cartCount}
                   </span>
                 )}
@@ -800,100 +968,983 @@ const matchingProducts =
 
         </div>
 
-        {/* =====================================
-            DESKTOP NAVIGATION
-        ====================================== */}
+        {/* =================================================
+    SEARCH OVERLAY
+================================================= */}
 
-        <nav className="hidden border-t border-[#F0E8E3] lg:block">
+{searchOpen && (
+  <div
+    className="
+      fixed
+      inset-0
+      z-[150]
+    "
+    role="dialog"
+    aria-modal="true"
+    aria-label="Search jewellery"
+  >
 
-          <div className="mx-auto flex h-9 max-w-7xl items-center justify-center px-4">
+    {/* =================================================
+        BACKDROP
+        - Blur homepage
+        - Darken homepage
+        - Click outside = close search
+    ================================================= */}
 
-            <div className="flex items-center justify-center gap-8">
+    <button
+      type="button"
+      aria-label="Close search"
+      onClick={() => {
+        setSearchOpen(false);
+      }}
+      className="
+        absolute
+        inset-0
+        h-full
+        w-full
+        cursor-default
+        bg-black/25
+        backdrop-blur-[3px]
+      "
+    />
 
-              {navLinks.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm font-medium text-[#353535] transition hover:text-[#A86C58]"
+    {/* =================================================
+        SEARCH PANEL
+    ================================================= */}
+
+    <div
+      ref={searchRef}
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
+      className="
+        absolute
+        left-1/2
+        top-[105px]
+        w-[calc(100%-32px)]
+        max-w-[760px]
+        -translate-x-1/2
+
+        overflow-hidden
+        rounded-[18px]
+
+        border
+        border-[#E5D9D2]
+
+        bg-white
+
+        shadow-[0_25px_70px_rgba(50,30,20,0.25)]
+
+        sm:top-[115px]
+        sm:w-[calc(100%-48px)]
+
+        lg:top-[125px]
+        lg:w-[760px]
+      "
+    >
+
+      {/* =================================================
+          SEARCH INPUT
+      ================================================= */}
+
+      <div
+        className="
+          border-b
+          border-[#EEE5DE]
+          bg-white
+          p-4
+          sm:p-5
+        "
+      >
+
+        <div
+          className="
+            relative
+            flex
+            items-center
+          "
+        >
+
+          {/* Search icon */}
+
+          <Search
+            className="
+              pointer-events-none
+              absolute
+              left-4
+              h-[17px]
+              w-[17px]
+              text-[#9A8279]
+            "
+          />
+
+          {/* Input */}
+
+          <input
+            ref={(element) => {
+              if (element) {
+                element.focus();
+              }
+            }}
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setSearchOpen(true);
+            }}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search jewellery..."
+            aria-label="Search jewellery"
+            className="
+              h-[52px]
+              w-full
+
+              rounded-[12px]
+
+              border
+              border-[#D8C7BE]
+
+              bg-white
+
+              pl-11
+              pr-12
+
+              text-[14px]
+              text-[#3A302D]
+
+              outline-none
+
+              placeholder:text-[#A8948C]
+
+              focus:border-[#5A3542]
+            "
+          />
+
+          {/* Search submit */}
+
+          <button
+            type="button"
+            onClick={handleSearch}
+            aria-label="Search"
+            className="
+              absolute
+              right-2
+              flex
+              h-9
+              w-9
+              items-center
+              justify-center
+
+              rounded-full
+
+              text-[#5A3542]
+
+              transition
+
+              hover:bg-[#F7F0EC]
+            "
+          >
+            <Search
+              className="
+                h-[18px]
+                w-[18px]
+              "
+            />
+          </button>
+
+        </div>
+
+      </div>
+
+      {/* =================================================
+          SEARCH CONTENT
+      ================================================= */}
+
+      {search.trim() && (
+        <div
+          className="
+            max-h-[65vh]
+            overflow-y-auto
+            overscroll-contain
+          "
+        >
+
+          {searchLoading ? (
+
+            <div
+              className="
+                px-5
+                py-10
+                text-center
+                text-sm
+                text-[#8D7B73]
+              "
+            >
+              Searching...
+            </div>
+
+          ) : (
+
+            <>
+
+              {/* =================================================
+                  DESKTOP — TWO COLUMNS
+                  MOBILE — ONE COLUMN
+              ================================================= */}
+
+              <div
+                className="
+                  grid
+                  grid-cols-1
+                  lg:grid-cols-2
+                "
+              >
+
+                {/* =================================================
+                    SUGGESTIONS
+                    Generated from actual product names/categories.
+                    Do not show the full category catalog here.
+                ================================================= */}
+
+                {searchSuggestions.length > 0 && (
+                  <div
+                    className="
+                      border-b
+                      border-[#EEE5DE]
+                      px-5
+                      py-5
+                      lg:border-b-0
+                      lg:border-r
+                    "
+                  >
+                    <p
+                      className="
+                        mb-3
+                        text-[9px]
+                        font-bold
+                        uppercase
+                        tracking-[0.2em]
+                        text-[#A78C82]
+                      "
+                    >
+                      Suggestions
+                    </p>
+
+                    <div className="space-y-1">
+                      {searchSuggestions.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() =>
+                            handleSuggestionClick(suggestion)
+                          }
+                          className="
+                            flex
+                            w-full
+                            items-center
+                            rounded-lg
+                            px-3
+                            py-2.5
+                            text-left
+                            text-[14px]
+                            text-[#3A302D]
+                            transition
+                            hover:bg-[#FAF5F2]
+                            hover:text-[#A86C58]
+                          "
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* =================================================
+                    PRODUCTS
+                ================================================= */}
+
+                {matchingProducts.length > 0 && (
+                  <div
+                    className="
+                      px-5
+                      py-5
+                    "
+                  >
+
+                    <div
+                      className="
+                        mb-3
+                        flex
+                        items-center
+                        justify-between
+                      "
+                    >
+
+                      <p
+                        className="
+                          text-[9px]
+                          font-bold
+                          uppercase
+                          tracking-[0.2em]
+                          text-[#A78C82]
+                        "
+                      >
+                        Products
+                      </p>
+
+                      <span
+                        className="
+                          text-[10px]
+                          text-[#A38B82]
+                        "
+                      >
+                        {matchingProducts.length}
+                        {" "}found
+                      </span>
+
+                    </div>
+
+                    <div className="space-y-1">
+
+                      {matchingProducts
+                        .slice(0, 6)
+                        .map((product) => {
+
+                          const image =
+                            product.image ||
+                            product.images?.[0] ||
+                            "/placeholder-product.jpg";
+
+                          return (
+                            <button
+                              key={product._id}
+                              type="button"
+                              onClick={() =>
+                                handleProductClick(
+                                  product._id
+                                )
+                              }
+                              className="
+                                flex
+                                w-full
+                                items-center
+                                gap-3
+
+                                rounded-xl
+
+                                p-2
+
+                                text-left
+
+                                transition
+
+                                hover:bg-[#FAF5F2]
+                              "
+                            >
+
+                              {/* PRODUCT IMAGE */}
+
+                              <div
+                                className="
+                                  relative
+                                  h-14
+                                  w-14
+                                  shrink-0
+
+                                  overflow-hidden
+                                  rounded-lg
+
+                                  bg-[#F7F2EF]
+                                "
+                              >
+
+                                <img
+                                  src={image}
+                                  alt={product.name}
+                                  className="
+                                    h-full
+                                    w-full
+                                    object-cover
+                                  "
+                                />
+
+                              </div>
+
+                              {/* PRODUCT DETAILS */}
+
+                              <div
+                                className="
+                                  min-w-0
+                                  flex-1
+                                "
+                              >
+
+                                <p
+                                  className="
+                                    truncate
+                                    text-[13px]
+                                    font-semibold
+                                    text-[#3A302D]
+                                  "
+                                >
+                                  {product.name}
+                                </p>
+
+                                <p
+                                  className="
+                                    mt-0.5
+                                    text-[10px]
+                                    text-[#8D7B73]
+                                  "
+                                >
+                                  {product.category}
+                                </p>
+
+                                {product.price !==
+                                  undefined && (
+                                  <p
+                                    className="
+                                      mt-1
+                                      text-xs
+                                      font-semibold
+                                      text-[#8D4E67]
+                                    "
+                                  >
+                                    ₹
+                                    {Number(
+                                      product.price
+                                    ).toLocaleString(
+                                      "en-IN"
+                                    )}
+                                  </p>
+                                )}
+
+                              </div>
+
+                              <ArrowRight
+                                size={14}
+                                className="
+                                  shrink-0
+                                  text-[#B99A8E]
+                                "
+                              />
+
+                            </button>
+                          );
+                        })}
+
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+
+              {/* =================================================
+                  NO RESULTS
+              ================================================= */}
+
+              {searchSuggestions.length === 0 &&
+                matchingProducts.length === 0 && (
+
+                <div
+                  className="
+                    px-5
+                    py-10
+                    text-center
+                  "
                 >
-                  {item.name}
-                </Link>
-              ))}
+
+                  <div className="mb-2 text-xl">
+                    🔍
+                  </div>
+
+                  <p
+                    className="
+                      text-sm
+                      font-semibold
+                      text-[#3A302D]
+                    "
+                  >
+                    No results found
+                  </p>
+
+                  <p
+                    className="
+                      mt-1
+                      text-xs
+                      text-[#8D7B73]
+                    "
+                  >
+                    Try another jewellery name
+                    or collection.
+                  </p>
+
+                </div>
+
+              )}
+
+              {/* =================================================
+                  VIEW ALL RESULTS
+              ================================================= */}
+
+              {(searchSuggestions.length > 0 ||
+                matchingProducts.length > 0) && (
+
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="
+                    flex
+                    w-full
+                    items-center
+                    justify-between
+
+                    border-t
+                    border-[#EEE5DE]
+
+                    bg-[#FAF7F4]
+
+                    px-5
+                    py-4
+
+                    text-sm
+                    font-semibold
+                    text-[#5A3542]
+
+                    transition
+
+                    hover:bg-[#F5ECE7]
+                  "
+                >
+
+                  <span>
+                    Search for "{search.trim()}"
+                  </span>
+
+                  <ArrowRight size={15} />
+
+                </button>
+
+              )}
+
+            </>
+
+          )}
+
+        </div>
+      )}
+
+    </div>
+
+  </div>
+)}
+
+        {/* =================================================
+            DESKTOP NAVIGATION
+        ================================================= */}
+
+        <nav
+          className="
+            hidden
+            border-t
+            border-[#F3ECE7]
+            lg:block
+          "
+        >
+          <div
+            className="
+              mx-auto
+              flex
+              h-11
+              max-w-[1450px]
+              items-center
+              justify-center
+              px-8
+            "
+          >
+
+            <div
+              className="
+                flex
+                items-center
+                gap-8
+              "
+            >
+
+              {navLinks.map(
+                (item) => (
+                  <Link
+                    key={
+                      item.href
+                    }
+                    href={
+                      item.href
+                    }
+                    className="
+                      relative
+                      py-3
+                      text-[11px]
+                      font-medium
+                      uppercase
+                      tracking-[0.13em]
+                      text-[#4A403D]
+                      transition
+                      hover:text-[#A86C58]
+                    "
+                  >
+                    {item.name}
+                  </Link>
+                )
+              )}
 
             </div>
 
           </div>
-
         </nav>
 
-        {/* =====================================
-            MOBILE MENU
-        ====================================== */}
+        {/* =================================================
+            MOBILE MENU DRAWER
+        ================================================= */}
 
         {mobileOpen && (
-          <div className="border-t bg-white lg:hidden">
+          <div
+            className="
+              fixed
+              inset-0
+              z-[200]
+              lg:hidden
+            "
+            role="dialog"
+            aria-modal="true"
+          >
 
-            <nav className="flex flex-col">
+            {/* BACKDROP */}
 
-              {/* MOBILE SEARCH */}
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={
+                closeMobileMenu
+              }
+              className="
+                absolute
+                inset-0
+                bg-black/20
+              "
+            />
 
-              <div className="border-b px-6 py-4">
+            {/* DRAWER */}
 
-                <div
-                  ref={searchRef}
-                  className="relative"
+            <aside
+              className="
+                absolute
+                left-0
+                top-0
+                flex
+                h-[100dvh]
+                w-[82%]
+                max-w-[360px]
+                flex-col
+                bg-white
+                shadow-[10px_0_35px_rgba(50,30,20,0.12)]
+              "
+              onClick={(e) =>
+                e.stopPropagation()
+              }
+            >
+
+              {/* =================================================
+                  DRAWER HEADER
+              ================================================= */}
+
+              <div
+                className="
+                  flex
+                  h-[64px]
+                  shrink-0
+                  items-center
+                  border-b
+                  border-[#EEE5DE]
+                  px-5
+                "
+              >
+
+                <button
+                  type="button"
+                  onClick={
+                    closeMobileMenu
+                  }
+                  aria-label="Close menu"
+                  className="
+                    flex
+                    h-9
+                    w-9
+                    items-center
+                    justify-start
+                    text-[#3A302D]
+                  "
+                >
+                  <X
+                    className="
+                      h-[18px]
+                      w-[18px]
+                    "
+                  />
+                </button>
+
+                <Link
+                  href="/"
+                  onClick={
+                    closeMobileMenu
+                  }
+                  className="
+                    absolute
+                    left-1/2
+                    -translate-x-1/2
+                  "
                 >
 
-                  <Search
-                    className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                  />
-
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(
-                        e.target.value
-                      );
-
-                      setSearchOpen(
-                        e.target.value.trim()
-                          .length > 0
-                      );
-                    }}
-                    onKeyDown={
-                      handleSearchKeyDown
-                    }
-                    placeholder="Search jewellery..."
-                    aria-label="Search jewellery"
-                    className="w-full rounded-full border border-[#E6DDD6] bg-[#FBFAF8] py-3 pl-11 pr-12 text-sm outline-none focus:border-[#C98F7B]"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleSearch
-                    }
-                    aria-label="Search"
-                    className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-[#5A3542] text-white"
+                  <div
+                    className="
+                      flex
+                      flex-col
+                      items-center
+                    "
                   >
-                    <Search className="h-4 w-4" />
-                  </button>
 
-                  {/* MOBILE SEARCH RESULTS */}
+                    <span
+                      className="
+                        font-serif
+                        text-[18px]
+                        leading-none
+                        text-[#5A3542]
+                      "
+                    >
+                      The_girl_ho_se
+                    </span>
 
-                  {searchOpen && (
-                    <div className="absolute left-0 right-0 top-14 z-[100] max-h-[70vh] overflow-y-auto rounded-2xl border border-[#E7DED8] bg-white shadow-2xl">
+                    <span
+                      className="
+                        mt-1
+                        text-[6px]
+                        uppercase
+                        tracking-[0.3em]
+                        text-[#9A7B70]
+                      "
+                    >
+                      Jewellery
+                    </span>
 
-                      {matchingCollections.length >
-                        0 && (
-                        <div className="border-b border-[#F0E8E3] p-4">
+                  </div>
 
-                          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#A78C82]">
-                            Collections
-                          </p>
+                </Link>
 
-                          {matchingCollections.map(
+              </div>
+
+              {/* =================================================
+                  NAVIGATION AREA
+              ================================================= */}
+
+              <div
+                className="
+                  flex-1
+                  overflow-hidden
+                "
+              >
+
+                <div
+                  className="
+                    h-full
+                    overflow-y-auto
+                    overscroll-contain
+                  "
+                >
+
+                  {/* =================================================
+                      MENU
+                  ================================================= */}
+
+                  <nav
+                    className="
+                      border-b
+                      border-[#EEE5DE]
+                    "
+                  >
+
+                    <div
+                      className="
+                        px-5
+                        py-3
+                      "
+                    >
+
+                      <p
+                        className="
+                          mb-2
+                          text-[8px]
+                          font-bold
+                          uppercase
+                          tracking-[0.22em]
+                          text-[#A78C82]
+                        "
+                      >
+                        Menu
+                      </p>
+
+                      {/* HOME */}
+
+                      <Link
+                        href="/"
+                        onClick={
+                          closeMobileMenu
+                        }
+                        className="
+                          flex
+                          items-center
+                          justify-between
+                          border-b
+                          border-[#F3ECE7]
+                          py-3.5
+                          text-[14px]
+                          text-[#3A302D]
+                        "
+                      >
+                        Home
+                      </Link>
+
+                      {/* SHOP */}
+
+                      <Link
+                        href="/shop"
+                        onClick={
+                          closeMobileMenu
+                        }
+                        className="
+                          flex
+                          items-center
+                          justify-between
+                          border-b
+                          border-[#F3ECE7]
+                          py-3.5
+                          text-[14px]
+                          text-[#3A302D]
+                        "
+                      >
+
+                        <span>
+                          Shop
+                        </span>
+
+                        <ArrowRight
+                          size={
+                            14
+                          }
+                          className="
+                            text-[#B99A8E]
+                          "
+                        />
+
+                      </Link>
+
+                      {/* COLLECTIONS */}
+
+                      <Link
+                        href="/collections"
+                        onClick={
+                          closeMobileMenu
+                        }
+                        className="
+                          flex
+                          items-center
+                          justify-between
+                          border-b
+                          border-[#F3ECE7]
+                          py-3.5
+                          text-[14px]
+                          text-[#3A302D]
+                        "
+                      >
+
+                        <span>
+                          Collections
+                        </span>
+
+                        <ArrowRight
+                          size={
+                            14
+                          }
+                          className="
+                            text-[#B99A8E]
+                          "
+                        />
+
+                      </Link>
+
+                      {/* CATEGORIES */}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoriesOpen(
+                            (current) =>
+                              !current
+                          );
+
+                          setAccountSectionOpen(
+                            false
+                          );
+                        }}
+                        className="
+                          flex
+                          w-full
+                          items-center
+                          justify-between
+                          border-b
+                          border-[#F3ECE7]
+                          py-3.5
+                          text-left
+                          text-[14px]
+                          text-[#3A302D]
+                        "
+                      >
+
+                        <span>
+                          Categories
+                        </span>
+
+                        <ArrowRight
+                          size={
+                            14
+                          }
+                          className={`
+                            text-[#B99A8E]
+                            transition-transform
+                            ${
+                              categoriesOpen
+                                ? "rotate-90"
+                                : ""
+                            }
+                          `}
+                        />
+
+                      </button>
+
+                      {/* CATEGORY CONTENT */}
+
+                      {categoriesOpen && (
+                        <div
+                          className="
+                            border-b
+                            border-[#F3ECE7]
+                            bg-[#FBF8F6]
+                            px-3
+                            py-2
+                          "
+                        >
+
+                          {collectionList.map(
                             (
                               collection
                             ) => (
@@ -907,80 +1958,39 @@ const matchingProducts =
                                     collection.name
                                   )
                                 }
-                                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left hover:bg-[#FAF5F2]"
+                                className="
+                                  flex
+                                  w-full
+                                  items-center
+                                  gap-3
+                                  rounded-md
+                                  px-3
+                                  py-2.5
+                                  text-left
+                                  text-[13px]
+                                  text-[#3A302D]
+                                  transition
+                                  hover:bg-white
+                                  hover:text-[#A86C58]
+                                "
                               >
-                                <span>
+
+                                <span
+                                  className="
+                                    w-5
+                                    text-sm
+                                  "
+                                >
                                   {
                                     collection.icon
                                   }
                                 </span>
 
-                                <span className="text-sm font-medium">
+                                <span>
                                   {
                                     collection.name
                                   }
                                 </span>
-                              </button>
-                            )
-                          )}
-
-                        </div>
-                      )}
-
-                      {matchingProducts.length >
-                        0 && (
-                        <div className="p-4">
-
-                          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#A78C82]">
-                            Products
-                          </p>
-
-                          {matchingProducts.map(
-                            (
-                              product
-                            ) => (
-                              <button
-                                key={
-                                  product._id
-                                }
-                                type="button"
-                                onClick={() =>
-                                  handleProductClick(
-                                    product._id
-                                  )
-                                }
-                                className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-[#FAF5F2]"
-                              >
-
-                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-[#F8F4F1]">
-                                  <img
-                                    src={
-                                      product.image ||
-                                      product.images?.[0] ||
-                                      "/placeholder-product.jpg"
-                                    }
-                                    alt={
-                                      product.name
-                                    }
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-
-                                  <p className="truncate text-sm font-semibold">
-                                    {
-                                      product.name
-                                    }
-                                  </p>
-
-                                  <p className="text-xs text-gray-500">
-                                    {
-                                      product.category
-                                    }
-                                  </p>
-
-                                </div>
 
                               </button>
                             )
@@ -989,138 +1999,370 @@ const matchingProducts =
                         </div>
                       )}
 
-                      {!searchLoading &&
-                        searchTerm &&
-                        matchingCollections.length ===
-                          0 &&
-                        matchingProducts.length ===
-                          0 && (
-                          <div className="p-7 text-center">
-                            <p className="text-sm font-semibold">
-                              No results found
-                            </p>
+                      {/* REVIEWS */}
 
-                            <p className="mt-1 text-xs text-gray-500">
-                              Try another search.
-                            </p>
-                          </div>
-                        )}
-
-                      {searchTerm && (
-                        <button
-                          type="button"
-                          onClick={
-                            handleSearch
-                          }
-                          className="w-full border-t bg-[#FAF7F4] px-4 py-3 text-xs font-bold text-[#5A3542]"
-                        >
-                          View all results →
-                        </button>
-                      )}
+                      <Link
+                        href="/reviews"
+                        onClick={
+                          closeMobileMenu
+                        }
+                        className="
+                          flex
+                          items-center
+                          justify-between
+                          py-3.5
+                          text-[14px]
+                          text-[#3A302D]
+                        "
+                      >
+                        Reviews
+                      </Link>
 
                     </div>
-                  )}
+
+                  </nav>
+
+                  {/* FLEXIBLE SPACE */}
+
+                  <div
+                    className="
+                      min-h-[120px]
+                    "
+                  />
 
                 </div>
 
               </div>
 
-              {/* NAV LINKS */}
+              {/* =================================================
+                  ACCOUNT — BOTTOM
+              ================================================= */}
 
-              {navLinks.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() =>
-                    setMobileOpen(false)
-                  }
-                  className="border-b px-6 py-4 text-[#444] hover:bg-gray-50"
-                >
-                  {item.name}
-                </Link>
-              ))}
-
-              {/* ACCOUNT */}
-
-              <div className="border-t px-6 py-5">
+              <div
+                className="
+                  shrink-0
+                  border-t
+                  border-[#EEE5DE]
+                  bg-white
+                "
+              >
 
                 {!user ? (
-                  <div className="space-y-3">
+                  <>
+                    {/* =================================================
+                        LOGGED OUT
+                    ================================================= */}
 
-                    <Link
-                      href="/login"
-                      onClick={() =>
-                        setMobileOpen(false)
-                      }
-                      className="block rounded-full bg-[#A86C58] py-3 text-center text-white"
+                    <div
+                      className="
+                        px-5
+                        py-4
+                      "
                     >
-                      Login
-                    </Link>
 
-                    <Link
-                      href="/register"
-                      onClick={() =>
-                        setMobileOpen(false)
-                      }
-                      className="block rounded-full border border-[#A86C58] py-3 text-center text-[#A86C58]"
-                    >
-                      Register
-                    </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountSectionOpen(
+                            (current) =>
+                              !current
+                          );
 
-                  </div>
+                          setCategoriesOpen(
+                            false
+                          );
+                        }}
+                        className="
+                          flex
+                          w-full
+                          items-center
+                          justify-between
+                          text-left
+                        "
+                      >
+
+                        <div
+                          className="
+                            flex
+                            items-center
+                            gap-3
+                          "
+                        >
+
+                          <User
+                            className="
+                              h-4
+                              w-4
+                              text-[#A86C58]
+                            "
+                          />
+
+                          <span
+                            className="
+                              text-[14px]
+                              text-[#3A302D]
+                            "
+                          >
+                            Login
+                          </span>
+
+                        </div>
+
+                        <ArrowRight
+                          size={
+                            14
+                          }
+                          className={`
+                            text-[#B99A8E]
+                            transition-transform
+                            ${
+                              accountSectionOpen
+                                ? "rotate-90"
+                                : ""
+                            }
+                          `}
+                        />
+
+                      </button>
+
+                      {/* LOGIN OPTIONS */}
+
+                      {accountSectionOpen && (
+                        <div
+                          className="
+                            mt-3
+                            border-t
+                            border-[#F0E8E3]
+                            pt-2
+                          "
+                        >
+
+                          <Link
+                            href="/login"
+                            onClick={
+                              closeMobileMenu
+                            }
+                            className="
+                              block
+                              py-2.5
+                              pl-7
+                              text-[13px]
+                              text-[#3A302D]
+                            "
+                          >
+                            Login
+                          </Link>
+
+                          <Link
+                            href="/register"
+                            onClick={
+                              closeMobileMenu
+                            }
+                            className="
+                              block
+                              py-2.5
+                              pl-7
+                              text-[13px]
+                              text-[#3A302D]
+                            "
+                          >
+                            Register
+                          </Link>
+
+                        </div>
+                      )}
+
+                    </div>
+                  </>
                 ) : (
-                  <div className="space-y-3">
+                  <>
+                    {/* =================================================
+                        LOGGED-IN ACCOUNT
+                    ================================================= */}
 
-                    <p className="font-semibold">
-                      {user.name}
-                    </p>
-
-                    <p className="text-sm text-gray-500">
-                      {user.email}
-                    </p>
-
-                    <Link
-                      href="/profile"
-                      onClick={() =>
-                        setMobileOpen(false)
-                      }
-                      className="block"
+                    <div
+                      className="
+                        px-5
+                        py-4
+                      "
                     >
-                      My Profile
-                    </Link>
 
-                    <Link
-                      href="/orders"
-                      onClick={() =>
-                        setMobileOpen(false)
-                      }
-                      className="block"
-                    >
-                      My Orders
-                    </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountSectionOpen(
+                            (current) =>
+                              !current
+                          );
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        logout();
-                        setMobileOpen(false);
-                      }}
-                      className="text-red-600"
-                    >
-                      Logout
-                    </button>
+                          setCategoriesOpen(
+                            false
+                          );
+                        }}
+                        className="
+                          flex
+                          w-full
+                          items-center
+                          justify-between
+                          text-left
+                        "
+                      >
 
-                  </div>
+                        <div
+                          className="
+                            flex
+                            items-center
+                            gap-3
+                          "
+                        >
+
+                          <User
+                            className="
+                              h-4
+                              w-4
+                              text-[#A86C58]
+                            "
+                          />
+
+                          <div
+                            className="
+                              min-w-0
+                            "
+                          >
+
+                            <p
+                              className="
+                                truncate
+                                text-[13px]
+                                font-medium
+                                text-[#3A302D]
+                              "
+                            >
+                              {
+                                user.name
+                              }
+                            </p>
+
+                            <p
+                              className="
+                                truncate
+                                text-[10px]
+                                text-[#8D7B73]
+                              "
+                            >
+                              My Account
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                        <ArrowRight
+                          size={
+                            14
+                          }
+                          className={`
+                            text-[#B99A8E]
+                            transition-transform
+                            ${
+                              accountSectionOpen
+                                ? "rotate-90"
+                                : ""
+                            }
+                          `}
+                        />
+
+                      </button>
+
+                      {/* ACCOUNT OPTIONS */}
+
+                      {accountSectionOpen && (
+                        <div
+                          className="
+                            mt-3
+                            border-t
+                            border-[#F0E8E3]
+                            pt-2
+                          "
+                        >
+
+                          {/* MY PROFILE */}
+
+                          <Link
+                            href="/account"
+                            onClick={
+                              closeMobileMenu
+                            }
+                            className="
+                              block
+                              py-2.5
+                              pl-7
+                              text-[13px]
+                              text-[#3A302D]
+                            "
+                          >
+                            My Profile
+                          </Link>
+
+                          {/* MY ORDERS */}
+
+                          <Link
+                            href="/account/orders"
+                            onClick={
+                              closeMobileMenu
+                            }
+                            className="
+                              block
+                              py-2.5
+                              pl-7
+                              text-[13px]
+                              text-[#3A302D]
+                            "
+                          >
+                            My Orders
+                          </Link>
+
+
+                          {/* LOGOUT */}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              logout();
+                              closeMobileMenu();
+                            }}
+                            className="
+                              block
+                              w-full
+                              py-2.5
+                              pl-7
+                              text-left
+                              text-[13px]
+                              text-red-600
+                            "
+                          >
+                            Logout
+                          </button>
+
+                        </div>
+                      )}
+
+                    </div>
+                  </>
                 )}
 
               </div>
 
-            </nav>
+            </aside>
 
           </div>
         )}
 
       </header>
+
+      {/* =====================================================
+          CART DRAWER
+      ===================================================== */}
 
       <CartDrawer />
     </>

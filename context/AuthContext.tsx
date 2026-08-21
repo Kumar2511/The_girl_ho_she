@@ -20,7 +20,9 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
 
-  login: (data: LoginData) => Promise<boolean>;
+  login: (
+    data: LoginData
+  ) => Promise<boolean>;
 
   register: (
     data: RegisterData
@@ -31,7 +33,15 @@ interface AuthContextType {
     otp: string
   ) => Promise<boolean>;
 
-  logout: () => void;
+  logout: () => Promise<void>;
+
+  // ==========================================
+  // Delete Account
+  // ==========================================
+
+  deleteAccount: (
+    password: string
+  ) => Promise<boolean>;
 }
 
 const AuthContext =
@@ -55,28 +65,35 @@ export function AuthProvider({
   // ==========================================
 
   const loadUser = async () => {
-    const token =
-      localStorage.getItem("token");
-
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     try {
       const { data } = await api.get(
         "/auth/profile"
       );
 
-      setUser(data.user);
-    } catch (error) {
+      if (data?.success && data?.user) {
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error: any) {
+      /*
+       * 401 is EXPECTED when the user is logged out.
+       *
+       * Do NOT console.error it because it creates
+       * unnecessary red error messages during logout
+       * / initial authentication checking.
+       */
+
+      if (error?.response?.status === 401) {
+        setUser(null);
+        return;
+      }
+
       console.error(
         "Load User Error:",
         error
       );
 
-      localStorage.removeItem("token");
       setUser(null);
     } finally {
       setLoading(false);
@@ -105,10 +122,33 @@ export function AuthProvider({
           loginData
         );
 
-      localStorage.setItem(
-        "token",
-        data.token
+      console.log(
+        "========== FRONTEND LOGIN =========="
       );
+
+      console.log(
+        "Login response:",
+        data
+      );
+
+      if (
+        !data?.success ||
+        !data?.user
+      ) {
+        console.error(
+          "Login response is invalid:",
+          data
+        );
+
+        return false;
+      }
+
+      /*
+       * JWT is stored in the HTTP-only cookie
+       * by the backend.
+       *
+       * DO NOT store JWT in localStorage.
+       */
 
       setUser(data.user);
 
@@ -118,6 +158,18 @@ export function AuthProvider({
         "Login Error:",
         error
       );
+
+      if (error?.response) {
+        console.error(
+          "Login Status:",
+          error.response.status
+        );
+
+        console.error(
+          "Login Response:",
+          error.response.data
+        );
+      }
 
       return false;
     }
@@ -143,7 +195,7 @@ export function AuthProvider({
         error
       );
 
-      if (error.response) {
+      if (error?.response) {
         console.log(
           "Status:",
           error.response.status
@@ -168,20 +220,28 @@ export function AuthProvider({
     otp: string
   ): Promise<boolean> => {
     try {
-      await api.post(
-        "/auth/verify-email",
-        {
-          email,
-          otp,
-        }
-      );
+      const { data } =
+        await api.post(
+          "/auth/verify-email",
+          {
+            email,
+            otp,
+          }
+        );
 
-      // OTP verification is NOT login.
-      // User must login separately.
-      localStorage.removeItem("token");
+      /*
+       * Email verification does not create
+       * a logged-in session.
+       *
+       * User should login normally after
+       * verification.
+       */
+
       setUser(null);
 
-      return true;
+      return Boolean(
+        data?.success
+      );
     } catch (error: any) {
       console.error(
         "OTP Verification Error:",
@@ -196,10 +256,98 @@ export function AuthProvider({
   // Logout
   // ==========================================
 
-  const logout = () => {
-    localStorage.removeItem("token");
+  const logout = async (): Promise<void> => {
+    /*
+     * Immediately clear the frontend user.
+     *
+     * This prevents the UI from continuing to
+     * display the logged-in account after logout.
+     */
+
     setUser(null);
+
+    try {
+      await api.post(
+        "/auth/logout"
+      );
+    } catch (error: any) {
+      /*
+       * If the backend already considers the
+       * session unauthenticated, that's okay.
+       *
+       * 401 during logout is NOT a fatal error.
+       */
+
+      if (
+        error?.response?.status !== 401
+      ) {
+        console.error(
+          "Logout Error:",
+          error
+        );
+      }
+    }
   };
+
+  // ==========================================
+  // Delete My Account
+  // ==========================================
+
+  const deleteAccount = async (
+    password: string
+  ): Promise<boolean> => {
+    try {
+      const { data } =
+        await api.delete(
+          "/auth/account",
+          {
+            data: {
+              password,
+            },
+          }
+        );
+
+      if (!data?.success) {
+        console.error(
+          "Delete Account Response:",
+          data
+        );
+
+        return false;
+      }
+
+      // ==========================================
+      // Clear Frontend Authentication State
+      // ==========================================
+
+      setUser(null);
+
+      return true;
+    } catch (error: any) {
+      console.error(
+        "Delete Account Error:",
+        error
+      );
+
+      if (error?.response) {
+        console.error(
+          "Delete Account Status:",
+          error.response.status
+        );
+
+        console.error(
+          "Delete Account Response:",
+          error.response.data
+        );
+      }
+
+      return false;
+    }
+  };
+
+  // ==========================================
+  // Provider
+  // ==========================================
 
   return (
     <AuthContext.Provider
@@ -210,6 +358,7 @@ export function AuthProvider({
         register,
         verifyEmailOTP,
         logout,
+        deleteAccount,
       }}
     >
       {children}

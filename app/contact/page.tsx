@@ -40,20 +40,20 @@ export default function ContactPage() {
             {
               icon: Mail,
               title: 'Email',
-              content: 'support@luxehavenjewelry.com',
+              content: 'thegirlhousecustomercare@gmaail.com',
               subtext: 'We reply within 24 hours',
             },
             {
               icon: Phone,
               title: 'Phone',
-              content: '+1 (555) 123-4567',
+              content: '+91 88707 - 34341',
               subtext: 'Mon-Fri, 10AM-6PM EST',
             },
             {
               icon: MapPin,
               title: 'Visit Us',
-              content: '123 Luxury Lane, Jewelry District',
-              subtext: 'New York, NY 10001',
+              content: 'Velankanni, Tamil Nadu',
+              subtext: 'India, TN 61111',
             },
           ].map((info) => {
             const Icon = info.icon;

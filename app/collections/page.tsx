@@ -1,20 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+} from "react";
+
 import { useSearchParams } from "next/navigation";
+
 import api from "@/lib/api";
+
 import Navbar from "@/components/navbar";
 import ProductCard from "@/components/shop/ProductCard";
 import Footer from "@/components/footer";
 
-export default function CollectionsPage() {
-  const searchParams = useSearchParams();
+// ======================================================
+// Collections Content
+// ======================================================
+
+function CollectionsContent() {
+  const searchParams =
+    useSearchParams();
 
   const selectedCollection =
     searchParams.get("collection");
 
-  const [products, setProducts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [products, setProducts] =
+    useState<any[]>([]);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
 
   // ==========================================
   // FETCH PRODUCTS
@@ -28,10 +43,13 @@ export default function CollectionsPage() {
     try {
       setIsLoading(true);
 
-      const response = await api.get("/products");
+      const response =
+        await api.get("/products");
 
       setProducts(
-        Array.isArray(response.data?.products)
+        Array.isArray(
+          response.data?.products
+        )
           ? response.data.products
           : []
       );
@@ -51,12 +69,14 @@ export default function CollectionsPage() {
   // FILTER COLLECTION
   // ==========================================
 
-  const filteredProducts = selectedCollection
-    ? products.filter(
-        (product: any) =>
-          product.collection === selectedCollection
-      )
-    : products;
+  const filteredProducts =
+    selectedCollection
+      ? products.filter(
+          (product: any) =>
+            product.collection ===
+            selectedCollection
+        )
+      : products;
 
   return (
     <main className="min-h-screen bg-[#FCFAF7]">
@@ -87,20 +107,22 @@ export default function CollectionsPage() {
         <div className="mx-auto max-w-7xl">
 
           {/* Loading */}
+
           {isLoading ? (
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {Array.from({ length: 8 }).map(
-                (_, index) => (
-                  <div
-                    key={index}
-                    className="h-[430px] animate-pulse rounded-lg bg-[#EEE8E3]"
-                  />
-                )
-              )}
+              {Array.from({
+                length: 8,
+              }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-[430px] animate-pulse rounded-lg bg-[#EEE8E3]"
+                />
+              ))}
             </div>
           ) : filteredProducts.length > 0 ? (
 
             /* Products */
+
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {filteredProducts.map(
                 (product: any) => (
@@ -108,9 +130,11 @@ export default function CollectionsPage() {
                     key={product._id}
                     product={{
                       ...product,
-                      badge: product.featured
-                        ? "Featured"
-                        : product.badge || "",
+                      badge:
+                        product.featured
+                          ? "Featured"
+                          : product.badge ||
+                            "",
                     }}
                   />
                 )
@@ -120,13 +144,15 @@ export default function CollectionsPage() {
           ) : (
 
             /* Empty State */
+
             <div className="py-20 text-center">
               <h2 className="text-3xl font-bold text-[#2E2E2E]">
                 No Products Found
               </h2>
 
               <p className="mt-2 text-gray-500">
-                No products available in this collection.
+                No products available in this
+                collection.
               </p>
             </div>
           )}
@@ -149,19 +175,22 @@ export default function CollectionsPage() {
 
             {[
               {
-                trend: "Layered Necklaces",
+                trend:
+                  "Layered Necklaces",
                 description:
                   "Mix and match delicate chains for a sophisticated look",
                 icon: "✨",
               },
               {
-                trend: "Statement Rings",
+                trend:
+                  "Statement Rings",
                 description:
                   "Bold and beautiful rings that make a statement",
                 icon: "💎",
               },
               {
-                trend: "Stacked Bracelets",
+                trend:
+                  "Stacked Bracelets",
                 description:
                   "Combine our bracelet styles for a personalized aesthetic",
                 icon: "🌟",
@@ -198,5 +227,36 @@ export default function CollectionsPage() {
 
       <Footer />
     </main>
+  );
+}
+
+// ======================================================
+// Collections Page
+// Suspense Boundary for useSearchParams()
+// ======================================================
+
+export default function CollectionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#FCFAF7]">
+          <Navbar />
+
+          <section className="flex min-h-[60vh] items-center justify-center">
+            <div className="text-center">
+              <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#E8DFD9] border-t-[#C78B7B]" />
+
+              <p className="mt-5 text-sm text-[#777]">
+                Loading collections...
+              </p>
+            </div>
+          </section>
+
+          <Footer />
+        </main>
+      }
+    >
+      <CollectionsContent />
+    </Suspense>
   );
 }

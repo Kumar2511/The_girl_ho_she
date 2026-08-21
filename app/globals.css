@@ -47,39 +47,54 @@
 
 :root {
   color-scheme: light;
-  /* Premium Luxury Jewelry Palette */
-  --background: #FCFAF7; /* Ivory White */
-  --foreground: #2E2E2E; /* Charcoal */
-  --card: #FCFAF7; /* Ivory White */
-  --card-foreground: #2E2E2E; /* Charcoal */
-  --popover: #FFFFFF; /* Pure White */
-  --popover-foreground: #2E2E2E; /* Charcoal */
-  --primary: #C78B7B; /* Rose Gold */
-  --primary-foreground: #FCFAF7; /* Ivory White */
-  --secondary: #D6B36A; /* Champagne Gold */
-  --secondary-foreground: #FCFAF7; /* Ivory White */
-  --muted: #F4EEE8; /* Soft Beige */
-  --muted-foreground: #6B6B6B; /* Medium Gray */
-  --accent: #C78B7B; /* Rose Gold Accent */
-  --accent-foreground: #FCFAF7; /* Ivory White */
-  --destructive: #E74C3C; /* Soft Red */
-  --border: #E8E3DC; /* Light Taupe Border */
-  --input: #F9F7F4; /* Off White Input */
-  --ring: #C78B7B; /* Rose Gold Ring */
-  --chart-1: #C78B7B; /* Rose Gold */
-  --chart-2: #D6B36A; /* Champagne Gold */
-  --chart-3: #F4EEE8; /* Soft Beige */
-  --chart-4: #E8E3DC; /* Light Taupe */
-  --chart-5: #6B6B6B; /* Medium Gray */
-  --radius: 0.75rem;
-  --sidebar: #FCFAF7; /* Ivory White */
-  --sidebar-foreground: #2E2E2E; /* Charcoal */
-  --sidebar-primary: #C78B7B; /* Rose Gold */
-  --sidebar-primary-foreground: #FCFAF7; /* Ivory White */
-  --sidebar-accent: #D6B36A; /* Champagne Gold */
-  --sidebar-accent-foreground: #FCFAF7; /* Ivory White */
-  --sidebar-border: #E8E3DC; /* Light Taupe Border */
-  --sidebar-ring: #C78B7B; /* Rose Gold Ring */
+
+  /* ==========================================
+     THE GIRL HO SHE — CLEAN JEWELLERY PALETTE
+     ========================================== */
+
+  --background: #FFFFFF;
+  --foreground: #1F1F1F;
+
+  --card: #FFFFFF;
+  --card-foreground: #1F1F1F;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #1F1F1F;
+
+  --primary: #1F1F1F;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #F7F7F7;
+  --secondary-foreground: #1F1F1F;
+
+  --muted: #F8F8F8;
+  --muted-foreground: #666666;
+
+  --accent: #1F1F1F;
+  --accent-foreground: #FFFFFF;
+
+  --destructive: #C62828;
+
+  --border: #E6E6E6;
+  --input: #FFFFFF;
+  --ring: #1F1F1F;
+
+  --chart-1: #1F1F1F;
+  --chart-2: #666666;
+  --chart-3: #999999;
+  --chart-4: #CCCCCC;
+  --chart-5: #E6E6E6;
+
+  --radius: 0.5rem;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1F1F1F;
+  --sidebar-primary: #1F1F1F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F8F8F8;
+  --sidebar-accent-foreground: #1F1F1F;
+  --sidebar-border: #E6E6E6;
+  --sidebar-ring: #1F1F1F;
 }
 
 .dark {
@@ -159,17 +174,22 @@
     @apply border-border outline-ring/50;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-inter), sans-serif;
-    background: #FCFAF7;
-    color: #2E2E2E;
-  }
+ body {
+  @apply bg-background text-foreground;
+
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+
+  background: #FFFFFF;
+  color: #1F1F1F;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
   .font-luxury {
-    font-family: var(--font-cormorant), serif;
+    font-family: var(--font-inter), Arial, Helvetica, sans-serif;
     font-weight: 500;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
   }
 }
 /* Premium Animations and Transitions */
@@ -288,7 +308,7 @@
 
   /* Premium shadow effects */
   .shadow-premium {
-    box-shadow: 0 20px 40px rgba(46, 46, 46, 0.08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07);
   }
 
   .shadow-premium-lg {
@@ -370,7 +390,7 @@
 ========================================== */
 
 ::selection {
-  background: #C78B7B;
+  background: #1F1F1F;
   color: white;
 }
 /* ==========================================
@@ -443,27 +463,27 @@ select:-webkit-autofill {
 
 .luxury-card {
   background: #FFFFFF;
-  border: 1px solid #E8E3DC;
-  border-radius: 24px;
-  box-shadow: 0 8px 30px rgba(46, 46, 46, 0.05);
+  border: 1px solid #E6E6E6;
+  border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
 }
 
 .luxury-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(46, 46, 46, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07);
 }
 ::-webkit-scrollbar-track {
-  background: #FCFAF7;
+  background: #F7F7F7;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C78B7B;
+  background: #1F1F1F;
   border-radius: 50px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #B5776B;
+  background: #000000;
 }
 /* ==========================================
    Luxury Buttons
@@ -473,55 +493,45 @@ select:-webkit-autofill {
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: auto;
-  background: #C78B7B;
-  color: #ffffff;
-
-  font-weight: 600;
-  font-size: 16px;
-
-  padding: 14px 24px;
-
-  border-radius: 14px;
-
-  transition: all 0.3s ease;
-
-  box-shadow: 0 10px 25px rgba(199, 139, 123, 0.25);
+  background: #1F1F1F;
+  color: #FFFFFF;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  padding: 13px 22px;
+  border-radius: 4px;
+  transition: all 0.25s ease;
+  box-shadow: none;
 }
 
 .btn-primary:hover {
-  background: #B5776B;
-  transform: translateY(-2px);
-  box-shadow: 0 16px 30px rgba(199, 139, 123, 0.35);
+  background: #000000;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.10);
 }
 
 .btn-secondary {
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: auto;
-
-  background: #ffffff;
-  color: #C78B7B;
-
-  border: 1px solid #C78B7B;
-
-  font-weight: 600;
-  font-size: 16px;
-
-  padding: 14px 24px;
-
-  border-radius: 14px;
-
-  transition: all 0.3s ease;
+  background: #FFFFFF;
+  color: #1F1F1F;
+  border: 1px solid #D8D8D8;
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  padding: 13px 22px;
+  border-radius: 4px;
+  transition: all 0.25s ease;
 }
 
 .btn-secondary:hover {
-  background: #FCFAF7;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(46, 46, 46, 0.08);
+  background: #F7F7F7;
+  border-color: #BDBDBD;
+  transform: translateY(-1px);
+  box-shadow: none;
 }
 @keyframes marquee {
   from {
@@ -537,4 +547,93 @@ select:-webkit-autofill {
   display: inline-block;
   min-width: 100%;
   animation: marquee 20s linear infinite;
+}
+
+/* =========================================================
+   THE GIRL HO SHE — CLEAN PREMIUM STOREFRONT SYSTEM
+   Product-first / neutral / mobile-safe
+   ========================================================= */
+
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #1F1F1F;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+p {
+  color: #666666;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: #000000;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #1F1F1F;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 13px;
+  }
+
+  h1 {
+    font-size: clamp(28px, 8vw, 38px);
+  }
+
+  h2 {
+    font-size: clamp(24px, 7vw, 32px);
+  }
+
+  h3 {
+    font-size: clamp(20px, 6vw, 26px);
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    min-height: 44px;
+    padding: 11px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Star, Upload, CheckCircle, Image as ImageIcon } from "lucide-react";
 
@@ -24,7 +24,7 @@ interface Order {
   products: OrderProduct[];
 }
 
-export default function ShareYourLookPage() {
+function ShareYourLookContent() {
   const searchParams = useSearchParams();
 
   const orderId = searchParams.get("order");
@@ -673,5 +673,30 @@ export default function ShareYourLookPage() {
         </form>
       </div>
     </main>
+    );
+}
+
+// ======================================================
+// SHARE YOUR LOOK PAGE
+// Suspense Boundary for useSearchParams()
+// ======================================================
+
+export default function ShareYourLookPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#FAF8F5] flex items-center justify-center px-4">
+          <div className="text-center">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#E8DDD5] border-t-[#C78B7B]" />
+
+            <p className="mt-4 text-[#6B5A55]">
+              Loading your order...
+            </p>
+          </div>
+        </main>
+      }
+    >
+      <ShareYourLookContent />
+    </Suspense>
   );
 }

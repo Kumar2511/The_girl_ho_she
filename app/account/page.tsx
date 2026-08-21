@@ -34,17 +34,11 @@ export default function AccountPage() {
       icon: "👤",
     },
     {
-      title: "Change Password",
+      title: "Change Password & Delete Your Account",
       description: "Update your password",
-      href: "/account/change-password",
+      href: "/account/security",
       icon: "🔒",
-    },
-    {
-      title: "Wishlist",
-      description: "View favourite products",
-      href: "/wishlist",
-      icon: "❤️",
-    },
+    },  
   ];
 
   return (

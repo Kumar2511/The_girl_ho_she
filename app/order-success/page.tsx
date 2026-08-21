@@ -12,7 +12,7 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -53,7 +53,7 @@ interface Order {
   createdAt?: string;
 }
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const searchParams = useSearchParams();
 
   const orderId =
@@ -957,5 +957,30 @@ export default function OrderSuccessPage() {
         <Footer />
       </>
     </ProtectedRoute>
+    );
+}
+
+// ==========================================
+// Order Success Page
+// Suspense Boundary for useSearchParams()
+// ==========================================
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#FCFAF7]">
+          <div className="text-center">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-[#E8DFD9] border-t-[#C78B7B]" />
+
+            <p className="mt-5 text-sm text-[#777]">
+              Loading your order confirmation...
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <OrderSuccessContent />
+    </Suspense>
   );
 }

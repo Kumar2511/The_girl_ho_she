@@ -1,17 +1,12 @@
 ﻿"use client";
 
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState, useCallback, } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   Heart,
   ShoppingCart,
-  Search,
   Zap,
   Minus,
   Plus,
@@ -30,6 +25,10 @@ import {
   ImagePlus,
   Video,
   Loader2,
+  Search,
+RotateCcw,
+ChevronLeft,
+ChevronRight,
 } from "lucide-react";
 
 import api from "@/lib/api";
@@ -69,402 +68,76 @@ export default function ProductDetailsPage() {
     useState<any[]>([]);
 
   // ==========================================
-  // Gallery / Product Image Zoom Viewer
+  // Gallery Viewer
   // ==========================================
 
-  const [isGalleryOpen, setIsGalleryOpen] =
-    useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] =useState(false);
 
-  const [galleryIndex, setGalleryIndex] =
-    useState(0);
+  const [galleryIndex, setGalleryIndex] =useState(0);
 
-  const [zoomPosition, setZoomPosition] =
-    useState({
-      x: 0,
-      y: 0,
-    });
+  // ==========================================
+// IMAGE ZOOM
+// ==========================================
 
-  const [zoomScale, setZoomScale] =
-    useState(1);
+const [zoom, setZoom] = useState(1);
 
-  const [isDraggingZoom, setIsDraggingZoom] =
-    useState(false);
+const [pan, setPan] = useState({
+  x: 0,
+  y: 0,
+});
 
-  const zoomDragStart = useRef({
+const [isDraggingZoom, setIsDraggingZoom] =
+  useState(false);
+
+const zoomStartRef = useRef({
+  x: 0,
+  y: 0,
+});
+
+const panStartRef = useRef({
+  x: 0,
+  y: 0,
+});
+
+const pinchStartRef = useRef<number | null>(
+  null
+);
+
+const pinchZoomStartRef = useRef(1);
+
+const resetZoom = useCallback(() => {
+  setZoom(1);
+  setPan({
     x: 0,
     y: 0,
   });
+}, []);
 
-  const zoomPositionStart = useRef({
-    x: 0,
-    y: 0,
-  });
-
-  // Touch / pointer tracking for pinch-to-zoom.
-  const activePointers = useRef<
-    Map<
-      number,
-      {
-        x: number;
-        y: number;
-      }
-    >
-  >(new Map());
-
-  const pinchStartDistance =
-    useRef<number | null>(null);
-
-  const pinchStartScale =
-    useRef(1);
-
-  const resetProductZoom = () => {
-    setZoomScale(1);
-
-    setZoomPosition({
-      x: 0,
-      y: 0,
-    });
-
-    setIsDraggingZoom(false);
-
-    pinchStartDistance.current = null;
-    activePointers.current.clear();
-  };
-
-  const getPointerDistance = () => {
-    const pointers = Array.from(
-      activePointers.current.values()
-    );
-
-    if (pointers.length < 2) {
-      return 0;
-    }
-
-    const first = pointers[0];
-    const second = pointers[1];
-
-    const dx =
-      first.x - second.x;
-
-    const dy =
-      first.y - second.y;
-
-    return Math.sqrt(
-      dx * dx + dy * dy
-    );
-  };
-
-  const clampZoomPosition = (
-    x: number,
-    y: number,
-    scale: number
-  ) => {
-    const maxOffset =
-      Math.max(180, 260 * (scale - 1));
-
-    return {
-      x: Math.max(
-        -maxOffset,
-        Math.min(maxOffset, x)
-      ),
-      y: Math.max(
-        -maxOffset,
-        Math.min(maxOffset, y)
-      ),
-    };
-  };
-
-  const handleZoomPointerDown = (
-    e: React.PointerEvent<HTMLDivElement>
-  ) => {
-    e.preventDefault();
-
-    activePointers.current.set(
-      e.pointerId,
-      {
-        x: e.clientX,
-        y: e.clientY,
-      }
-    );
-
-    try {
-      e.currentTarget.setPointerCapture(
-        e.pointerId
-      );
-    } catch {}
-
-    if (
-      activePointers.current.size ===
-      2
-    ) {
-      pinchStartDistance.current =
-        getPointerDistance();
-
-      pinchStartScale.current =
-        zoomScale;
-
-      setIsDraggingZoom(false);
-
-      return;
-    }
-
-    // Mouse drag or one-finger drag while zoomed.
-    if (
-      activePointers.current.size ===
-        1 &&
-      zoomScale > 1
-    ) {
-      setIsDraggingZoom(true);
-
-      zoomDragStart.current = {
-        x: e.clientX,
-        y: e.clientY,
-      };
-
-      zoomPositionStart.current = {
-        x: zoomPosition.x,
-        y: zoomPosition.y,
-      };
-    }
-  };
-
-  const handleZoomPointerMove = (
-    e: React.PointerEvent<HTMLDivElement>
-  ) => {
-    if (
-      !activePointers.current.has(
-        e.pointerId
-      )
-    ) {
-      return;
-    }
-
-    activePointers.current.set(
-      e.pointerId,
-      {
-        x: e.clientX,
-        y: e.clientY,
-      }
-    );
-
-    // Two fingers = pinch zoom.
-    if (
-      activePointers.current.size >=
-        2 &&
-      pinchStartDistance.current
-    ) {
-      e.preventDefault();
-
-      const currentDistance =
-        getPointerDistance();
-
-      if (
-        currentDistance <= 0
-      ) {
-        return;
-      }
-
-      const scaleRatio =
-        currentDistance /
-        pinchStartDistance.current;
-
-      const nextScale = Math.max(
-        1,
-        Math.min(
-          4,
-          pinchStartScale.current *
-            scaleRatio
-        )
-      );
-
-      setZoomScale(nextScale);
-
-      const nextPosition =
-        clampZoomPosition(
-          zoomPosition.x,
-          zoomPosition.y,
-          nextScale
-        );
-
-      setZoomPosition(nextPosition);
-
-      setIsDraggingZoom(false);
-
-      return;
-    }
-
-    // One pointer = drag when already zoomed.
-    if (
-      activePointers.current.size ===
-        1 &&
-      isDraggingZoom &&
-      zoomScale > 1
-    ) {
-      const deltaX =
-        e.clientX -
-        zoomDragStart.current.x;
-
-      const deltaY =
-        e.clientY -
-        zoomDragStart.current.y;
-
-      const nextPosition =
-        clampZoomPosition(
-          zoomPositionStart.current.x +
-            deltaX,
-          zoomPositionStart.current.y +
-            deltaY,
-          zoomScale
-        );
-
-      setZoomPosition(
-        nextPosition
-      );
-    }
-  };
-
-  const handleZoomPointerUp = (
-    e: React.PointerEvent<HTMLDivElement>
-  ) => {
-    activePointers.current.delete(
-      e.pointerId
-    );
-
-    try {
-      e.currentTarget.releasePointerCapture(
-        e.pointerId
-      );
-    } catch {}
-
-    if (
-      activePointers.current.size <
-      2
-    ) {
-      pinchStartDistance.current =
-        null;
-    }
-
-    if (
-      activePointers.current.size ===
-      1
-    ) {
-      const remaining =
-        Array.from(
-          activePointers.current
-        )[0];
-
-      const remainingPointer =
-        remaining?.[1];
-
-      if (remainingPointer) {
-        zoomDragStart.current = {
-          x: remainingPointer.x,
-          y: remainingPointer.y,
-        };
-
-        zoomPositionStart.current = {
-          x: zoomPosition.x,
-          y: zoomPosition.y,
-        };
-
-        setIsDraggingZoom(
-          zoomScale > 1
-        );
-      }
-    } else {
-      setIsDraggingZoom(false);
-    }
-
-    if (zoomScale <= 1) {
-      setZoomScale(1);
-      setZoomPosition({
-        x: 0,
-        y: 0,
-      });
-    }
-  };
-
-  const handleZoomPointerCancel = (
-    e: React.PointerEvent<HTMLDivElement>
-  ) => {
-    activePointers.current.delete(
-      e.pointerId
-    );
-
-    try {
-      e.currentTarget.releasePointerCapture(
-        e.pointerId
-      );
-    } catch {}
-
-    if (
-      activePointers.current.size ===
-      0
-    ) {
-      setIsDraggingZoom(false);
-      pinchStartDistance.current =
-        null;
-    }
-  };
-
-  const handleZoomWheel = (
-    e: React.WheelEvent<HTMLDivElement>
-  ) => {
-    e.preventDefault();
-
-    const nextScale = Math.max(
-      1,
-      Math.min(
+const changeZoom = useCallback(
+  (amount: number) => {
+    setZoom((current) => {
+      const next = Math.min(
         4,
-        zoomScale +
-          (e.deltaY < 0
-            ? 0.25
-            : -0.25)
-      )
-    );
+        Math.max(1, current + amount)
+      );
 
-    setZoomScale(nextScale);
+      if (next === 1) {
+        setPan({
+          x: 0,
+          y: 0,
+        });
+      }
 
-    if (nextScale === 1) {
-      setZoomPosition({
-        x: 0,
-        y: 0,
-      });
-      setIsDraggingZoom(false);
-      return;
-    }
-
-    setZoomPosition(
-      clampZoomPosition(
-        zoomPosition.x,
-        zoomPosition.y,
-        nextScale
-      )
-    );
-  };
-
-  const handleZoomDoubleClick = (
-    e: React.MouseEvent<HTMLDivElement>
-  ) => {
-    e.preventDefault();
-
-    if (zoomScale > 1) {
-      resetProductZoom();
-      return;
-    }
-
-    setZoomScale(2.5);
-    setZoomPosition({
-      x: 0,
-      y: 0,
+      return next;
     });
-  };
-
+  },
+  []
+);
   const [touchStartX, setTouchStartX] =
-    useState<number | null>(null);
+  useState<number | null>(null);
 
-  const [touchEndX, setTouchEndX] =
-    useState<number | null>(null);
+const [touchEndX, setTouchEndX] =
+  useState<number | null>(null);
 
   // ==========================================
   // Video Player
@@ -702,7 +375,7 @@ const reviewVideoInputRef =
       );
 
       alert(
-        "❌ Failed to load product"
+        "âŒ Failed to load product"
       );
     }
   };
@@ -847,7 +520,7 @@ const reviewVideoInputRef =
           401
         ) {
           console.error(
-            "❌ Review Eligibility Error:",
+            "âŒ Review Eligibility Error:",
             error?.response?.data ||
               error
           );
@@ -1170,17 +843,17 @@ const reviewVideoInputRef =
       await fetchReviews();
     } catch (error: any) {
       console.error(
-        "❌ REVIEW ERROR:",
+        "âŒ REVIEW ERROR:",
         error
       );
 
       console.error(
-        "❌ STATUS:",
+        "âŒ STATUS:",
         error?.response?.status
       );
 
       console.error(
-        "❌ SERVER RESPONSE:",
+        "âŒ SERVER RESPONSE:",
         error?.response?.data
       );
 
@@ -1208,221 +881,179 @@ const reviewVideoInputRef =
   // Gallery Helpers
   // ==========================================
 
-  const galleryImages: string[] =
-    Array.isArray(product?.images)
-      ? product.images.filter(Boolean)
-      : [];
+  const galleryImages =
+    product?.images || [];
 
-  const selectImage = (
-    index: number
-  ) => {
-    if (!galleryImages[index]) {
-      return;
-    }
+  const selectImage = (index: number) => {
+  if (!galleryImages[index]) return;
 
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
+  if (videoRef.current) {
+    videoRef.current.pause();
+    videoRef.current.currentTime = 0;
+  }
 
-    setSelectedImage(
-      galleryImages[index]
-    );
+  setSelectedImage(galleryImages[index]);
+  setSelectedMedia("image");
+  setGalleryIndex(index);
 
-    setSelectedMedia("image");
-    setGalleryIndex(index);
+  setVideoProgress(0);
+  setVideoCurrentTime(0);
+  setIsVideoPlaying(false);
 
-    setVideoProgress(0);
-    setVideoCurrentTime(0);
-    setIsVideoPlaying(false);
-
-    resetProductZoom();
-  };
+  resetZoom();
+};
 
   const selectVideo = () => {
-    if (!product?.video) {
-      return;
-    }
+  if (!product?.video) return;
 
-    resetProductZoom();
+  // Switch to video
+  setSelectedMedia("video");
 
-    setSelectedMedia("video");
+  // Reset video UI state
+  setVideoProgress(0);
+  setVideoCurrentTime(0);
+  setIsVideoPlaying(true);
+  setIsVideoMuted(true);
 
-    setVideoProgress(0);
-    setVideoCurrentTime(0);
-    setIsVideoPlaying(true);
-    setIsVideoMuted(true);
+  // Wait until video element is rendered
+  setTimeout(() => {
+    const video = videoRef.current;
 
-    setTimeout(() => {
-      const video = videoRef.current;
+    if (!video) return;
 
-      if (!video) {
-        return;
-      }
+    // Start from beginning
+    video.currentTime = 0;
 
-      video.currentTime = 0;
-      video.muted = true;
+    // Always start muted
+    video.muted = true;
 
-      video
-        .play()
-        .then(() => {
-          setIsVideoPlaying(true);
-        })
-        .catch((error) => {
-          console.error(
-            "Video autoplay failed:",
-            error
-          );
+    // Play automatically
+    video
+      .play()
+      .then(() => {
+        setIsVideoPlaying(true);
+      })
+      .catch((error) => {
+        console.error(
+          "Video autoplay failed:",
+          error
+        );
 
-          setIsVideoPlaying(false);
-        });
-    }, 100);
-  };
+        setIsVideoPlaying(false);
+      });
+  }, 100);
+};
 
-  const openGallery = (
-    index: number
-  ) => {
-    if (!galleryImages.length) {
-      return;
-    }
+ const openGallery = (index: number) => {
+  if (!galleryImages.length) return;
 
-    const safeIndex =
-      Math.max(
-        0,
-        Math.min(
-          index,
-          galleryImages.length - 1
-        )
-      );
+  setGalleryIndex(index);
 
-    setGalleryIndex(safeIndex);
+  setSelectedImage(
+    galleryImages[index] ||
+      galleryImages[0] ||
+      ""
+  );
 
-    setSelectedImage(
-      galleryImages[safeIndex]
-    );
-
-    setSelectedMedia("image");
-
-    // Open directly at a useful enlarged view.
-    setZoomScale(2.35);
-    setZoomPosition({
-      x: 0,
-      y: 0,
-    });
-
-    activePointers.current.clear();
-    pinchStartDistance.current = null;
-
-    setIsGalleryOpen(true);
-  };
+  setSelectedMedia("image");
+  resetZoom();
+  setIsGalleryOpen(true);
+};
 
   const closeGallery = () => {
     setIsGalleryOpen(false);
-    resetProductZoom();
-    activePointers.current.clear();
-    document.body.style.overflow = "";
   };
 
   const showPreviousImage = () => {
-    if (!galleryImages.length) {
-      return;
-    }
+    const handleTouchStart = (
+  e: React.TouchEvent
+) => {
+  setTouchStartX(e.touches[0].clientX);
+  setTouchEndX(null);
+};
 
-    const previousIndex =
-      galleryIndex <= 0
-        ? galleryImages.length - 1
-        : galleryIndex - 1;
+const handleTouchMove = (
+  e: React.TouchEvent
+) => {
+  setTouchEndX(e.touches[0].clientX);
+};
 
-    setGalleryIndex(
-      previousIndex
-    );
+const handleTouchEnd = () => {
+  if (
+    touchStartX === null ||
+    touchEndX === null
+  ) {
+    return;
+  }
 
-    setSelectedImage(
-      galleryImages[previousIndex]
-    );
+  const distance =
+    touchStartX - touchEndX;
 
-    setSelectedMedia("image");
+  const minSwipeDistance = 50;
 
-    setVideoProgress(0);
-    setVideoCurrentTime(0);
-
-    setZoomScale(2.35);
-    setZoomPosition({
-      x: 0,
-      y: 0,
-    });
-  };
-
-  const handleTouchStart = (
-    e: React.TouchEvent
-  ) => {
-    if (
-      e.touches.length !== 1
-    ) {
-      return;
-    }
-
-    setTouchStartX(
-      e.touches[0].clientX
-    );
-
+  if (
+    Math.abs(distance) <
+    minSwipeDistance
+  ) {
+    setTouchStartX(null);
     setTouchEndX(null);
-  };
+    return;
+  }
 
-  const handleTouchMove = (
-    e: React.TouchEvent
-  ) => {
+  // ==============================
+  // SWIPE LEFT â†’ NEXT MEDIA
+  // ==============================
+
+  if (distance > 0) {
     if (
-      e.touches.length !== 1
+      selectedMedia === "image" &&
+      galleryImages.length > 0
     ) {
-      return;
-    }
-
-    setTouchEndX(
-      e.touches[0].clientX
-    );
-  };
-
-  const handleTouchEnd = () => {
-    if (
-      touchStartX === null ||
-      touchEndX === null
-    ) {
-      setTouchStartX(null);
-      setTouchEndX(null);
-      return;
-    }
-
-    const distance =
-      touchStartX - touchEndX;
-
-    const minSwipeDistance = 50;
-
-    if (
-      Math.abs(distance) >=
-      minSwipeDistance
-    ) {
-      if (distance > 0) {
+      if (
+        galleryIndex <
+        galleryImages.length - 1
+      ) {
         showNextImage();
-      } else {
+      } else if (product?.video) {
+        selectVideo();
+      }
+    }
+  }
+
+  // ==============================
+  // SWIPE RIGHT â†’ PREVIOUS MEDIA
+  // ==============================
+
+  if (distance < 0) {
+    if (selectedMedia === "video") {
+      // Go back to the last image
+      if (galleryImages.length > 0) {
+        const lastIndex =
+          galleryImages.length - 1;
+
+        selectImage(lastIndex);
+      }
+    } else if (
+      selectedMedia === "image" &&
+      galleryImages.length > 0
+    ) {
+      if (galleryIndex > 0) {
         showPreviousImage();
       }
     }
+  }
 
-    setTouchStartX(null);
-    setTouchEndX(null);
-  };
-
-  const showNextImage = () => {
-    if (!galleryImages.length) {
+  setTouchStartX(null);
+  setTouchEndX(null);
+};
+    if (!galleryImages.length)
       return;
-    }
 
     const nextIndex =
-      galleryIndex >=
-      galleryImages.length - 1
-        ? 0
-        : galleryIndex + 1;
+      (galleryIndex -
+        1 +
+        galleryImages.length) %
+      galleryImages.length;
 
     setGalleryIndex(nextIndex);
 
@@ -1433,28 +1064,30 @@ const reviewVideoInputRef =
     setSelectedMedia("image");
 
     setVideoProgress(0);
-    setVideoCurrentTime(0);
 
-    setZoomScale(2.35);
-    setZoomPosition({
-      x: 0,
-      y: 0,
-    });
+    setVideoCurrentTime(0);
   };
 
-  // Keep the page locked while the fullscreen viewer is open.
-  useEffect(() => {
-    if (!isGalleryOpen) {
-      document.body.style.overflow = "";
+  const showNextImage = () => {
+    if (!galleryImages.length)
       return;
-    }
 
-    document.body.style.overflow = "hidden";
+    const nextIndex =
+      (galleryIndex + 1) %
+      galleryImages.length;
 
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isGalleryOpen]);
+    setGalleryIndex(nextIndex);
+
+    setSelectedImage(
+      galleryImages[nextIndex]
+    );
+
+    setSelectedMedia("image");
+
+    setVideoProgress(0);
+
+    setVideoCurrentTime(0);
+  };
 
   // ==========================================
   // VIDEO CONTROLS
@@ -1656,7 +1289,307 @@ const reviewVideoInputRef =
           </div>
         </main>
 
-        <Footer />
+  
+
+      {/* ==========================================
+          ARSHIS-INSPIRED PRODUCT PAGE UI
+          Visual redesign only â€” existing logic preserved.
+      ========================================== */}
+      <style jsx global>{`
+        .product-page-premium {
+          --product-ink: #272321;
+          --product-muted: #77706b;
+          --product-border: #e7e1dd;
+          --product-soft: #f8f6f4;
+          --product-accent: #c9795f;
+          background: #ffffff;
+          color: var(--product-ink);
+        }
+
+        .product-page-premium,
+        .product-page-premium * {
+          box-sizing: border-box;
+        }
+
+        .product-page-premium h1,
+        .product-page-premium h2,
+        .product-page-premium h3,
+        .product-page-premium h4 {
+          font-family: Georgia, "Times New Roman", serif;
+          font-weight: 400;
+          letter-spacing: -0.015em;
+        }
+
+        .product-page-premium button,
+        .product-page-premium input {
+          font-family: inherit;
+        }
+
+        .product-page-hero {
+          max-width: 1220px !important;
+        }
+
+        .product-page-hero-grid {
+          grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr) !important;
+          gap: clamp(40px, 6vw, 82px) !important;
+        }
+
+        .product-gallery {
+          min-width: 0;
+        }
+
+        .product-gallery > div:first-child {
+          gap: 18px !important;
+        }
+
+        .product-gallery button {
+          border-radius: 6px !important;
+        }
+
+        .product-main-media {
+          aspect-ratio: 4 / 5 !important;
+          border-radius: 2px !important;
+          background: #f7f4f1 !important;
+          box-shadow: none !important;
+        }
+
+        .product-main-media img {
+          object-fit: contain !important;
+          padding: 0 !important;
+        }
+
+        .product-main-media video {
+          object-fit: contain !important;
+        }
+
+        .product-info-panel {
+          max-width: 540px;
+        }
+
+        .product-info-panel h1 {
+          max-width: 520px;
+          font-size: clamp(30px, 3vw, 42px) !important;
+          line-height: 1.12 !important;
+        }
+
+        .product-info-panel .font-serif.text-4xl {
+          font-size: 28px !important;
+          line-height: 1.1 !important;
+        }
+
+        .product-info-panel .my-6.h-px {
+          margin-top: 22px !important;
+          margin-bottom: 22px !important;
+          background: var(--product-border) !important;
+        }
+
+        .product-info-panel .rounded-xl,
+        .product-info-panel .rounded-2xl,
+        .product-info-panel .rounded-lg {
+          border-radius: 4px !important;
+        }
+
+        .product-actions button {
+          border-radius: 3px !important;
+          box-shadow: none !important;
+          min-height: 52px;
+          letter-spacing: .01em;
+        }
+
+        .product-actions button:hover {
+          transform: none !important;
+        }
+
+        .product-delivery {
+          border-radius: 3px !important;
+          background: #fff !important;
+          padding: 20px !important;
+        }
+
+        .product-delivery input {
+          border-radius: 3px !important;
+          background: #fff !important;
+        }
+
+        .product-delivery button {
+          border-radius: 3px !important;
+        }
+
+        .product-service-grid > div {
+          border-radius: 3px !important;
+          background: #fff !important;
+          border-color: var(--product-border) !important;
+        }
+
+        .product-details-section {
+          background: #fff !important;
+        }
+
+        .product-details-section > div {
+          max-width: 1100px !important;
+        }
+
+        .product-tabs {
+          scrollbar-width: none;
+        }
+
+        .product-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+        .product-tabs button {
+          min-width: max-content;
+          border-radius: 0 !important;
+          padding-left: 20px !important;
+          padding-right: 20px !important;
+          padding-bottom: 14px !important;
+          font-size: 13px !important;
+        }
+
+        .product-details-section .max-w-4xl {
+          max-width: 760px !important;
+        }
+
+        .product-details-section .rounded-2xl {
+          border-radius: 3px !important;
+        }
+
+        .product-related-section {
+          max-width: 1220px !important;
+          background: #fff;
+        }
+
+        .product-related-section .font-serif {
+          font-size: 30px !important;
+        }
+
+        @media (max-width: 1023px) {
+          .product-page-hero-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 42px !important;
+          }
+
+          .product-info-panel {
+            max-width: none;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .product-page-hero {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+            padding-top: 18px !important;
+            padding-bottom: 40px !important;
+          }
+
+          .product-page-hero-grid {
+            gap: 30px !important;
+          }
+
+          .product-gallery > div:first-child {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 10px !important;
+          }
+
+          .product-gallery > div:first-child > div:first-child {
+            order: 2 !important;
+            display: flex !important;
+            flex-direction: row !important;
+            overflow-x: auto !important;
+            width: 100% !important;
+            padding-bottom: 3px !important;
+          }
+
+          .product-gallery > div:first-child > div:last-child {
+            order: 1 !important;
+            width: 100% !important;
+          }
+
+          .product-main-media {
+            aspect-ratio: 4 / 5 !important;
+            width: 100% !important;
+          }
+
+          .product-main-media img {
+            object-fit: contain !important;
+          }
+
+          .product-info-panel h1 {
+            font-size: 29px !important;
+            line-height: 1.16 !important;
+          }
+
+          .product-info-panel .font-serif.text-4xl {
+            font-size: 25px !important;
+          }
+
+          .product-info-panel .grid.grid-cols-1.sm\\:grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+
+          .product-actions button {
+            width: 100% !important;
+            min-height: 52px !important;
+          }
+
+          .product-service-grid {
+            gap: 6px !important;
+          }
+
+          .product-service-grid > div {
+            padding: 10px 6px !important;
+          }
+
+          .product-service-grid p {
+            font-size: 9px !important;
+          }
+
+          .product-details-section > div,
+          .product-related-section {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
+
+          .product-tabs button {
+            padding-left: 14px !important;
+            padding-right: 14px !important;
+            font-size: 12px !important;
+          }
+
+          .product-related-section {
+            padding-top: 38px !important;
+            padding-bottom: 44px !important;
+          }
+
+          .product-related-section .font-serif {
+            font-size: 26px !important;
+          }
+
+          .product-related-section .grid {
+            gap: 10px !important;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .product-page-hero {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+
+          .product-info-panel h1 {
+            font-size: 26px !important;
+          }
+
+          .product-details-section > div,
+          .product-related-section {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+      `}</style>
+
+      <Footer />
       </>
     );
   }
@@ -1941,11 +1874,11 @@ const checkDelivery = async () => {
 
       if (deliveryDays) {
         setDeliveryMessage(
-          `✓ Delivery available to your location. Estimated delivery: ${deliveryDays} business days.`
+          `âœ“ Delivery available to your location. Estimated delivery: ${deliveryDays} business days.`
         );
       } else {
         setDeliveryMessage(
-          "✓ Delivery available to your location."
+          "âœ“ Delivery available to your location."
         );
       }
     } else {
@@ -1975,7 +1908,7 @@ const checkDelivery = async () => {
     <>
       <Navbar />
 
-      <main className="bg-[#FCFAF8]">
+      <main className="product-page-premium bg-white">
 
         {/* ======================================
             Breadcrumb
@@ -2017,15 +1950,15 @@ const checkDelivery = async () => {
             MAIN PRODUCT
         ====================================== */}
 
-        <section className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-14">
+        <section className="product-page-hero mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-12">
 
-          <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:gap-16">
+          <div className="product-page-hero-grid grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(380px,0.95fr)] lg:gap-12">
 
             {/* ==================================
                 LEFT - PRODUCT GALLERY
             ================================== */}
 
-            <div className="lg:sticky lg:top-24">
+            <div className="product-gallery lg:sticky lg:top-24">
 
               <div className="grid gap-4 sm:grid-cols-[78px_minmax(0,1fr)]">
 
@@ -2044,7 +1977,7 @@ const checkDelivery = async () => {
                         selectImage(0)
                       }
                       aria-label="View main product image"
-                      className={`relative h-[76px] w-[76px] shrink-0 overflow-hidden border bg-white transition-all duration-300 ${
+                      className={`relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border-2 bg-white transition-all duration-300 ${
                         selectedMedia ===
                           "image" &&
                         selectedImage ===
@@ -2080,7 +2013,7 @@ const checkDelivery = async () => {
                         selectImage(1)
                       }
                       aria-label="View product worn image"
-                      className={`relative h-[76px] w-[76px] shrink-0 overflow-hidden border bg-white transition-all duration-300 ${
+                      className={`relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border-2 bg-white transition-all duration-300 ${
                         selectedMedia ===
                           "image" &&
                         selectedImage ===
@@ -2132,7 +2065,7 @@ const checkDelivery = async () => {
                               actualIndex +
                               1
                             }`}
-                            className={`relative h-[76px] w-[76px] shrink-0 overflow-hidden border bg-white transition-all duration-300 ${
+                            className={`relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border-2 bg-white transition-all duration-300 ${
                               selectedMedia ===
                                 "image" &&
                               selectedImage ===
@@ -2206,180 +2139,178 @@ const checkDelivery = async () => {
                 ================================== */}
 
                 <div className="order-1 sm:order-2">
-                  <div
-                    className="group relative aspect-square overflow-hidden rounded-[28px] bg-[#F3EEE9] shadow-[0_20px_60px_rgba(58,37,40,0.08)]"
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                  >
+
+                  <div className="product-main-media group relative aspect-square overflow-hidden rounded-2xl bg-[#F5F0EC]">
+
                     {/* ==================================
-                        PRODUCT VIDEO
+                        PREMIUM VIDEO PLAYER
                     ================================== */}
 
-                    {selectedMedia === "video" &&
+                    {selectedMedia ===
+                      "video" &&
                     product.video ? (
+
                       <div className="absolute inset-0 bg-black">
-                        <video
-                          ref={videoRef}
-                          key={product.video}
-                          src={product.video}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          preload="auto"
-                          onPlay={() =>
-                            setIsVideoPlaying(true)
+ <video
+  ref={videoRef}
+  key={product.video}
+  src={product.video}
+  autoPlay
+  muted
+  loop
+  playsInline
+  preload="auto"
+  onPlay={() => setIsVideoPlaying(true)}
+  onPause={() => setIsVideoPlaying(false)}
+  onTimeUpdate={handleVideoTimeUpdate}
+  onLoadedMetadata={handleVideoLoadedMetadata}
+  onEnded={handleVideoEnded}
+  className="absolute inset-0 h-full w-full object-cover bg-black"
+/>
+
+  {/* Product Video Label */}
+  <div className="absolute left-5 top-5 z-10 rounded-full bg-black/55 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white backdrop-blur-sm">
+    Product Video
+  </div>
+</div>
+
+
+                    ) : (
+
+                      /* ==================================
+                         IMAGE
+                      ================================== */
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openGallery(
+                            Math.max(
+                              galleryIndex,
+                              0
+                            )
+                          )
+                        }
+                        className="absolute inset-0 h-full w-full cursor-zoom-in"
+                        aria-label="Open product image viewer"
+                      >
+
+                        <Image
+                          src={
+                            selectedImage ||
+                            galleryImages[0] ||
+                            "/placeholder-product.jpg"
                           }
-                          onPause={() =>
-                            setIsVideoPlaying(false)
+                          alt={
+                            product.name
                           }
-                          onTimeUpdate={
-                            handleVideoTimeUpdate
-                          }
-                          onLoadedMetadata={
-                            handleVideoLoadedMetadata
-                          }
-                          onEnded={
-                            handleVideoEnded
-                          }
-                          className="absolute inset-0 h-full w-full object-cover bg-black"
+                          fill
+                          priority
+                          sizes="(max-width: 768px) 100vw, 55vw"
+                          className="object-contain"
                         />
 
-                        <div className="absolute left-5 top-5 z-10 rounded-full bg-black/55 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white backdrop-blur-sm">
-                          Product Video
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* ==================================
-                            MAIN PRODUCT IMAGE
-                        ================================== */}
+                      </button>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openGallery(
-                              galleryIndex
-                            )
-                          }
-                          aria-label="Open product image viewer"
-                          className="absolute inset-0 z-10 h-full w-full cursor-zoom-in touch-pan-y"
-                        >
-                          <Image
-                            src={
-                              selectedImage ||
-                              galleryImages[
-                                galleryIndex
-                              ] ||
-                              "/placeholder-product.jpg"
-                            }
-                            alt={
-                              product.name ||
-                              "Product image"
-                            }
-                            fill
-                            priority
-                            sizes="(max-width: 768px) 100vw, 55vw"
-                            className="object-contain p-6 transition-transform duration-500 group-hover:scale-[1.02]"
-                          />
-                        </button>
-
-                        {/* ==================================
-                            ZOOM BUTTON
-                        ================================== */}
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openGallery(
-                              galleryIndex
-                            );
-                          }}
-                          aria-label="Zoom product image"
-                          className="absolute left-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-[#E7DED8] bg-white/95 text-[#3A2528] shadow-md backdrop-blur-sm transition hover:scale-105 hover:bg-white"
-                        >
-                          <Search
-                            size={18}
-                            strokeWidth={1.7}
-                          />
-                        </button>
-
-                        {/* ==================================
-                            FEATURED BADGE
-                        ================================== */}
-
-                        {product.featured && (
-                          <span className="pointer-events-none absolute left-5 top-5 z-20 rounded-full bg-[#C78B7B] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
-                            Featured
-                          </span>
-                        )}
-
-                        {/* ==================================
-                            DISCOUNT BADGE
-                        ================================== */}
-
-                        {hasDiscount && (
-                          <span className="pointer-events-none absolute right-5 top-5 z-20 rounded-full bg-[#3A2528] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
-                            {discount}% OFF
-                          </span>
-                        )}
-
-                        {/* ==================================
-                            IMAGE COUNTER
-                        ================================== */}
-
-                        {galleryImages.length > 1 && (
-                          <div className="pointer-events-none absolute bottom-4 right-4 z-20 rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-semibold text-[#3A2528] shadow-sm backdrop-blur-sm">
-                            {galleryIndex + 1}
-                            {" / "}
-                            {galleryImages.length}
-                          </div>
-                        )}
-
-                        {/* ==================================
-                            IMAGE NAVIGATION
-                        ================================== */}
-
-                        {galleryImages.length > 1 && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                showPreviousImage();
-                              }}
-                              aria-label="Previous product image"
-                              className="absolute left-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-2xl text-[#3A2528] opacity-0 shadow-lg transition-all duration-300 hover:scale-105 group-hover:opacity-100"
-                            >
-                              {"\u2039"}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                showNextImage();
-                              }}
-                              aria-label="Next product image"
-                              className="absolute right-4 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-2xl text-[#3A2528] opacity-0 shadow-lg transition-all duration-300 hover:scale-105 group-hover:opacity-100"
-                            >
-                              {"\u203A"}
-                            </button>
-                          </>
-                        )}
-
-                        {/* ==================================
-                            ZOOM HINT
-                        ================================== */}
-
-                        <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 -translate-x-1/2 rounded-full bg-black/55 px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.12em] text-white opacity-0 backdrop-blur-md transition group-hover:opacity-100">
-                          Tap image to view full size
-                        </div>
-                      </>
                     )}
+
+                    <div className="absolute right-4 top-4 z-10">
+  <button
+    type="button"
+    onClick={() =>
+      openGallery(
+        Math.max(galleryIndex, 0)
+      )
+    }
+    className="flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-[#2E2927] shadow-sm transition hover:scale-105 hover:bg-white"
+    aria-label="Zoom product image"
+  >
+    <Search size={18} strokeWidth={1.8} />
+  </button>
+</div>
+
+                    {/* IMAGE COUNTER */}
+
+                    {selectedMedia ===
+                      "image" &&
+                      galleryImages.length >
+                        1 && (
+
+                        <div className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-semibold text-[#3A2528] shadow-sm backdrop-blur-sm">
+                          {galleryIndex +
+                            1}{" "}
+                          /{" "}
+                          {
+                            galleryImages.length
+                          }
+                        </div>
+                      )}
+
+                    {/* FEATURED BADGE */}
+
+                    {product.featured &&
+                      selectedMedia !==
+                        "video" && (
+
+                        <span className="absolute left-5 top-5 rounded-full bg-[#C78B7B] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
+                          Featured
+                        </span>
+                      )}
+
+                    {/* DISCOUNT BADGE */}
+
+                    {hasDiscount &&
+                      selectedMedia !==
+                        "video" && (
+
+                        <span className="absolute right-5 top-5 rounded-full bg-[#3A2528] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
+                          {discount}% OFF
+                        </span>
+                      )}
+
+                    {/* IMAGE NAVIGATION */}
+
+                    {selectedMedia ===
+                      "image" &&
+                      galleryImages.length >
+                        1 && (
+                        <>
+
+                          <button
+                            type="button"
+                            onClick={(
+                              e
+                            ) => {
+                              e.stopPropagation();
+
+                              showPreviousImage();
+                            }}
+                            aria-label="Previous product image"
+                            className="absolute left-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl text-[#3A2528] opacity-0 shadow-md transition-all duration-300 hover:scale-105 group-hover:opacity-100"
+                          >
+                            â€¹
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(
+                              e
+                            ) => {
+                              e.stopPropagation();
+
+                              showNextImage();
+                            }}
+                            aria-label="Next product image"
+                            className="absolute right-4 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-xl text-[#3A2528] opacity-0 shadow-md transition-all duration-300 hover:scale-105 group-hover:opacity-100"
+                          >
+                            â€º
+                          </button>
+
+                        </>
+                      )}
+
                   </div>
+
                 </div>
 
               </div>
@@ -2432,17 +2363,17 @@ const checkDelivery = async () => {
                 RIGHT - PRODUCT INFO
             ================================== */}
 
-            <div className="lg:pt-1">
+            <div className="product-info-panel lg:pt-1">
 
               {/* Category */}
 
-              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#8A6A62]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-[#A77868]">
                 {product.category}
               </p>
 
               {/* Product Name */}
 
-              <h1 className="mt-2 max-w-xl text-3xl font-medium leading-[1.12] tracking-[-0.02em] text-[#2E2E2E] sm:text-4xl">
+              <h1 className="mt-2 font-serif text-3xl leading-tight text-[#2E2E2E] sm:text-4xl lg:text-[42px]">
                 {product.name}
               </h1>
 
@@ -2516,8 +2447,8 @@ const checkDelivery = async () => {
 
                 <div className="flex flex-wrap items-center gap-3">
 
-                  <span className="text-3xl font-medium tracking-tight text-[#2E2E2E]">
-                    ₹
+                  <span className="font-serif text-4xl font-semibold text-[#2E2E2E]">
+                    â‚¹
                     {sellingPrice.toLocaleString(
                       "en-IN"
                     )}
@@ -2526,7 +2457,7 @@ const checkDelivery = async () => {
                   {hasDiscount && (
                     <>
                       <span className="text-lg text-gray-400 line-through">
-                        ₹
+                        â‚¹
                         {Number(
                           product.price
                         ).toLocaleString(
@@ -2551,18 +2482,18 @@ const checkDelivery = async () => {
 
               {/* Free Delivery */}
 
-              <div className="mt-5 rounded-none border-y border-[#E8E0DB] py-4">
-                <div className="flex items-center gap-3 text-sm text-[#3A302D]">
-                  <Truck size={17} className="shrink-0 text-[#A77868]" />
+              {sellingPrice >=
+                499 && (
+                <div className="mt-4 flex items-center gap-2 text-sm text-[#596B55]">
+
+                  <Truck size={16} />
+
                   <span>
-                    <span className="font-semibold">Free prepaid shipping</span>{" "}
-                    on orders above ₹2,000
+                    Free delivery available
                   </span>
+
                 </div>
-                <p className="mt-1 pl-7 text-xs text-[#817671]">
-                  Standard delivery in 3–6 working days.
-                </p>
-              </div>
+              )}
 
               {/* STOCK */}
 
@@ -2773,7 +2704,7 @@ const checkDelivery = async () => {
     ACTIONS
 ========================================== */}
 
-<div className="mt-7">
+<div className="product-actions mt-7">
 
   {product.stock > 0 ? (
 
@@ -2784,7 +2715,7 @@ const checkDelivery = async () => {
       <button
         type="button"
         onClick={handleAddToCart}
-        className="flex h-14 items-center justify-center gap-2 rounded-none bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:bg-[#29181B]"
+        className="flex h-14 items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#29181B] hover:shadow-xl"
       >
         <ShoppingCart size={18} />
 
@@ -2796,7 +2727,7 @@ const checkDelivery = async () => {
       <button
         type="button"
         onClick={handleBuyNow}
-        className="flex h-14 items-center justify-center gap-2 rounded-none border border-[#3A2528] bg-white px-4 text-sm font-semibold tracking-wide text-[#3A2528] transition hover:bg-[#F7F2EF]"
+        className="flex h-14 items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-lg transition hover:bg-[#29181B]"
       >
         <Zap size={18} />
 
@@ -2843,7 +2774,7 @@ const checkDelivery = async () => {
       className="text-[#C78B7B]"
     />
 
-    Secure checkout · Carefully packed · Easy returns
+    Secure checkout Â· Carefully packed Â· Easy returns
 
   </div>
 
@@ -2856,7 +2787,7 @@ const checkDelivery = async () => {
                 onClick={
                   handleWishlist
                 }
-                className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-none border text-sm font-medium transition ${
+                className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl border text-sm font-medium transition ${
                   favorite
                     ? "border-[#C78B7B] bg-[#FCF1EE] text-[#C78B7B]"
                     : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B] hover:text-[#C78B7B]"
@@ -2880,7 +2811,7 @@ const checkDelivery = async () => {
 
               {/* DELIVERY */}
               {product.stock > 0 && (
-              <div className="mt-7 border-y border-[#E8E0DB] bg-transparent py-6">
+              <div className="product-delivery mt-6 rounded-2xl border border-[#E8E0DB] bg-white p-5">
 
                 <div className="mb-4 flex items-start gap-3">
 
@@ -2946,7 +2877,7 @@ const checkDelivery = async () => {
                 {deliveryMessage && (
   <div
     className={`mt-4 rounded-xl p-4 ${
-      deliveryMessage.startsWith("✓")
+      deliveryMessage.startsWith("âœ“")
         ? "bg-[#F3F8F1]"
         : deliveryMessage.includes("Checking")
         ? "bg-[#F8F3EF]"
@@ -2955,7 +2886,7 @@ const checkDelivery = async () => {
   >
     <p
       className={`text-sm font-medium ${
-        deliveryMessage.startsWith("✓")
+        deliveryMessage.startsWith("âœ“")
           ? "text-[#55734E]"
           : deliveryMessage.includes("Checking")
           ? "text-[#8A6A62]"
@@ -2971,9 +2902,9 @@ const checkDelivery = async () => {
 
               {/* TRUST / SERVICE FEATURES */}
 
-              <div className="mt-6 grid grid-cols-3 gap-3">
+              <div className="product-service-grid mt-5 grid grid-cols-3 gap-2">
 
-                <div className="border border-[#E8E0DB] bg-white p-3 text-center">
+                <div className="rounded-xl border border-[#E8E0DB] bg-white p-3 text-center">
 
                   <Truck
                     size={18}
@@ -2986,7 +2917,7 @@ const checkDelivery = async () => {
 
                 </div>
 
-                <div className="border border-[#E8E0DB] bg-white p-3 text-center">
+                <div className="rounded-xl border border-[#E8E0DB] bg-white p-3 text-center">
 
                   <ShieldCheck
                     size={18}
@@ -2999,7 +2930,7 @@ const checkDelivery = async () => {
 
                 </div>
 
-                <div className="border border-[#E8E0DB] bg-white p-3 text-center">
+                <div className="rounded-xl border border-[#E8E0DB] bg-white p-3 text-center">
 
                   <RotateCcw
                     size={18}
@@ -3024,13 +2955,13 @@ const checkDelivery = async () => {
             DESCRIPTION / SPECS / REVIEWS
         ====================================== */}
 
-        <section className="border-t border-[#E8E0DB] bg-white">
+        <section className="product-details-section border-t border-[#E8E0DB] bg-white">
 
-          <div className="mx-auto max-w-6xl px-5 py-14 lg:px-8">
+          <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
 
             {/* Tabs */}
 
-            <div className="flex overflow-x-auto border-b border-[#E8E0DB]">
+            <div className="product-tabs flex overflow-x-auto border-b border-[#E8E0DB]">
 
               <button
                 type="button"
@@ -3393,7 +3324,7 @@ const checkDelivery = async () => {
                                 {
                                   rating
                                 }{" "}
-                                ★
+                                â˜…
                               </span>
 
                               <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#EEE8E4]">
@@ -3868,7 +3799,7 @@ const checkDelivery = async () => {
                             </button>
 
                             <p className="mt-2 text-[11px] text-[#918782]">
-                              Up to 6 photos · 10MB each
+                              Up to 6 photos Â· 10MB each
                             </p>
 
                             {reviewForm.images.length >
@@ -3966,7 +3897,7 @@ const checkDelivery = async () => {
                             </button>
 
                             <p className="mt-2 text-[11px] text-[#918782]">
-                              1 video · Maximum 100MB
+                              1 video Â· Maximum 100MB
                             </p>
 
                             {reviewForm.videos.length >
@@ -4092,7 +4023,7 @@ const checkDelivery = async () => {
         {relatedProducts.length >
           0 && (
 
-          <section className="mx-auto max-w-6xl px-5 py-14 lg:px-8">
+          <section className="product-related-section mx-auto max-w-7xl px-5 py-12 lg:px-8">
 
             <div className="mb-8 flex items-end justify-between">
 
@@ -4139,246 +4070,381 @@ const checkDelivery = async () => {
 
       </main>
 
-      {/* ==========================================
-          PRODUCT IMAGE ZOOM VIEWER
-          Tap -> opens enlarged
-          Pinch -> zoom
-          Drag -> inspect
-          Wheel -> zoom
-          Double click -> zoom/reset
-      ========================================== */}
+    {/* ==========================================
+    PREMIUM PRODUCT ZOOM VIEWER
+========================================== */}
 
-      {isGalleryOpen &&
-        galleryImages.length > 0 && (
-          <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#120E0F]/95 backdrop-blur-xl"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Product image viewer"
-            onClick={closeGallery}
+{isGalleryOpen &&
+  galleryImages.length > 0 && (
+    <div
+      className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Product image zoom viewer"
+      onClick={closeGallery}
+    >
+
+      {/* ================================
+          TOP BAR
+      ================================= */}
+
+      <div
+        className="absolute left-0 right-0 top-0 z-30 flex items-center justify-between px-4 py-4 sm:px-6"
+        onClick={(event) =>
+          event.stopPropagation()
+        }
+      >
+
+        {/* Counter */}
+
+        <div className="rounded-full bg-white/10 px-4 py-2 text-xs font-medium tracking-wide text-white backdrop-blur-md">
+          {galleryIndex + 1} /{" "}
+          {galleryImages.length}
+        </div>
+
+        {/* Controls */}
+
+        <div className="flex items-center gap-2">
+
+          <button
+            type="button"
+            onClick={() =>
+              changeZoom(-0.5)
+            }
+            disabled={zoom <= 1}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/20 disabled:opacity-30"
+            aria-label="Zoom out"
           >
-            {/* CLOSE */}
+            âˆ’
+          </button>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                closeGallery();
-              }}
-              aria-label="Close product image viewer"
-              className="absolute right-4 top-4 z-[10020] flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#3A2528] shadow-xl transition hover:scale-105 hover:bg-[#F8F4F1] sm:right-6 sm:top-6"
-            >
-              <X
-                size={21}
-                strokeWidth={1.8}
-              />
-            </button>
+          <button
+            type="button"
+            onClick={() =>
+              changeZoom(0.5)
+            }
+            disabled={zoom >= 4}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl text-white transition hover:bg-white/20 disabled:opacity-30"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
 
-            {/* COUNTER */}
+          <button
+            type="button"
+            onClick={resetZoom}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+            aria-label="Reset zoom"
+          >
+            <RotateCcw size={17} />
+          </button>
 
-            <div
-              className="absolute left-4 top-4 z-[10020] rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white backdrop-blur-md sm:left-6 sm:top-6"
-              onClick={(e) =>
-                e.stopPropagation()
-              }
-            >
-              {galleryIndex + 1}
-              {" / "}
-              {galleryImages.length}
-            </div>
+          <button
+            type="button"
+            onClick={closeGallery}
+            className="ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-2xl text-white transition hover:bg-white/20"
+            aria-label="Close viewer"
+          >
+            Ã—
+          </button>
 
-            {/* RESET ZOOM */}
+        </div>
+      </div>
 
-            {zoomScale > 1 && (
+
+      {/* ================================
+          PREVIOUS
+      ================================= */}
+
+      {galleryImages.length > 1 && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            resetZoom();
+            showPreviousImage();
+          }}
+          className="absolute left-3 top-1/2 z-30 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20 sm:left-8"
+          aria-label="Previous image"
+        >
+          <ChevronLeft size={25} />
+        </button>
+      )}
+
+
+      {/* ================================
+          IMAGE AREA
+      ================================= */}
+
+      <div
+        className="absolute inset-0 flex items-center justify-center overflow-hidden px-16 py-20 sm:px-24"
+        onClick={(event) =>
+          event.stopPropagation()
+        }
+        onWheel={(event) => {
+          event.preventDefault();
+
+          changeZoom(
+            event.deltaY < 0
+              ? 0.25
+              : -0.25
+          );
+        }}
+      >
+
+        <div
+          className={`relative h-full w-full max-w-6xl select-none ${
+            zoom > 1
+              ? "cursor-grab active:cursor-grabbing"
+              : "cursor-zoom-in"
+          }`}
+          onDoubleClick={() => {
+            if (zoom > 1) {
+              resetZoom();
+            } else {
+              setZoom(2);
+            }
+          }}
+          onPointerDown={(event) => {
+            if (zoom <= 1) return;
+
+            event.currentTarget.setPointerCapture(
+              event.pointerId
+            );
+
+            setIsDraggingZoom(true);
+
+            zoomStartRef.current = {
+              x: event.clientX,
+              y: event.clientY,
+            };
+
+            panStartRef.current = {
+              x: pan.x,
+              y: pan.y,
+            };
+          }}
+          onPointerMove={(event) => {
+            if (
+              !isDraggingZoom ||
+              zoom <= 1
+            ) {
+              return;
+            }
+
+            const dx =
+              event.clientX -
+              zoomStartRef.current.x;
+
+            const dy =
+              event.clientY -
+              zoomStartRef.current.y;
+
+            setPan({
+              x:
+                panStartRef.current.x +
+                dx,
+              y:
+                panStartRef.current.y +
+                dy,
+            });
+          }}
+          onPointerUp={() => {
+            setIsDraggingZoom(false);
+          }}
+          onPointerCancel={() => {
+            setIsDraggingZoom(false);
+          }}
+
+          onTouchStart={(event) => {
+            if (
+              event.touches.length === 2
+            ) {
+              const first =
+                event.touches[0];
+
+              const second =
+                event.touches[1];
+
+              const distance =
+                Math.hypot(
+                  second.clientX -
+                    first.clientX,
+                  second.clientY -
+                    first.clientY
+                );
+
+              pinchStartRef.current =
+                distance;
+
+              pinchZoomStartRef.current =
+                zoom;
+            }
+          }}
+
+          onTouchMove={(event) => {
+            if (
+              event.touches.length !== 2 ||
+              pinchStartRef.current === null
+            ) {
+              return;
+            }
+
+            const first =
+              event.touches[0];
+
+            const second =
+              event.touches[1];
+
+            const distance =
+              Math.hypot(
+                second.clientX -
+                  first.clientX,
+                second.clientY -
+                  first.clientY
+              );
+
+            const scale =
+              distance /
+              pinchStartRef.current;
+
+            const nextZoom =
+              Math.min(
+                4,
+                Math.max(
+                  1,
+                  pinchZoomStartRef.current *
+                    scale
+                )
+              );
+
+            setZoom(nextZoom);
+
+            if (nextZoom === 1) {
+              setPan({
+                x: 0,
+                y: 0,
+              });
+            }
+          }}
+
+          onTouchEnd={() => {
+            pinchStartRef.current =
+              null;
+          }}
+        >
+
+          <Image
+            src={
+              galleryImages[
+                galleryIndex
+              ] ||
+              "/placeholder-product.jpg"
+            }
+            alt={
+              product?.name ||
+              "Product image"
+            }
+            fill
+            sizes="100vw"
+            priority
+            draggable={false}
+            className="pointer-events-none object-contain"
+            style={{
+              transform: `
+                translate3d(
+                  ${pan.x}px,
+                  ${pan.y}px,
+                  0
+                )
+                scale(${zoom})
+              `,
+              transition:
+                isDraggingZoom
+                  ? "none"
+                  : "transform 180ms ease-out",
+            }}
+          />
+
+        </div>
+      </div>
+
+
+      {/* ================================
+          NEXT
+      ================================= */}
+
+      {galleryImages.length > 1 && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            resetZoom();
+            showNextImage();
+          }}
+          className="absolute right-3 top-1/2 z-30 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md transition hover:bg-white/20 sm:right-8"
+          aria-label="Next image"
+        >
+          <ChevronRight size={25} />
+        </button>
+      )}
+
+
+      {/* ================================
+          MOBILE / DESKTOP THUMBNAILS
+      ================================= */}
+
+      {galleryImages.length > 1 && (
+        <div
+          className="absolute bottom-5 left-1/2 z-30 flex max-w-[90vw] -translate-x-1/2 gap-2 overflow-x-auto rounded-2xl bg-black/40 p-2 backdrop-blur-md"
+          onClick={(event) =>
+            event.stopPropagation()
+          }
+        >
+
+          {galleryImages.map(
+            (
+              image: string,
+              index: number
+            ) => (
               <button
+                key={`zoom-thumb-${index}`}
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetProductZoom();
+                onClick={() => {
+                  setGalleryIndex(index);
+                  setSelectedImage(image);
+                  setSelectedMedia(
+                    "image"
+                  );
+                  resetZoom();
                 }}
-                className="absolute right-20 top-4 z-[10020] rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white backdrop-blur-md transition hover:bg-white/20 sm:right-24 sm:top-6"
+                className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                  galleryIndex === index
+                    ? "border-white"
+                    : "border-transparent opacity-60 hover:opacity-100"
+                }`}
               >
-                Reset
-              </button>
-            )}
 
-            {/* IMAGE AREA */}
-
-            <div
-              className="absolute inset-0 flex items-center justify-center overflow-hidden touch-none select-none"
-              onClick={(e) =>
-                e.stopPropagation()
-              }
-              onPointerDown={
-                handleZoomPointerDown
-              }
-              onPointerMove={
-                handleZoomPointerMove
-              }
-              onPointerUp={
-                handleZoomPointerUp
-              }
-              onPointerCancel={
-                handleZoomPointerCancel
-              }
-              onWheel={
-                handleZoomWheel
-              }
-              onDoubleClick={
-                handleZoomDoubleClick
-              }
-              style={{
-                cursor:
-                  isDraggingZoom
-                    ? "grabbing"
-                    : zoomScale > 1
-                    ? "grab"
-                    : "zoom-in",
-              }}
-            >
-              <div
-                className="relative h-[86vh] w-[92vw] max-w-[1200px] will-change-transform"
-                style={{
-                  transform: `
-                    translate3d(
-                      ${zoomPosition.x}px,
-                      ${zoomPosition.y}px,
-                      0
-                    )
-                    scale(${zoomScale})
-                  `,
-                  transformOrigin:
-                    "center center",
-                  transition:
-                    isDraggingZoom
-                      ? "none"
-                      : "transform 220ms ease-out",
-                }}
-              >
                 <Image
-                  src={
-                    galleryImages[
-                      galleryIndex
-                    ] ||
-                    "/placeholder-product.jpg"
-                  }
-                  alt={
-                    product?.name ||
-                    "Product image"
-                  }
+                  src={image}
+                  alt={`Product image ${
+                    index + 1
+                  }`}
                   fill
-                  priority
-                  sizes="92vw"
-                  draggable={false}
-                  className="pointer-events-none select-none object-contain"
+                  sizes="56px"
+                  className="object-cover"
                 />
-              </div>
-            </div>
 
-            {/* PREVIOUS */}
-
-            {galleryImages.length > 1 && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  showPreviousImage();
-                }}
-                aria-label="Previous product image"
-                className="absolute left-3 top-1/2 z-[10020] flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white backdrop-blur-md transition hover:scale-105 hover:bg-white/20 sm:left-7"
-              >
-                {"\u2039"}
               </button>
-            )}
+            )
+          )}
 
-            {/* NEXT */}
+        </div>
+      )}
 
-            {galleryImages.length > 1 && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  showNextImage();
-                }}
-                aria-label="Next product image"
-                className="absolute right-3 top-1/2 z-[10020] flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-3xl text-white backdrop-blur-md transition hover:scale-105 hover:bg-white/20 sm:right-7"
-              >
-                {"\u203A"}
-              </button>
-            )}
-
-            {/* INSTRUCTIONS */}
-
-            <div className="pointer-events-none absolute bottom-[88px] left-1/2 z-[10020] -translate-x-1/2 rounded-full bg-black/45 px-5 py-2.5 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-white backdrop-blur-md sm:bottom-[96px]">
-              Pinch to zoom
-              {" • "}
-              Drag to explore
-              {" • "}
-              Double click to zoom
-            </div>
-
-            {/* THUMBNAILS */}
-
-            {galleryImages.length > 1 && (
-              <div
-                className="absolute bottom-5 left-1/2 z-[10020] flex max-w-[90vw] -translate-x-1/2 gap-2 overflow-x-auto rounded-2xl bg-black/45 p-2 backdrop-blur-md"
-                onClick={(e) =>
-                  e.stopPropagation()
-                }
-              >
-                {galleryImages.map(
-                  (
-                    image: string,
-                    index: number
-                  ) => (
-                    <button
-                      key={`gallery-${index}`}
-                      type="button"
-                      onClick={() => {
-                        setGalleryIndex(index);
-                        setSelectedImage(
-                          image
-                        );
-                        setSelectedMedia(
-                          "image"
-                        );
-                        setZoomScale(2.35);
-                        setZoomPosition({
-                          x: 0,
-                          y: 0,
-                        });
-                        activePointers.current.clear();
-                        pinchStartDistance.current = null;
-                      }}
-                      aria-label={`View product image ${
-                        index + 1
-                      }`}
-                      className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition ${
-                        galleryIndex === index
-                          ? "scale-105 border-white"
-                          : "border-white/30 hover:border-white/70"
-                      }`}
-                    >
-                      <Image
-                        src={
-                          image ||
-                          "/placeholder-product.jpg"
-                        }
-                        alt=""
-                        fill
-                        sizes="56px"
-                        draggable={false}
-                        className="object-cover"
-                      />
-                    </button>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-  {/* ==========================================
+    </div>
+  )}
+        {/* ==========================================
     NOTIFY ME MODAL
 ========================================== */}
 
@@ -4506,3 +4572,4 @@ const checkDelivery = async () => {
     </>
   );
 }
+

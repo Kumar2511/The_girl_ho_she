@@ -457,23 +457,25 @@ export default function PaymentPage() {
       );
 
       const uploadData = new FormData();
-      uploadData.append("image", upiScreenshot);
+uploadData.append("media", upiScreenshot);
 
-      const { data: uploadResponse } = await api.post(
-        "/upload",
-        uploadData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+const { data: uploadResponse } = await api.post(
+  "/upload",
+  uploadData,
+  {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  }
+);
 
       const screenshotUrl =
-        uploadResponse?.imageUrl ||
-        uploadResponse?.url ||
-        uploadResponse?.data?.imageUrl ||
-        "";
+  uploadResponse?.mediaUrl ||
+  uploadResponse?.imageUrl ||
+  uploadResponse?.url ||
+  uploadResponse?.data?.mediaUrl ||
+  uploadResponse?.data?.imageUrl ||
+  "";
 
       if (!uploadResponse?.success || !screenshotUrl) {
         throw new Error(
