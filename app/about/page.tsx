@@ -24,7 +24,7 @@ export default function AboutPage() {
             <div>
               <h2 className="font-serif text-4xl text-[#2E2E2E] mb-6">Our Story</h2>
               <p className="text-[#6B6B6B] mb-4 leading-relaxed">
-                the_girl_ho_se was born from a simple belief: every person deserves to wear jewelry that makes them feel confident and beautiful, without compromising on quality or breaking the bank.
+                the_girl_House was born from a simple belief: every person deserves to wear jewelry that makes them feel confident and beautiful, without compromising on quality or breaking the bank.
               </p>
               <p className="text-[#6B6B6B] mb-4 leading-relaxed">
                 What started as a passion project has grown into a premium artificial jewelry brand trusted by thousands of customers worldwide. We meticulously select each piece to ensure it reflects our commitment to elegance, craftsmanship, and accessibility.

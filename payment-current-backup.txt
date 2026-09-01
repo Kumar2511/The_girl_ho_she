@@ -166,60 +166,43 @@ useEffect(() => {
 }, []);
 
 // ==========================================
-  // 5-MINUTE PAYMENT COUNTDOWN
-  // When the session expires, return to checkout.
-  // No alert and no order is created/cancelled here.
-  // ==========================================
+// 5-MINUTE PAYMENT COUNTDOWN
+// ==========================================
 
-  useEffect(() => {
-    if (!paymentExpiresAt) {
-      setPaymentSecondsLeft(0);
-      return;
-    }
+useEffect(() => {
+  if (!paymentExpiresAt) {
+    setPaymentSecondsLeft(0);
+    return;
+  }
 
-    let expiredHandled = false;
+  const tick = () => {
+    const remaining = Math.max(
+      0,
+      Math.ceil(
+        (new Date(paymentExpiresAt).getTime() - Date.now()) / 1000
+      )
+    );
 
-    const tick = () => {
-      const remaining = Math.max(
-        0,
-        Math.ceil(
-          (new Date(paymentExpiresAt).getTime() - Date.now()) / 1000
-        )
-      );
+    setPaymentSecondsLeft(remaining);
 
-      setPaymentSecondsLeft(remaining);
-
-      if (remaining > 0 || expiredHandled) {
-        return;
-      }
-
-      expiredHandled = true;
-
+    if (remaining <= 0) {
       localStorage.removeItem("upiPaymentExpiresAt");
-
-      if (upiScreenshotPreview) {
-        URL.revokeObjectURL(upiScreenshotPreview);
-      }
-
       setPaymentExpiresAt(null);
       setPaymentSecondsLeft(0);
       setUPIScreenshot(null);
       setUPIScreenshotPreview("");
       setUPIProofValidated(false);
-      setUPIProofValidationLoading(false);
-      setUPIError("");
+      setUPIError(
+        "Your 5-minute UPI payment session has expired. Please select UPI again to start a new session."
+      );
+    }
+  };
 
-      router.push("/checkout");
-    };
+  tick();
+  const timer = window.setInterval(tick, 1000);
 
-    tick();
-
-    const timer = window.setInterval(tick, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [paymentExpiresAt, router, upiScreenshotPreview]);
+  return () => window.clearInterval(timer);
+}, [paymentExpiresAt]);
 
   const [dynamicUPIQR, setDynamicUPIQR] =
     useState("");
@@ -258,7 +241,181 @@ useEffect(() => {
 
     document.body.appendChild(script);
   }, []);
-    // ==========================================
+  // ==========================================
+// RESTORE / VALIDATE 5-MINUTE UPI SESSION
+// ==========================================
+
+useEffect(() => {
+  const savedOrderId =
+    localStorage.getItem("upiPaymentOrderId");
+
+  if (!savedOrderId) {
+    return;
+  }
+
+  let cancelled = false;
+
+  const restoreSession = async () => {
+    try {
+      const { data } = await api.get(
+        `/orders/my-orders/${savedOrderId}`
+      );
+
+      if (cancelled) return;
+
+      if (
+        !data?.success ||
+        data?.paymentSessionExpired ||
+        data?.order?.orderStatus === "Cancelled"
+      ) {
+        localStorage.removeItem(
+          "upiPaymentOrderId"
+        );
+
+        localStorage.removeItem(
+          "upiPaymentExpiresAt"
+        );
+
+        return;
+      }
+
+      const order = data.order;
+
+      if (
+        order.paymentMethod !== "UPI" ||
+        order.paymentSessionStatus !== "Active"
+      ) {
+        localStorage.removeItem(
+          "upiPaymentOrderId"
+        );
+
+        localStorage.removeItem(
+          "upiPaymentExpiresAt"
+        );
+
+        return;
+      }
+
+      setUPIOrderId(
+        String(order._id)
+      );
+
+      setUPIPayableAmount(
+        Number(order.totalAmount || 0)
+      );
+
+      setPaymentExpiresAt(
+        order.paymentSessionExpiresAt
+          ? String(order.paymentSessionExpiresAt)
+          : null
+      );
+
+      setPaymentMethod("UPI");
+    } catch (error) {
+      console.error(
+        "Restore UPI Payment Session Error:",
+        error
+      );
+
+      localStorage.removeItem(
+        "upiPaymentOrderId"
+      );
+
+      localStorage.removeItem(
+        "upiPaymentExpiresAt"
+      );
+    }
+  };
+
+  void restoreSession();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+// ==========================================
+// 5-MINUTE PAYMENT COUNTDOWN
+// ==========================================
+
+useEffect(() => {
+  if (!paymentExpiresAt) {
+    setPaymentSecondsLeft(0);
+    return;
+  }
+
+  let expiredHandled = false;
+
+  const tick = async () => {
+    const remaining = Math.max(
+      0,
+      Math.ceil(
+        (
+          new Date(paymentExpiresAt).getTime() -
+          Date.now()
+        ) / 1000
+      )
+    );
+
+    setPaymentSecondsLeft(remaining);
+
+    if (remaining > 0 || expiredHandled) {
+      return;
+    }
+
+    expiredHandled = true;
+
+    const orderId =
+      localStorage.getItem(
+        "upiPaymentOrderId"
+      );
+
+    if (orderId) {
+      try {
+        await api.put(
+          `/orders/my-orders/${orderId}/payment-expire`
+        );
+      } catch (error) {
+        console.error(
+          "UPI Session Expiry Error:",
+          error
+        );
+      }
+    }
+
+    localStorage.removeItem(
+      "upiPaymentOrderId"
+    );
+
+    localStorage.removeItem(
+      "upiPaymentExpiresAt"
+    );
+
+    setUPIOrderId("");
+    setPaymentExpiresAt(null);
+    setPaymentSecondsLeft(0);
+    setUPIScreenshot(null);
+    setUPIScreenshotPreview("");
+
+    router.push(
+      "/checkout?paymentExpired=1"
+    );
+  };
+
+  void tick();
+
+  const timer = window.setInterval(
+    () => {
+      void tick();
+    },
+    1000
+  );
+
+  return () => {
+    window.clearInterval(timer);
+  };
+}, [paymentExpiresAt, router]);
+
+  // ==========================================
   // LOAD CHECKOUT DATA
   // ==========================================
 
@@ -390,99 +547,6 @@ useEffect(() => {
       cancelled = true;
     };
   }, [checkoutData, upiSettings]);
-
-  // ==========================================
-  // DIRECT UPI APP PAYMENT
-  // Opens the customer's selected UPI app with
-  // the exact order amount already filled in.
-  // ==========================================
-
-  type UPIApp = "GPay" | "PhonePe" | "Paytm" | "Other";
-
- const openUPIApp = (app: UPIApp) => {
-  if (
-    !upiSettings?.upiId ||
-    !checkoutData ||
-    paymentSecondsLeft <= 0
-  ) {
-    setUPIError(
-      "Please select UPI and start the 5-minute payment session first."
-    );
-    return;
-  }
-
-  const amount = payableAmount;
-
-  if (!Number.isFinite(amount) || amount <= 0) {
-    setUPIError(
-      "Unable to determine the payment amount."
-    );
-    return;
-  }
-
-  const params = [
-    `pa=${encodeURIComponent(
-      upiSettings.upiId
-    )}`,
-    `pn=${encodeURIComponent(
-      upiSettings.accountName ||
-        "Mahalakshmi"
-    )}`,
-    `am=${encodeURIComponent(
-      amount.toFixed(2)
-    )}`,
-    "cu=INR",
-    `tn=${encodeURIComponent(
-      "Mahalakshmi Jewellery Order"
-    )}`,
-  ].join("&");
-
-  const urls: Record<UPIApp, string> = {
-    GPay:
-      `gpay://upi/pay?${params}`,
-
-    PhonePe:
-      `phonepe://pay?${params}`,
-
-    Paytm:
-      `paytmmp://pay?${params}`,
-
-    Other:
-      `upi://pay?${params}`,
-  };
-
-  setUPIError("");
-
-  // ==========================================
-  // DESKTOP / LAPTOP
-  // ==========================================
-  //
-  // Mobile UPI deep-links generally cannot
-  // open from a laptop browser.
-  //
-  // Keep QR payment available instead.
-  // ==========================================
-
-  const isMobile =
-    /Android|iPhone|iPad|iPod/i.test(
-      navigator.userAgent
-    );
-
-  if (!isMobile) {
-    setUPIError(
-      "GPay, PhonePe and other UPI apps can be opened directly on a mobile device. On this laptop, please scan the QR code with your UPI app."
-    );
-
-    return;
-  }
-
-  // ==========================================
-  // MOBILE
-  // ==========================================
-
-  window.location.href =
-    urls[app];
-};
 
   // ==========================================
   // CREATE DATABASE ORDER
@@ -713,30 +777,13 @@ useEffect(() => {
       return;
     }
 
-    if (
-  !paymentExpiresAt ||
-  paymentSecondsLeft <= 0
-) {
-  e.target.value = "";
-
-  localStorage.removeItem(
-    "upiPaymentExpiresAt"
-  );
-
-  setPaymentExpiresAt(
-    null
-  );
-
-  setPaymentSecondsLeft(
-    0
-  );
-
-  router.push(
-    "/checkout"
-  );
-
-  return;
-}
+    if (!paymentExpiresAt || paymentSecondsLeft <= 0) {
+      setUPIError(
+        "Your 5-minute payment session has expired. Please select UPI again."
+      );
+      e.target.value = "";
+      return;
+    }
 
     if (!upiSettings?.upiId) {
       setUPIError(
@@ -826,326 +873,105 @@ useEffect(() => {
   // ==========================================
 
   const handleUPIPayment = async () => {
-  if (!checkoutData || loading) {
-    return;
-  }
+    if (!checkoutData || loading) return;
 
-  if (!upiSettings?.enabled) {
-    setUPIError(
-      "UPI payment is currently unavailable."
-    );
-    return;
-  }
-
-  // ==========================================
-  // PAYMENT SESSION CHECK
-  // ==========================================
-
-  if (
-    !paymentExpiresAt ||
-    paymentSecondsLeft <= 0
-  ) {
-    setUPIError(
-      "The 5-minute payment session has expired. You will be returned to checkout."
-    );
-
-    router.push("/checkout");
-    return;
-  }
-
-  // ==========================================
-  // SCREENSHOT CHECK
-  // ==========================================
-
-  if (
-    !upiScreenshot ||
-    !upiProofValidated
-  ) {
-    setUPIError(
-      "Please upload a valid successful UPI payment screenshot first."
-    );
-    return;
-  }
-
-  setLoading(true);
-  setProcessing(true);
-  setUPIUploading(true);
-  setUPIError("");
-
-  try {
-    // ========================================
-    // FINAL UPI ORDER SUBMISSION
-    //
-    // IMPORTANT:
-    //
-    // We DO NOT call:
-    //
-    // POST /orders
-    //
-    // first.
-    //
-    // The new backend endpoint performs:
-    //
-    // screenshot validation
-    // amount validation
-    // stock validation
-    // order creation
-    // stock reduction
-    //
-    // atomically in the final flow.
-    // ========================================
-
-    setProcessStep(
-      "Verifying your payment proof and creating your order..."
-    );
-
-    const proofData =
-      new FormData();
-
-    proofData.append(
-      "screenshot",
-      upiScreenshot
-    );
-
-    // ========================================
-    // CUSTOMER DETAILS
-    // ========================================
-
-    proofData.append(
-      "customerName",
-      checkoutData.form?.customerName ||
-        ""
-    );
-
-    proofData.append(
-      "phone",
-      checkoutData.form?.phone ||
-        ""
-    );
-
-    proofData.append(
-      "email",
-      checkoutData.form?.email ||
-        ""
-    );
-
-    proofData.append(
-      "address",
-      checkoutData.form?.address ||
-        ""
-    );
-
-    proofData.append(
-      "city",
-      checkoutData.form?.city ||
-        ""
-    );
-
-    proofData.append(
-      "state",
-      checkoutData.form?.state ||
-        ""
-    );
-
-    proofData.append(
-      "pincode",
-      checkoutData.form?.pincode ||
-        ""
-    );
-
-    // ========================================
-    // PRODUCTS
-    // ========================================
-
-    proofData.append(
-      "products",
-      JSON.stringify(
-        (checkoutData.cart || []).map(
-          (item: any) => ({
-            productId:
-              item._id ||
-              item.productId,
-
-            quantity:
-              Number(
-                item.quantity
-              ) || 1,
-
-            color:
-              item.color || "",
-
-            size:
-              item.size || "",
-          })
-        )
-      )
-    );
-
-    // ========================================
-    // COUPON
-    // ========================================
-
-    proofData.append(
-      "couponCode",
-      checkoutData.couponCode ||
-        ""
-    );
-
-    // ========================================
-    // UPI DETAILS
-    // ========================================
-
-    proofData.append(
-      "expectedUPIId",
-      upiSettings.upiId
-    );
-
-    proofData.append(
-      "paymentSessionExpiresAt",
-      paymentExpiresAt
-    );
-
-    // ========================================
-    // FINAL BACKEND REQUEST
-    // ========================================
-
-    const {
-      data,
-    } = await api.post(
-      "/orders/upi/submit-proof",
-      proofData,
-      {
-        headers: {
-          "Content-Type":
-            "multipart/form-data",
-        },
-      }
-    );
-
-    // ========================================
-    // BACKEND REJECTED PAYMENT
-    // ========================================
-
-    if (
-      !data?.success ||
-      !data?.orderCreated ||
-      !data?.order?._id
-    ) {
-      throw new Error(
-        data?.message ||
-          "Unable to submit UPI payment proof."
-      );
-    }
-
-    // ========================================
-    // SUCCESS
-    // ========================================
-
-    setProcessStep(
-      "Payment proof submitted successfully!"
-    );
-
-    await new Promise(
-      (resolve) =>
-        setTimeout(
-          resolve,
-          900
-        )
-    );
-
-    // ========================================
-    // CLEANUP
-    // ========================================
-
-    clearCart();
-
-    localStorage.removeItem(
-      "checkoutData"
-    );
-
-    localStorage.removeItem(
-      "upiPaymentExpiresAt"
-    );
-
-    setPaymentExpiresAt(
-      null
-    );
-
-    setPaymentSecondsLeft(
-      0
-    );
-
-    setUPIProofValidated(
-      false
-    );
-
-    setUPIScreenshot(
-      null
-    );
-
-    setUPIScreenshotPreview(
-      ""
-    );
-
-    // ========================================
-    // ORDER SUCCESS
-    // ========================================
-
-    router.push(
-      `/order-success?id=${data.order._id}&payment=pending`
-    );
-  } catch (error: any) {
-    console.error(
-      "UPI Payment Error:",
-      error
-    );
-
-    // ========================================
-    // SESSION EXPIRED
-    //
-    // IMPORTANT:
-    // Do NOT show an alert.
-    // Return directly to checkout.
-    // ========================================
-
-    if (
-      error?.response?.status ===
-        410 ||
-      error?.response?.data
-        ?.paymentSessionExpired
-    ) {
-      localStorage.removeItem(
-        "upiPaymentExpiresAt"
-      );
-
-      setPaymentExpiresAt(
-        null
-      );
-
-      setPaymentSecondsLeft(
-        0
-      );
-
-      router.push(
-        "/checkout"
-      );
-
+    if (!upiSettings?.enabled) {
+      alert("UPI payment is currently unavailable.");
       return;
     }
 
-    setUPIError(
-      error?.response?.data
-        ?.message ||
-        error?.message ||
-        "Unable to submit UPI payment proof."
-    );
+    if (!paymentExpiresAt || paymentSecondsLeft <= 0) {
+      setUPIError(
+        "Your 5-minute UPI payment session has expired. Please select UPI again."
+      );
+      return;
+    }
 
-    setProcessing(false);
-  } finally {
-    setUPIUploading(false);
-    setLoading(false);
-  }
-};
+    if (!upiScreenshot || !upiProofValidated) {
+      setUPIError(
+        "Please upload a valid successful UPI payment screenshot first."
+      );
+      return;
+    }
+
+    setLoading(true);
+    setProcessing(true);
+    setUPIUploading(true);
+    setUPIError("");
+
+    try {
+      // IMPORTANT: This is the FIRST point where the MongoDB order is created.
+      setProcessStep(
+        "Creating your order after payment proof verification..."
+      );
+
+      const order = await createOurOrder("UPI");
+
+      if (!order?._id) {
+        throw new Error("Unable to create your order.");
+      }
+
+      // Send the ORIGINAL screenshot to the existing secure OCR endpoint.
+      setProcessStep(
+        "Submitting verified payment proof..."
+      );
+
+      const proofData = new FormData();
+      proofData.append("screenshot", upiScreenshot);
+
+      const { data: proofResponse } = await api.post(
+        `/orders/my-orders/${order._id}/upi-proof`,
+        proofData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (!proofResponse?.success) {
+        throw new Error(
+          proofResponse?.message ||
+            "Unable to submit payment proof."
+        );
+      }
+
+      setProcessStep(
+        "Payment proof submitted successfully!"
+      );
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 900)
+      );
+
+      clearCart();
+      localStorage.removeItem("checkoutData");
+      localStorage.removeItem("upiPaymentExpiresAt");
+
+      setPaymentExpiresAt(null);
+      setPaymentSecondsLeft(0);
+      setUPIProofValidated(false);
+
+      router.push(
+        `/order-success?id=${order._id}&payment=pending`
+      );
+    } catch (error: any) {
+      console.error(
+        "UPI Payment Error:",
+        error
+      );
+
+      setProcessing(false);
+      setUPIError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to submit UPI payment proof."
+      );
+    } finally {
+      setUPIUploading(false);
+      setLoading(false);
+    }
+  };
 
   // ==========================================
   // RAZORPAY
@@ -2120,57 +1946,6 @@ useEffect(() => {
                                     {upiSettings.accountName}
                                   </p>
                                 </div>
-                              </div>
-                            </div>
-
-                            {/* =================================
-                                DIRECT UPI APP BUTTONS
-                            ================================= */}
-                            <div className="mt-4 rounded-2xl border border-[#E8DFD9] bg-white p-4">
-                              <p className="text-xs font-semibold text-[#3E3734]">
-                                Pay using your UPI app
-                              </p>
-
-                              <p className="mt-1 text-[11px] leading-5 text-[#777]">
-                                Tap an app below to open it with the exact ₹{payableAmount.toLocaleString("en-IN")} amount.
-                              </p>
-
-                              <div className="mt-4 grid grid-cols-2 gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => openUPIApp("GPay")}
-                                  disabled={loading || paymentSecondsLeft <= 0}
-                                  className="flex min-h-12 items-center justify-center rounded-xl border border-[#E5DDD7] bg-white px-3 py-3 text-sm font-semibold text-[#3A2528] shadow-sm transition hover:border-[#C78B7B] hover:bg-[#FFF8F5] disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  GPay
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => openUPIApp("PhonePe")}
-                                  disabled={loading || paymentSecondsLeft <= 0}
-                                  className="flex min-h-12 items-center justify-center rounded-xl border border-[#E5DDD7] bg-white px-3 py-3 text-sm font-semibold text-[#3A2528] shadow-sm transition hover:border-[#C78B7B] hover:bg-[#FFF8F5] disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  PhonePe
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => openUPIApp("Paytm")}
-                                  disabled={loading || paymentSecondsLeft <= 0}
-                                  className="flex min-h-12 items-center justify-center rounded-xl border border-[#E5DDD7] bg-white px-3 py-3 text-sm font-semibold text-[#3A2528] shadow-sm transition hover:border-[#C78B7B] hover:bg-[#FFF8F5] disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  Paytm
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => openUPIApp("Other")}
-                                  disabled={loading || paymentSecondsLeft <= 0}
-                                  className="flex min-h-12 items-center justify-center rounded-xl border border-[#E5DDD7] bg-white px-3 py-3 text-sm font-semibold text-[#3A2528] shadow-sm transition hover:border-[#C78B7B] hover:bg-[#FFF8F5] disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  Other UPI
-                                </button>
                               </div>
                             </div>
 

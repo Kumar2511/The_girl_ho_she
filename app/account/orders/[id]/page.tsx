@@ -124,6 +124,9 @@ export default function OrderDetailsPage() {
   const [buyingAgain, setBuyingAgain] =
     useState(false);
 
+    const [downloadingInvoice, setDownloadingInvoice] =
+  useState(false);
+
   const [toast, setToast] =
     useState<{
       message: string;
@@ -473,6 +476,78 @@ export default function OrderDetailsPage() {
       setBuyingAgain(false);
     }
   };
+
+  // ==========================================
+// DOWNLOAD INVOICE
+// ==========================================
+
+const handleDownloadInvoice = async () => {
+  if (!order?._id || downloadingInvoice) {
+    return;
+  }
+
+  try {
+    setDownloadingInvoice(true);
+
+    setToast({
+      type: "success",
+      message: "Preparing your invoice PDF...",
+    });
+
+    const response = await api.get(
+      `/invoices/my/${order._id}`,
+      {
+        responseType: "blob",
+      }
+    );
+
+    const blob = new Blob(
+      [response.data],
+      {
+        type: "application/pdf",
+      }
+    );
+
+    const url =
+      window.URL.createObjectURL(blob);
+
+    const link =
+      document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+      `Mahalaksmi-Invoice-${order._id}.pdf`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+
+    setToast({
+      type: "success",
+      message:
+        "Invoice downloaded successfully.",
+    });
+  } catch (error: any) {
+    console.error(
+      "DOWNLOAD INVOICE ERROR:",
+      error
+    );
+
+    setToast({
+      type: "error",
+      message:
+        error?.response?.data?.message ||
+        "Unable to download invoice. Please try again.",
+    });
+  } finally {
+    setDownloadingInvoice(false);
+  }
+};
 
   // ==========================================
   // REVIEW
@@ -1703,17 +1778,23 @@ export default function OrderDetailsPage() {
                   </Link>
 
                   <button
-                    type="button"
-                    onClick={() =>
-                      window.print()
-                    }
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#DCCFC8] px-5 text-xs font-semibold text-[#3A2528] transition hover:bg-[#FCF8F5]"
-                  >
-                    <Download
-                      size={14}
-                    />
-                    Print / Save Invoice
-                  </button>
+  type="button"
+  onClick={handleDownloadInvoice}
+  disabled={downloadingInvoice}
+  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#DCCFC8] px-5 text-xs font-semibold text-[#3A2528] transition hover:bg-[#FCF8F5] disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {downloadingInvoice ? (
+    <>
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#DCCFC8] border-t-[#3A2528]" />
+      Preparing...
+    </>
+  ) : (
+    <>
+      <Download size={14} />
+      Download Invoice
+    </>
+  )}
+</button>
 
                   {(
                     [
