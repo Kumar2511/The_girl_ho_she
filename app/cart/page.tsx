@@ -22,6 +22,7 @@ import Navbar from "@/components/navbar";
 
 import { useCart } from "@/context/cart-context";
 import api from "@/lib/api";
+import { formatPrice } from "@/lib/utils";
 
 type ShippingSettings = {
   freeShippingEnabled: boolean;
@@ -540,12 +541,7 @@ export default function CartPage() {
                             <div className="mt-4 sm:hidden">
 
                               <span className="text-lg font-semibold text-[#2E2E2E]">
-                                ₹
-                                {Number(
-                                  item.price || 0
-                                ).toLocaleString(
-                                  "en-IN"
-                                )}
+                                {formatPrice(item.price || 0)}
                               </span>
 
                             </div>
@@ -597,10 +593,7 @@ export default function CartPage() {
                               {/* MOBILE TOTAL */}
 
                               <span className="text-sm font-semibold text-[#3A2528] sm:hidden">
-                                ₹
-                                {itemTotal.toLocaleString(
-                                  "en-IN"
-                                )}
+                                {formatPrice(itemTotal)}
                               </span>
 
                             </div>
@@ -616,19 +609,11 @@ export default function CartPage() {
                             </p>
 
                             <p className="mt-1 text-lg font-semibold text-[#2E2E2E]">
-                              ₹
-                              {Number(
-                                item.price || 0
-                              ).toLocaleString(
-                                "en-IN"
-                              )}
+                              {formatPrice(item.price || 0)}
                             </p>
 
                             <p className="mt-8 text-sm font-semibold text-[#3A2528]">
-                              ₹
-                              {itemTotal.toLocaleString(
-                                "en-IN"
-                              )}
+                              {formatPrice(itemTotal)}
                             </p>
 
                           </div>
@@ -702,10 +687,7 @@ export default function CartPage() {
                           </span>
 
                           <span className="font-medium text-[#2E2E2E]">
-                            ₹
-                            {subtotal.toLocaleString(
-                              "en-IN"
-                            )}
+                            {formatPrice(subtotal)}
                           </span>
 
                         </div>
@@ -725,7 +707,7 @@ export default function CartPage() {
                           >
                             {shipping === 0
                               ? "FREE"
-                              : `₹${shipping}`}
+                              : formatPrice(shipping)}
                           </span>
 
                         </div>
@@ -741,10 +723,7 @@ export default function CartPage() {
                         </span>
 
                         <span className="font-serif text-2xl font-semibold text-[#2E2E2E]">
-                          ₹
-                          {total.toLocaleString(
-                            "en-IN"
-                          )}
+                          {formatPrice(total)}
                         </span>
 
                       </div>
@@ -753,7 +732,12 @@ export default function CartPage() {
 
                       <Link
                         href="/checkout"
-                        className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-5 text-sm font-semibold text-white transition hover:bg-[#29181B]"
+                        onClick={() => {
+                          if (typeof window !== "undefined") {
+                            sessionStorage.setItem("checkout_origin", "/cart");
+                          }
+                        }}
+                        className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
                       >
                         Proceed to Checkout
 

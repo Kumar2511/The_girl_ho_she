@@ -7,336 +7,220 @@ import {
 } from "react";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import {
   Search,
   X,
   Link as LinkIcon,
-  Image as ImageIcon,
-  QrCode,
-  Trash2,
+  ImageIcon,
+  Loader2,
+  ArrowRight,
+  Sparkles,
+  RotateCcw,
 } from "lucide-react";
 
 import api from "@/lib/api";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 export default function FindProductButton() {
   const router = useRouter();
 
   // ==========================================
-  // Modal
+  // Modal State & Active Tab
   // ==========================================
 
   const [open, setOpen] = useState(false);
+  const [isClosingModal, setIsClosingModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"url" | "screenshot">("url");
+
+  useScrollLock(open);
+
+  const openModal = () => {
+    setIsClosingModal(false);
+    setOpen(true);
+    setError("");
+  };
+
+  const closeModal = () => {
+    setIsClosingModal(true);
+    setTimeout(() => {
+      setOpen(false);
+      setIsClosingModal(false);
+      setError("");
+      setMatches([]);
+      setExactMatch(null);
+      setProductLink("");
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      setSelectedImage(null);
+      setImagePreview("");
+    }, 260);
+  };
 
   // ==========================================
-  // Product Link
+  // Tab 1: Instagram URL State
   // ==========================================
 
-  const [productLink, setProductLink] =
-    useState("");
+  const [productLink, setProductLink] = useState("");
+  const [searchingUrl, setSearchingUrl] = useState(false);
 
   // ==========================================
-  // Error
+  // Tab 2: Screenshot State
   // ==========================================
 
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [searchingImage, setSearchingImage] = useState(false);
+
+  // ==========================================
+  // Search Results & Error
+  // ==========================================
+
+  const [matches, setMatches] = useState<any[]>([]);
+  const [exactMatch, setExactMatch] = useState<any | null>(null);
   const [error, setError] = useState("");
 
   // ==========================================
-  // Screenshot
-  // ==========================================
-
-  const [selectedImage, setSelectedImage] =
-    useState<File | null>(null);
-
-  const [imagePreview, setImagePreview] =
-    useState("");
-
-  // ==========================================
-  // Image Search Loading
-  // ==========================================
-
-  const [searchingImage, setSearchingImage] =
-    useState(false);
-
-  // ==========================================
-  // Image Search Result
-  // ==========================================
-
-  const [uploadedImageUrl, setUploadedImageUrl] =
-    useState("");
-
-  // ==========================================
-  // Cleanup Preview
+  // Escape Key & Preview Cleanup
   // ==========================================
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open) {
+        closeModal();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
+      window.removeEventListener("keydown", handleKeyDown);
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
       }
     };
-  }, [imagePreview]);
+  }, [open, imagePreview]);
+
+
 
   // ==========================================
-  // Find Product From Link
+  // Tab 1: Search Product by Instagram URL
   // ==========================================
 
-  const findProduct = () => {
+  const searchProductByUrl = async () => {
     setError("");
+    setMatches([]);
+    setExactMatch(null);
 
-    const value = productLink.trim();
+    const link = productLink.trim();
 
-    if (!value) {
-      setError(
-        "Please enter a product link."
-      );
-
+    if (!link) {
+      setError("Please paste an Instagram product URL.");
       return;
     }
 
     try {
-      let productId = "";
+      setSearchingUrl(true);
 
-      // ========================================
-      // Full URL
-      // ========================================
+      const response = await api.post("/image-search/url", {
+        url: link,
+      });
 
-      if (
-        value.startsWith("http://") ||
-        value.startsWith("https://")
-      ) {
-        const url = new URL(value);
-
-        const parts = url.pathname
-          .split("/")
-          .filter(Boolean);
-
-        if (
-          parts.length >= 2 &&
-          parts[0] === "shop"
-        ) {
-          productId = parts[1];
-        }
-      }
-
-      // ========================================
-      // Relative URL
-      // ========================================
-
-      else if (
-        value.startsWith("/shop/")
-      ) {
-        const parts = value
-          .split("/")
-          .filter(Boolean);
-
-        if (parts[0] === "shop") {
-          productId = parts[1] || "";
-        }
-      }
-
-      // ========================================
-      // Direct Product ID
-      // ========================================
-
-      else {
-        productId = value;
-      }
-
-      if (!productId) {
-        setError(
-          "We couldn't find a product from this link."
-        );
-
+      if (response.data?.success && response.data?.redirectUrl) {
+        closeModal();
+        router.push(response.data.redirectUrl);
         return;
       }
 
-      // ========================================
-      // Navigate
-      // ========================================
-
-      setOpen(false);
-      setProductLink("");
-      setError("");
-
-      router.push(
-        `/shop/${productId}`
-      );
-    } catch (error) {
-      console.error(
-        "Find Product Error:",
-        error
-      );
-
       setError(
-        "Please enter a valid product link."
+        response.data?.message || "No matching product found in our catalogue."
       );
+    } catch (err: any) {
+      console.error("Instagram URL Search Error:", err);
+      setError(
+        err?.response?.data?.message ||
+          "No matching product found in our catalogue for this Instagram link."
+      );
+    } finally {
+      setSearchingUrl(false);
     }
   };
 
   // ==========================================
-  // Screenshot Upload
+  // Tab 2: Handle Image Selection (Temporary Preview)
   // ==========================================
 
-  const handleImageSelect = (
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
-    const file =
-      event.target.files?.[0];
+  const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
-
-    // ========================================
-    // Validate Type
-    // ========================================
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setError(
-        "Please select an image file."
-      );
-
+      setError("Please select a valid image file (JPG, PNG, WEBP).");
       return;
     }
 
-    // ========================================
-    // Validate Size
-    // ========================================
-
-    const maxSize =
-      10 * 1024 * 1024;
-
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      setError(
-        "Image must be smaller than 10MB."
-      );
-
+      setError("Image file size must be smaller than 10MB.");
       return;
     }
-
-    // ========================================
-    // Remove Previous Preview
-    // ========================================
 
     if (imagePreview) {
-      URL.revokeObjectURL(
-        imagePreview
-      );
+      URL.revokeObjectURL(imagePreview);
     }
 
-    // ========================================
-    // Create Preview
-    // ========================================
-
-    const previewUrl =
-      URL.createObjectURL(file);
-
+    const previewUrl = URL.createObjectURL(file);
     setSelectedImage(file);
     setImagePreview(previewUrl);
-    setUploadedImageUrl("");
+    setMatches([]);
+    setExactMatch(null);
     setError("");
   };
 
   // ==========================================
-  // Remove Screenshot
+  // Tab 2: Visual Catalogue Matching (Temporary Screenshot)
   // ==========================================
 
-  const removeScreenshot = () => {
-    if (imagePreview) {
-      URL.revokeObjectURL(
-        imagePreview
-      );
-    }
-
-    setSelectedImage(null);
-    setImagePreview("");
-    setUploadedImageUrl("");
-    setError("");
-  };
-
-  // ==========================================
-  // Find Product By Image
-  // ==========================================
-
-  const findProductByImage = async () => {
+  const findProductByScreenshot = async () => {
     if (!selectedImage) {
-      setError(
-        "Please select a screenshot first."
-      );
-
+      setError("Please select a screenshot image first.");
       return;
     }
 
     try {
       setSearchingImage(true);
       setError("");
-      setUploadedImageUrl("");
-
-      // ========================================
-      // Form Data
-      // ========================================
+      setMatches([]);
+      setExactMatch(null);
 
       const formData = new FormData();
+      formData.append("media", selectedImage);
 
-      formData.append(
-        "image",
-        selectedImage
-      );
-
-      // ========================================
-      // API Request
-      // ========================================
-
-      const response = await api.post(
-        "/image-search",
-        formData
-      );
-
-      console.log(
-        "IMAGE SEARCH RESPONSE:",
-        response.data
-      );
-
-      // ========================================
-      // API Error
-      // ========================================
+      const response = await api.post("/image-search", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       if (!response.data?.success) {
-        setError(
-          response.data?.message ||
-            "Image search failed."
-        );
-
+        setError(response.data?.message || "Unable to analyze image.");
         return;
       }
 
-      // ========================================
-      // Uploaded Image
-      // ========================================
+      const matchCandidates = response.data.matches || [];
+      const primaryMatch = response.data.exactMatch || null;
 
-      if (response.data.imageUrl) {
-        setUploadedImageUrl(
-          response.data.imageUrl
-        );
+      setExactMatch(primaryMatch);
+      setMatches(matchCandidates);
+
+      if (matchCandidates.length === 0 && !primaryMatch) {
+        setError("No matching products found in our catalogue. Try another screenshot.");
       }
-
-      // ========================================
-      // Temporary Success
-      // ========================================
-
-      alert(
-        "Screenshot uploaded successfully! 🔥"
-      );
-    } catch (error: any) {
-      console.error(
-        "IMAGE SEARCH ERROR:",
-        error
-      );
-
+    } catch (err: any) {
+      console.error("Screenshot Search Error:", err);
       setError(
-        error?.response?.data?.message ||
-          "Unable to search this image."
+        err?.response?.data?.message || "Unable to process screenshot. Please try again."
       );
     } finally {
       setSearchingImage(false);
@@ -344,579 +228,275 @@ export default function FindProductButton() {
   };
 
   // ==========================================
-  // Close Modal
+  // Reset Screenshot Selection
   // ==========================================
 
-  const closeModal = () => {
-    setOpen(false);
+  const removeScreenshot = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setSelectedImage(null);
+    setImagePreview("");
+    setMatches([]);
+    setExactMatch(null);
     setError("");
   };
-
-  // ==========================================
-  // Render
-  // ==========================================
 
   return (
     <>
       {/* ==================================================
-          FLOATING BUTTON
+          FLOATING ACTION BUTTON
       ================================================== */}
 
       <button
         type="button"
-        onClick={() => {
-          setOpen(true);
-          setError("");
-        }}
+        onClick={openModal}
         aria-label="Find Your Product"
-        className="
-          fixed
-          bottom-6
-          right-6
-          z-[90]
-          flex
-          items-center
-          gap-2
-          rounded-full
-          bg-[#3A2528]
-          px-5
-          py-3
-          text-sm
-          font-semibold
-          text-white
-          shadow-xl
-          transition-all
-          duration-300
-          hover:-translate-y-1
-          hover:bg-[#29181B]
-          hover:shadow-2xl
-          active:scale-95
-        "
+        title="Find Your Product"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#3A2528] text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-2xl"
       >
-        <Search size={17} />
-
-        <span>
-          Find Your Product
-        </span>
+        <Search size={20} />
       </button>
 
       {/* ==================================================
-          MODAL
+          FIND YOUR PRODUCT MODAL
       ================================================== */}
 
       {open && (
-        <div
-          className="
-            fixed
-            inset-0
-            z-[999]
-            flex
-            items-center
-            justify-center
-            overflow-y-auto
-            bg-black/50
-            px-5
-            py-8
-            backdrop-blur-sm
-          "
-          onClick={closeModal}
-        >
-          {/* ==================================================
-              MODAL CARD
-          ================================================== */}
-
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          {/* BACKDROP */}
           <div
-            className="
-              relative
-              w-full
-              max-w-md
-              rounded-3xl
-              bg-white
-              p-7
-              shadow-2xl
-            "
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            onClick={closeModal}
+            className={`fixed inset-0 bg-black/60 backdrop-blur-xs ${
+              isClosingModal ? "animate-backdrop-fade-out" : "animate-backdrop-fade"
+            }`}
+          />
+
+          {/* MODAL CONTAINER (MORPHS TO/FROM FLOATING ICON ORIGIN) */}
+          <div
+            className={`relative z-10 w-full max-w-xl rounded-3xl border border-[#EEE5DE] bg-white p-6 shadow-2xl md:p-8 ${
+              isClosingModal ? "animate-icon-modal-close" : "animate-icon-modal-open"
+            }`}
           >
-            {/* ==================================================
-                CLOSE
-            ================================================== */}
-
-            <button
-              type="button"
-              onClick={closeModal}
-              aria-label="Close"
-              className="
-                absolute
-                right-4
-                top-4
-                flex
-                h-9
-                w-9
-                items-center
-                justify-center
-                rounded-full
-                text-gray-500
-                transition
-                hover:bg-gray-100
-                hover:text-gray-800
-              "
-            >
-              <X size={19} />
-            </button>
-
-            {/* ==================================================
-                HEADER
-            ================================================== */}
-
-            <div className="pr-8">
-              <div
-                className="
-                  mb-3
-                  flex
-                  h-11
-                  w-11
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#F5E8E4]
-                  text-[#8D4E67]
-                "
-              >
-                <Search size={20} />
+            
+            {/* HEADER */}
+            <div className="flex items-center justify-between border-b border-[#F4EEE9] pb-4">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-[#3A2528]">
+                  Find Your Product
+                </h2>
+                <p className="text-xs text-[#777]">
+                  Locate jewellery from our catalogue by Instagram URL or screenshot
+                </p>
               </div>
-
-              <h2
-                className="
-                  font-serif
-                  text-3xl
-                  text-[#2E2024]
-                "
+              <button
+                type="button"
+                onClick={closeModal}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F5EBE6] text-[#3A2528] transition hover:bg-[#E8D9D1]"
               >
-                Find Your Product
-              </h2>
-
-              <p
-                className="
-                  mt-2
-                  text-sm
-                  leading-6
-                  text-gray-500
-                "
-              >
-                Found something you love on
-                Instagram? Find the same
-                product on our website.
-              </p>
+                <X size={18} />
+              </button>
             </div>
 
-            {/* ==================================================
-                PRODUCT LINK
-            ================================================== */}
-
-            <div className="mt-7">
-              <div className="mb-2 flex items-center gap-2">
-                <LinkIcon
-                  size={16}
-                  className="text-[#C78B7B]"
-                />
-
-                <span
-                  className="
-                    text-xs
-                    font-semibold
-                    uppercase
-                    tracking-wider
-                    text-[#555]
-                  "
-                >
-                  Paste Product Link
-                </span>
-              </div>
-
-              <input
-                type="text"
-                value={productLink}
-                onChange={(event) => {
-                  setProductLink(
-                    event.target.value
-                  );
-
+            {/* TAB SELECTOR */}
+            <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-[#FCFAF7] p-1.5 border border-[#E8DFD9]">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("url");
                   setError("");
                 }}
-                onKeyDown={(event) => {
-                  if (
-                    event.key === "Enter"
-                  ) {
-                    findProduct();
-                  }
+                className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition ${
+                  activeTab === "url"
+                    ? "bg-[#3A2528] text-white shadow-sm"
+                    : "text-[#555] hover:text-[#3A2528]"
+                }`}
+              >
+                <LinkIcon size={14} />
+                <span>Instagram URL</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("screenshot");
+                  setError("");
                 }}
-                placeholder="https://your-site.com/shop/..."
-                className="
-                  h-12
-                  w-full
-                  rounded-xl
-                  border
-                  border-[#E5DDD8]
-                  bg-white
-                  px-4
-                  text-sm
-                  text-[#2E2024]
-                  outline-none
-                  transition
-                  placeholder:text-gray-400
-                  focus:border-[#C78B7B]
-                  focus:ring-2
-                  focus:ring-[#C78B7B]/10
-                "
-              />
-
-              {/* Error */}
-
-              {error && (
-                <p
-                  className="
-                    mt-2
-                    text-xs
-                    font-medium
-                    text-red-500
-                  "
-                >
-                  {error}
-                </p>
-              )}
-
-              {/* Find Product */}
-
-              <button
-                type="button"
-                onClick={findProduct}
-                className="
-                  mt-3
-                  flex
-                  h-12
-                  w-full
-                  items-center
-                  justify-center
-                  gap-2
-                  rounded-xl
-                  bg-[#3A2528]
-                  text-sm
-                  font-semibold
-                  text-white
-                  shadow-md
-                  transition
-                  hover:bg-[#29181B]
-                  hover:shadow-lg
-                  active:scale-[0.98]
-                "
+                className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition ${
+                  activeTab === "screenshot"
+                    ? "bg-[#3A2528] text-white shadow-sm"
+                    : "text-[#555] hover:text-[#3A2528]"
+                }`}
               >
-                <Search size={17} />
-
-                Find Product
+                <ImageIcon size={14} />
+                <span>Upload Screenshot</span>
               </button>
             </div>
 
-            {/* ==================================================
-                DIVIDER
-            ================================================== */}
+            {/* ERROR ALERT */}
+            {error && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
+                {error}
+              </div>
+            )}
 
-            <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-[#E8E0DB]" />
-
-              <span
-                className="
-                  text-[10px]
-                  uppercase
-                  tracking-widest
-                  text-gray-400
-                "
-              >
-                Or
-              </span>
-
-              <div className="h-px flex-1 bg-[#E8E0DB]" />
-            </div>
-
-            {/* ==================================================
-                SCREENSHOT + QR
-            ================================================== */}
-
-            <div className="grid grid-cols-2 gap-3">
-
-              {/* Screenshot */}
-
-              <label
-                className="
-                  cursor-pointer
-                  rounded-2xl
-                  border
-                  border-dashed
-                  border-[#DDD2CC]
-                  bg-[#FCFAF7]
-                  p-4
-                  text-center
-                  transition
-                  hover:border-[#C78B7B]
-                  hover:bg-[#F9F1ED]
-                "
-              >
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={
-                    handleImageSelect
-                  }
-                />
-
-                <ImageIcon
-                  size={22}
-                  className="
-                    mx-auto
-                    text-[#8D4E67]
-                  "
-                />
-
-                <p
-                  className="
-                    mt-2
-                    text-xs
-                    font-semibold
-                    text-[#2E2024]
-                  "
-                >
-                  Upload Screenshot
-                </p>
-
-                <p
-                  className="
-                    mt-1
-                    text-[10px]
-                    leading-4
-                    text-gray-500
-                  "
-                >
-                  Choose an Instagram
-                  screenshot
-                </p>
-              </label>
-
-              {/* QR */}
-
-              <button
-                type="button"
-                disabled
-                className="
-                  rounded-2xl
-                  border
-                  border-dashed
-                  border-[#DDD2CC]
-                  bg-[#FCFAF7]
-                  p-4
-                  text-center
-                  opacity-60
-                "
-              >
-                <QrCode
-                  size={22}
-                  className="
-                    mx-auto
-                    text-[#8D4E67]
-                  "
-                />
-
-                <p
-                  className="
-                    mt-2
-                    text-xs
-                    font-semibold
-                    text-[#2E2024]
-                  "
-                >
-                  Scan QR Code
-                </p>
-
-                <p
-                  className="
-                    mt-1
-                    text-[10px]
-                    text-gray-500
-                  "
-                >
-                  Coming soon
-                </p>
-              </button>
-            </div>
-
-            {/* ==================================================
-                SCREENSHOT PREVIEW
-            ================================================== */}
-
-            {selectedImage &&
-              imagePreview && (
-                <div className="mt-5">
-
-                  <div
-                    className="
-                      mb-2
-                      flex
-                      items-center
-                      justify-between
-                    "
-                  >
-                    <p
-                      className="
-                        text-xs
-                        font-semibold
-                        text-[#555]
-                      "
-                    >
-                      Selected Screenshot
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={
-                        removeScreenshot
-                      }
-                      className="
-                        flex
-                        items-center
-                        gap-1
-                        text-xs
-                        font-medium
-                        text-red-500
-                        hover:text-red-700
-                      "
-                    >
-                      <Trash2 size={13} />
-
-                      Remove
-                    </button>
-                  </div>
-
-                  <div
-                    className="
-                      overflow-hidden
-                      rounded-2xl
-                      border
-                      border-[#E5DDD8]
-                      bg-[#FCFAF7]
-                    "
-                  >
-                    <img
-                      src={imagePreview}
-                      alt="Selected Instagram screenshot"
-                      className="
-                        max-h-64
-                        w-full
-                        object-contain
-                      "
-                    />
-                  </div>
-
-                  <p
-                    className="
-                      mt-2
-                      truncate
-                      text-[10px]
-                      text-gray-400
-                    "
-                  >
-                    {selectedImage.name}
-                  </p>
-
-                  {/* ==================================================
-                      FIND MATCHING PRODUCT
-                  ================================================== */}
-
-                  <button
-                    type="button"
-                    onClick={
-                      findProductByImage
-                    }
-                    disabled={
-                      searchingImage
-                    }
-                    className="
-                      mt-3
-                      w-full
-                      rounded-xl
-                      bg-[#3A2528]
-                      py-3
-                      text-xs
-                      font-semibold
-                      text-white
-                      transition
-                      hover:bg-[#29181B]
-                      disabled:cursor-not-allowed
-                      disabled:opacity-50
-                    "
-                  >
-                    {searchingImage
-                      ? "Uploading Screenshot..."
-                      : "Find Matching Product"}
-                  </button>
-
-                  {/* ==================================================
-                      UPLOADED IMAGE URL
-                  ================================================== */}
-
-                  {uploadedImageUrl && (
-                    <div
-                      className="
-                        mt-3
-                        rounded-xl
-                        bg-green-50
-                        p-3
-                      "
-                    >
-                      <p
-                        className="
-                          text-xs
-                          font-semibold
-                          text-green-700
-                        "
-                      >
-                        Screenshot uploaded
-                        successfully ✓
-                      </p>
-
-                      <p
-                        className="
-                          mt-1
-                          break-all
-                          text-[10px]
-                          text-green-600
-                        "
-                      >
-                        Cloudinary image
-                        received successfully.
-                      </p>
-                    </div>
-                  )}
+            {/* TAB 1: INSTAGRAM URL */}
+            {activeTab === "url" && (
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-[#3A2528]">
+                    Paste Instagram Product URL
+                  </label>
+                  <input
+                    type="url"
+                    value={productLink}
+                    onChange={(e) => {
+                      setProductLink(e.target.value);
+                      setError("");
+                    }}
+                    placeholder="https://www.instagram.com/p/..."
+                    className="w-full rounded-xl border border-[#E5DDD8] px-4 py-3 text-xs font-medium text-[#3A2528] outline-none transition focus:border-[#C78B7B]"
+                  />
                 </div>
-              )}
 
-            {/* ==================================================
-                INFO
-            ================================================== */}
+                <button
+                  type="button"
+                  onClick={searchProductByUrl}
+                  disabled={searchingUrl || !productLink.trim()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] py-3 text-xs font-bold uppercase tracking-wider text-white shadow transition hover:bg-[#29181B] disabled:opacity-50"
+                >
+                  {searchingUrl ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Searching Catalogue...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search size={16} />
+                      <span>Search Product</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
-            <p
-              className="
-                mt-5
-                text-center
-                text-[10px]
-                leading-5
-                text-gray-400
-              "
-            >
-              Upload an Instagram screenshot
-              and we'll search your jewellery
-              catalogue.
-            </p>
+            {/* TAB 2: UPLOAD SCREENSHOT */}
+            {activeTab === "screenshot" && (
+              <div className="mt-6 space-y-5">
+                {!imagePreview ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#DDD5CF] bg-[#FCFAF7] p-6 text-center">
+                    <ImageIcon size={32} className="mb-2 text-[#C78B7B]" />
+                    <p className="text-xs font-bold text-[#3A2528]">
+                      Select a jewellery screenshot
+                    </p>
+                    <p className="mt-1 text-[11px] text-[#777]">
+                      Upload JPG, PNG, or WEBP (Max 10MB)
+                    </p>
+                    <label className="mt-4 cursor-pointer rounded-xl bg-[#3A2528] px-4 py-2.5 text-xs font-bold text-white transition hover:bg-[#29181B]">
+                      Browse File
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* TEMPORARY LOCAL PREVIEW */}
+                    <div className="relative flex items-center gap-4 rounded-2xl border border-[#E8DFD9] bg-[#FCFAF7] p-3">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                        {/* Temporary local preview only - Object URL */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imagePreview}
+                          alt="Local screenshot preview"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <p className="truncate text-xs font-bold text-[#3A2528]">
+                          {selectedImage?.name}
+                        </p>
+                        <p className="text-[10px] text-[#888]">
+                          Temporary preview (not saved on server)
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeScreenshot}
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F5EBE6] text-[#3A2528] hover:bg-[#E8D9D1]"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                    </div>
+
+                    {!matches.length && !searchingImage && (
+                      <button
+                        type="button"
+                        onClick={findProductByScreenshot}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] py-3 text-xs font-bold uppercase tracking-wider text-white shadow transition hover:bg-[#29181B]"
+                      >
+                        <Sparkles size={16} />
+                        <span>Scan &amp; Match Catalogue</span>
+                      </button>
+                    )}
+
+                    {searchingImage && (
+                      <div className="flex items-center justify-center gap-2 py-4 text-xs font-bold text-[#3A2528]">
+                        <Loader2 size={18} className="animate-spin text-[#C78B7B]" />
+                        <span>Scanning catalogue for matching jewellery...</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* MATCHED CATALOGUE PRODUCTS */}
+                {matches.length > 0 && (
+                  <div className="mt-4 border-t border-[#F4EEE9] pt-4">
+                    <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-[#3A2528]">
+                      Catalogue Matches ({matches.length})
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
+                      {matches.map((item) => (
+                        <div
+                          key={item._id}
+                          onClick={() => {
+                            closeModal();
+                            router.push(`/shop/${item._id}`);
+                          }}
+                          className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-[#E8DFD9] bg-white p-2.5 transition hover:border-[#C78B7B] hover:shadow-md"
+                        >
+                          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-gray-100">
+                            {item.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[9px] text-gray-400">
+                                No Img
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 overflow-hidden">
+                            <p className="truncate text-xs font-bold text-[#3A2528] group-hover:text-[#C78B7B]">
+                              {item.name}
+                            </p>
+                            <p className="text-[11px] font-semibold text-[#8D4E67]">
+                              ₹{item.price?.toLocaleString("en-IN")}
+                            </p>
+                          </div>
+                          <ArrowRight size={14} className="text-[#888] group-hover:text-[#C78B7B]" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
         </div>

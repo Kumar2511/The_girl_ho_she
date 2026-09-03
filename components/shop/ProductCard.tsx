@@ -15,6 +15,8 @@ import {
 
 import { useCart } from "@/context/cart-context";
 import { useWishlist } from "@/context/wishlist-context";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { formatPrice } from "@/lib/utils";
 
 interface Product {
   _id: string;
@@ -51,6 +53,8 @@ export default function ProductCard({
 
   const [showNotifyModal, setShowNotifyModal] =
     useState(false);
+
+  useScrollLock(showNotifyModal);
 
   const [notifyEmail, setNotifyEmail] =
     useState("");
@@ -110,15 +114,10 @@ export default function ProductCard({
         : product.originalPrice || 0
     ) || 0;
 
-  const averageRating =
-    Number(
-      product.averageRating ?? 4.8
-    );
+  const numReviews = Number(product.numReviews ?? 0);
 
-  const numReviews =
-    Number(
-      product.numReviews ?? 0
-    );
+  const averageRating =
+    numReviews > 0 ? Number(product.averageRating ?? 0) : 0;
 
   // ======================================
   // Stock
@@ -284,6 +283,12 @@ export default function ProductCard({
       const data =
         await response.json();
 
+      if (response.status === 409) {
+        setNotifySuccess(true);
+        setNotifyEmail("");
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(
           data.message ||
@@ -316,7 +321,7 @@ export default function ProductCard({
           PRODUCT CARD
       ====================================== */}
 
-      <div className="group overflow-hidden rounded-lg border border-[#E8E3DC] bg-white transition duration-300 hover:shadow-xl">
+      <div className="group overflow-hidden rounded-lg border border-neutral-200/80 bg-white transition duration-300 hover:border-[#CB8161]/40 hover:shadow-md">
 
         {/* ======================================
             IMAGE
@@ -337,10 +342,10 @@ export default function ProductCard({
               alt={name}
               fill
               sizes="(max-width:768px)100vw,25vw"
-              className={`object-cover transition-all duration-700 ${
+              className={`object-cover transition-all duration-500 ease-out ${
                 isOutOfStock
                   ? "grayscale-[35%]"
-                  : "group-hover:scale-110"
+                  : "group-hover:scale-105"
               }`}
             />
 
@@ -365,7 +370,7 @@ export default function ProductCard({
 
             {product.badge &&
   !isOutOfStock && (
-    <span className="absolute left-4 top-4 rounded bg-[#8B4A5A] px-2 py-1 text-xs font-semibold text-white">
+    <span className="absolute left-3 top-3 rounded-md bg-[#CB8161] px-2.5 py-1 text-xs font-medium text-white shadow-sm">
       {product.badge}
     </span>
   )}
@@ -374,7 +379,7 @@ export default function ProductCard({
 
             {discount > 0 &&
               !isOutOfStock && (
-                <span className="absolute left-4 top-4 rounded bg-[#8B4A5A] px-2 py-1 text-xs font-semibold text-white">
+                <span className="absolute left-3 top-3 rounded-md bg-[#CB8161] px-2.5 py-1 text-xs font-medium text-white shadow-sm">
                   -{discount}%
                 </span>
               )}
@@ -385,7 +390,7 @@ export default function ProductCard({
 
             {isOutOfStock && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/35">
-                <span className="rounded-md bg-[#3A2528]/95 px-5 py-2.5 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-lg">
+                <span className="rounded-md bg-[#1F1F1F]/95 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] text-white shadow-md">
                   Out of Stock
                 </span>
               </div>
@@ -394,7 +399,7 @@ export default function ProductCard({
             {/* Low Stock */}
 
             {isLowStock && (
-              <span className="absolute bottom-4 left-4 rounded-md bg-[#C78B7B] px-3 py-1.5 text-xs font-semibold text-white shadow-md">
+              <span className="absolute bottom-3 left-3 rounded-md bg-[#CB8161] px-2.5 py-1 text-xs font-medium text-white shadow-sm">
                 Only {currentStock} left
               </span>
             )}
@@ -421,13 +426,13 @@ export default function ProductCard({
                       price,
                     });
               }}
-              className="absolute right-4 top-4 rounded-full bg-white p-2 shadow-md transition duration-300 hover:scale-110"
+              className="absolute right-3 top-3 flex min-h-[38px] min-w-[38px] items-center justify-center rounded-full bg-white/90 p-2 shadow-sm backdrop-blur-xs transition duration-300 hover:scale-105 hover:bg-white"
             >
               <Heart
                 className={`h-4 w-4 ${
                   favorite
-                    ? "fill-[#C78B7B] text-[#C78B7B]"
-                    : "text-gray-600"
+                    ? "fill-[#CB8161] text-[#CB8161]"
+                    : "text-gray-600 hover:text-[#CB8161]"
                 }`}
               />
             </button>
@@ -438,48 +443,48 @@ export default function ProductCard({
             PRODUCT INFO
         ====================================== */}
 
-        <div className="space-y-3 p-5">
+        <div className="space-y-2 p-4 sm:p-5">
 
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-[#B68C7A]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
             {category}
           </p>
 
           <Link href={`/shop/${id}`}>
-            <h3 className="line-clamp-2 font-serif text-[22px] leading-8 text-[#2E2E2E] transition hover:text-[#C78B7B]">
+            <h3 className="line-clamp-2 font-serif text-[16px] sm:text-[18px] font-medium leading-snug text-[#2E2927] transition-colors duration-200 group-hover:text-[#C78B7B]">
               {name}
             </h3>
           </Link>
 
           {/* Rating */}
 
-          <div className="flex items-center gap-1 text-sm">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+          {numReviews > 0 ? (
+            <div className="flex items-center gap-1.5 text-xs text-[#777]">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
 
-            <span className="text-sm font-medium text-gray-700">
-              {averageRating.toFixed(1)}
-            </span>
+              <span className="text-xs font-semibold text-[#3A2528]">
+                {averageRating.toFixed(1)}
+              </span>
 
-            <span className="text-sm text-gray-500">
-              ({numReviews})
-            </span>
-          </div>
+              <span className="text-[11px] text-[#999]">
+                ({numReviews})
+              </span>
+            </div>
+          ) : (
+            <div className="text-[11px] text-[#AAA] italic">
+              No reviews yet
+            </div>
+          )}
 
           {/* Price */}
 
-          <div className="flex items-center gap-2">
-            <span className="text-3xl font-bold text-[#2E2E2E]">
-              ₹
-              {price.toLocaleString(
-                "en-IN"
-              )}
+          <div className="mt-auto flex flex-wrap items-baseline gap-2 border-t border-[#F5EBE6] pt-2">
+            <span className="font-serif text-base sm:text-lg font-bold tracking-tight text-[#3A2528]">
+              {formatPrice(price)}
             </span>
 
             {originalPrice > price && (
-              <span className="text-base text-gray-400 line-through">
-                ₹
-                {originalPrice.toLocaleString(
-                  "en-IN"
-                )}
+              <span className="text-xs font-normal text-[#9E8B85] line-through">
+                {formatPrice(originalPrice)}
               </span>
             )}
           </div>
@@ -488,56 +493,22 @@ export default function ProductCard({
               STOCK STATUS
           ====================================== */}
 
-          <div className="min-h-[20px]">
+          <div className="min-h-[18px]">
             {isOutOfStock ? (
-              <p className="text-sm font-semibold text-[#8B4A5A]">
+              <p className="text-xs font-semibold text-[#8B4A5A]">
                 Currently unavailable
               </p>
             ) : isLowStock ? (
-              <p className="text-sm font-medium text-[#C78B7B]">
+              <p className="text-xs font-medium text-[#CB8161]">
                 Hurry! Only{" "}
                 {currentStock} left
                 in stock
               </p>
             ) : (
-              <p className="text-sm font-medium text-green-700">
+              <p className="text-xs font-medium text-emerald-700">
                 In Stock
               </p>
             )}
-          </div>
-
-          {/* ======================================
-              BUTTON
-          ====================================== */}
-
-          <div className="mt-5">
-
-            {isOutOfStock ? (
-              <button
-                type="button"
-                onClick={
-                  handleOpenNotify
-                }
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-[#3A2528] bg-white text-sm font-semibold tracking-wide text-[#3A2528] transition-all duration-300 hover:bg-[#3A2528] hover:text-white"
-              >
-                <Bell className="h-4 w-4" />
-
-                NOTIFY ME WHEN AVAILABLE
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={
-                  handleAddToCart
-                }
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#3A2528] text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:bg-[#281719]"
-              >
-                <ShoppingCart className="h-4 w-4" />
-
-                ADD TO CART
-              </button>
-            )}
-
           </div>
         </div>
       </div>

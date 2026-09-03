@@ -33,18 +33,27 @@ export function WishlistProvider({
   children: ReactNode;
 }) {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [wishlistLoaded, setWishlistLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('wishlist');
+    try {
+      const stored = localStorage.getItem('wishlist');
 
-    if (stored) {
-      setWishlist(JSON.parse(stored));
+      if (stored) {
+        setWishlist(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error('Failed to load wishlist:', error);
+    } finally {
+      setWishlistLoaded(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!wishlistLoaded) return;
+
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
+  }, [wishlist, wishlistLoaded]);
 
   const addToWishlist = (item: WishlistItem) => {
     if (wishlist.find((p) => p._id === item._id)) return;

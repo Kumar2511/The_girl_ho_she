@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -30,15 +30,20 @@ import {
   ImagePlus,
   Video,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 import api from "@/lib/api";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ProductCard from "@/components/product-card";
+import { formatPrice } from "@/lib/utils";
+import CheckoutPaymentModal from "@/components/checkout/CheckoutPaymentModal";
 
 import { useCart } from "@/context/cart-context";
 import { useWishlist } from "@/context/wishlist-context";
+import { useToast } from "@/context/toast-context";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 export default function ProductDetailsPage() {
   const params = useParams();
@@ -46,12 +51,16 @@ export default function ProductDetailsPage() {
   const router = useRouter();
 
   const { addToCart } = useCart();
+  const { showToast } = useToast();
 
   const {
     addToWishlist,
     removeFromWishlist,
     isInWishlist,
   } = useWishlist();
+
+  const [optionValidationError, setOptionValidationError] = useState("");
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
 
   // ==========================================
   // Product
@@ -507,6 +516,12 @@ export default function ProductDetailsPage() {
 const [showNotifyModal, setShowNotifyModal] =
   useState(false);
 
+const [isClosingNotifyModal, setIsClosingNotifyModal] =
+  useState(false);
+
+const [wasSubscribedInSession, setWasSubscribedInSession] =
+  useState(false);
+
 const [notifyEmail, setNotifyEmail] =
   useState("");
 
@@ -515,6 +530,29 @@ const [notifyLoading, setNotifyLoading] =
 
 const [notifySuccess, setNotifySuccess] =
   useState("");
+
+useScrollLock(showNotifyModal);
+
+const openNotifyModalHandler = () => {
+  setIsClosingNotifyModal(false);
+  setNotifySuccess("");
+  setShowNotifyModal(true);
+};
+
+const closeNotifyModalHandler = () => {
+  if (notifyLoading) return;
+  setIsClosingNotifyModal(true);
+  setTimeout(() => {
+    setShowNotifyModal(false);
+    setIsClosingNotifyModal(false);
+    setNotifySuccess("");
+
+    if (wasSubscribedInSession) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setWasSubscribedInSession(false);
+    }
+  }, 260);
+};
   
   // ==========================================
   // Reviews
@@ -736,7 +774,7 @@ const reviewVideoInputRef =
 
               image:
                 item.images?.[0] ||
-                "/hero-jewelry.png",
+                "/hero-jewelery.png",
 
               hoverImage:
                 item.images?.[1],
@@ -1709,119 +1747,67 @@ const reviewVideoInputRef =
   // Cart
   // ==========================================
 
-  const handleAddToCart =
-    () => {
-      if (
-        product.stock <= 0
-      )
-        return;
+  const handleAddToCart = () => {
+    if (product.stock <= 0) return;
 
-      if (
-        product.colors?.length >
-          0 &&
-        !selectedColor
-      ) {
-        alert(
-          "Please select a color."
-        );
+    const needColor = product.colors?.length > 0 && !selectedColor;
+    const needSize = product.sizes?.length > 0 && !selectedSize;
 
-        return;
-      }
+    if (needColor && needSize) {
+      const message = "Please select a size and color to continue.";
+      setOptionValidationError(message);
+      showToast(message, "warning");
+      return;
+    }
 
-      if (
-        product.sizes?.length >
-          0 &&
-        !selectedSize
-      ) {
-        alert(
-          "Please select a size."
-        );
+    if (needColor) {
+      const message = "Please select a color to continue.";
+      setOptionValidationError(message);
+      showToast(message, "warning");
+      return;
+    }
 
-        return;
-      }
+    if (needSize) {
+      const message = "Please select a size to continue.";
+      setOptionValidationError(message);
+      showToast(message, "warning");
+      return;
+    }
 
-      addToCart({
-        _id: product._id,
+    setOptionValidationError("");
 
-        name: product.name,
+    addToCart({
+      _id: product._id,
 
-        image:
-          product.images?.[0] ||
-          "/placeholder-product.jpg",
+      name: product.name,
 
-        price: sellingPrice,
+      image:
+        product.images?.[0] ||
+        "/placeholder-product.jpg",
 
-        stock: product.stock,
+      price: sellingPrice,
 
-        quantity,
+      stock: product.stock,
 
-        color: selectedColor,
+      quantity,
 
-        size: selectedSize,
-      });
-    };
+      color: selectedColor,
+
+      size: selectedSize,
+    });
+  };
 
   // ==========================================
   // Wishlist
   // ==========================================
 
-  const handleWishlist =
-    () => {
-      if (favorite) {
-        removeFromWishlist(
-          product._id
-        );
-      } else {
-        addToWishlist({
-          _id: product._id,
-
-          name: product.name,
-
-          image:
-            product.images?.[0] ||
-            "/placeholder-product.jpg",
-
-          price: sellingPrice,
-        });
-      }
-    };
-
-  // ==========================================
-  // Buy Now
-  // ==========================================
-
-  const handleBuyNow =
-    () => {
-      if (
-        product.stock <= 0
-      )
-        return;
-
-      if (
-        product.colors?.length >
-          0 &&
-        !selectedColor
-      ) {
-        alert(
-          "Please select a color."
-        );
-
-        return;
-      }
-
-      if (
-        product.sizes?.length >
-          0 &&
-        !selectedSize
-      ) {
-        alert(
-          "Please select a size."
-        );
-
-        return;
-      }
-
-      addToCart({
+  const handleWishlist = () => {
+    if (favorite) {
+      removeFromWishlist(
+        product._id
+      );
+    } else {
+      addToWishlist({
         _id: product._id,
 
         name: product.name,
@@ -1831,22 +1817,51 @@ const reviewVideoInputRef =
           "/placeholder-product.jpg",
 
         price: sellingPrice,
-
-        stock: product.stock,
-
-        quantity,
-
-        color: selectedColor,
-
-        size: selectedSize,
       });
+    }
+  };
 
-      router.push(
-        "/checkout"
-      );
-    };
+  // ==========================================
+  // Buy Now
+  // ==========================================
 
-    // ==========================================
+  const handleBuyNow = () => {
+    if (product.stock <= 0) return;
+
+    const needColor = product.colors?.length > 0 && !selectedColor;
+    const needSize = product.sizes?.length > 0 && !selectedSize;
+
+    if (needColor && needSize) {
+      const message = "Please select a size and color to continue.";
+      setOptionValidationError(message);
+      showToast(message, "warning");
+      return;
+    }
+
+    if (needColor) {
+      const message = "Please select a color to continue.";
+      setOptionValidationError(message);
+      showToast(message, "warning");
+      return;
+    }
+
+    if (needSize) {
+      const message = "Please select a size to continue.";
+      setOptionValidationError(message);
+      showToast(message, "warning");
+      return;
+    }
+
+    setOptionValidationError("");
+
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("checkout_origin", `/shop/${product._id}`);
+    }
+
+    setIsCheckoutModalOpen(true);
+  };
+
+  // ==========================================
 // NOTIFY ME WHEN BACK IN STOCK
 // ==========================================
 
@@ -1855,15 +1870,16 @@ const handleNotifyMe = async () => {
     return;
   }
 
-  if (!notifyEmail.trim()) {
+  const trimmedEmail = notifyEmail.trim();
+
+  if (!trimmedEmail) {
     alert("Please enter your email address.");
     return;
   }
 
-  const emailRegex =
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!emailRegex.test(notifyEmail.trim())) {
+  if (!emailRegex.test(trimmedEmail)) {
     alert("Please enter a valid email address.");
     return;
   }
@@ -1872,43 +1888,38 @@ const handleNotifyMe = async () => {
     setNotifyLoading(true);
     setNotifySuccess("");
 
-    const response = await api.post(
-  "/stock-notifications",
-  {
-    productId: product._id,
-    email: notifyEmail.trim(),
-  }
-);
+    const response = await api.post("/stock-notifications", {
+      productId: product._id,
+      email: trimmedEmail,
+    });
 
     if (response.data?.success) {
       setNotifySuccess(
-        response.data?.message ||
-          "You will be notified when this product is back in stock."
+        "You're on the list! We'll email you as soon as this product is back in stock."
       );
-
+      setWasSubscribedInSession(true);
       setNotifyEmail("");
-
-      setTimeout(() => {
-        setShowNotifyModal(false);
-        setNotifySuccess("");
-      }, 2000);
     } else {
       throw new Error(
-        response.data?.message ||
-          "Unable to save your notification request."
+        response.data?.message || "Unable to save your notification request."
       );
     }
   } catch (error: any) {
-    console.error(
-      "Notify Me Error:",
-      error
-    );
-
-    alert(
-      error?.response?.data?.message ||
-        error?.message ||
-        "Unable to save your notification request."
-    );
+    if (
+      error?.response?.status === 409 ||
+      error?.response?.data?.message?.includes("already")
+    ) {
+      setNotifySuccess("You've followed this item before 🎉");
+      setWasSubscribedInSession(true);
+      setNotifyEmail("");
+    } else {
+      console.error("Notify Me Request Error:", error);
+      alert(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to save your notification request."
+      );
+    }
   } finally {
     setNotifyLoading(false);
   }
@@ -1920,28 +1931,33 @@ const handleNotifyMe = async () => {
 const checkDelivery = async () => {
   const trimmedPincode = pincode.trim();
 
-  // Basic validation
-  if (!/^\d{6}$/.test(trimmedPincode)) {
-    setDeliveryMessage(
-      "Please enter a valid 6-digit pincode."
-    );
+  // Rule A: Non-6-digit input (e.g. 12345, 1234567, 98765)
+  if (!trimmedPincode || !/^\d{6}$/.test(trimmedPincode)) {
+    setDeliveryMessage("Please enter a valid pin code number.");
     return;
   }
 
   try {
-    setDeliveryMessage("Checking delivery availability...");
+    setDeliveryMessage("Checking pincode availability...");
 
     const response = await api.get(
       `/shipping/check/${trimmedPincode}`
     );
 
-    if (response.data?.success) {
+    const isAvailable =
+      response.data?.success &&
+      (response.data?.serviceable || response.data?.available);
+
+    if (isAvailable) {
+      // Rule C: Valid 6-digit pincode in Admin shipping configuration
       const deliveryDays =
-        response.data?.deliveryDays;
+        response.data?.delivery?.deliveryDays ||
+        response.data?.deliveryDays ||
+        response.data?.estimatedDays;
 
       if (deliveryDays) {
         setDeliveryMessage(
-          `✓ Delivery available to your location. Estimated delivery: ${deliveryDays} business days.`
+          `✓ Delivery available in ${deliveryDays} days.`
         );
       } else {
         setDeliveryMessage(
@@ -1949,20 +1965,14 @@ const checkDelivery = async () => {
         );
       }
     } else {
+      // Rule B: 6-digit pincode NOT in Admin shipping configuration
       setDeliveryMessage(
-        response.data?.message ||
-          "Sorry, delivery is not available to this pincode."
+        "Sorry, delivery is not available to this pincode."
       );
     }
   } catch (error: any) {
-    console.error(
-      "Check Delivery Error:",
-      error
-    );
-
     setDeliveryMessage(
-      error?.response?.data?.message ||
-        "Sorry, delivery is not available to this pincode."
+      "Sorry, delivery is not available to this pincode."
     );
   }
 };
@@ -2516,27 +2526,18 @@ const checkDelivery = async () => {
 
                 <div className="flex flex-wrap items-center gap-3">
 
-                  <span className="text-3xl font-medium tracking-tight text-[#2E2E2E]">
-                    ₹
-                    {sellingPrice.toLocaleString(
-                      "en-IN"
-                    )}
+                  <span className="font-serif text-3xl font-bold tracking-tight text-[#2E2E2E]">
+                    {formatPrice(sellingPrice)}
                   </span>
 
                   {hasDiscount && (
                     <>
-                      <span className="text-lg text-gray-400 line-through">
-                        ₹
-                        {Number(
-                          product.price
-                        ).toLocaleString(
-                          "en-IN"
-                        )}
+                      <span className="text-base text-gray-400 line-through">
+                        {formatPrice(product.price)}
                       </span>
 
-                      <span className="rounded-full bg-[#F4E4E0] px-3 py-1.5 text-xs font-semibold text-[#A65E55]">
-                        Save{" "}
-                        {discount}%
+                      <span className="rounded-full bg-[#F4E4E0] px-3 py-1 text-xs font-semibold text-[#A65E55]">
+                        Save {discount}%
                       </span>
                     </>
                   )}
@@ -2637,16 +2638,14 @@ const checkDelivery = async () => {
                         <button
                           key={color}
                           type="button"
-                          onClick={() =>
-                            setSelectedColor(
-                              color
-                            )
-                          }
-                          className={`rounded-full border px-5 py-2.5 text-sm transition ${
-                            selectedColor ===
-                            color
-                              ? "border-[#3A2528] bg-[#3A2528] text-white shadow-sm"
-                              : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B]"
+                          onClick={() => {
+                            setSelectedColor(color);
+                            setOptionValidationError("");
+                          }}
+                          className={`rounded-full border px-4 py-2 text-xs font-medium transition ${
+                            selectedColor === color
+                              ? "border-[#1F1F1F] bg-[#1F1F1F] text-white shadow-xs"
+                              : "border-neutral-200 bg-white text-[#1F1F1F] hover:border-[#CB8161]"
                           }`}
                         >
                           {color}
@@ -2680,7 +2679,7 @@ const checkDelivery = async () => {
                           "specifications"
                         )
                       }
-                      className="text-xs font-medium text-[#A77868] underline underline-offset-4"
+                      className="text-xs font-medium text-[#CB8161] underline underline-offset-4"
                     >
                       View Size Information
                     </button>
@@ -2697,16 +2696,14 @@ const checkDelivery = async () => {
                         <button
                           key={size}
                           type="button"
-                          onClick={() =>
-                            setSelectedSize(
-                              size
-                            )
-                          }
-                          className={`min-w-[58px] rounded-lg border px-4 py-2.5 text-sm transition ${
-                            selectedSize ===
-                            size
-                              ? "border-[#3A2528] bg-[#3A2528] text-white shadow-sm"
-                              : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B]"
+                          onClick={() => {
+                            setSelectedSize(size);
+                            setOptionValidationError("");
+                          }}
+                          className={`min-w-[50px] rounded-md border px-3.5 py-2 text-xs font-medium transition ${
+                            selectedSize === size
+                              ? "border-[#1F1F1F] bg-[#1F1F1F] text-white shadow-xs"
+                              : "border-neutral-200 bg-white text-[#1F1F1F] hover:border-[#CB8161]"
                           }`}
                         >
                           {size}
@@ -2769,205 +2766,151 @@ const checkDelivery = async () => {
 
               </div>
 
-            {/* ==========================================
-    ACTIONS
-========================================== */}
-
-<div className="mt-7">
-
-  {product.stock > 0 ? (
-
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-
-      {/* ADD TO CART */}
-
-      <button
-        type="button"
-        onClick={handleAddToCart}
-        className="flex h-14 items-center justify-center gap-2 rounded-none bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white transition-all duration-300 hover:bg-[#29181B]"
-      >
-        <ShoppingCart size={18} />
-
-        Add to Cart
-      </button>
-
-      {/* BUY NOW */}
-
-      <button
-        type="button"
-        onClick={handleBuyNow}
-        className="flex h-14 items-center justify-center gap-2 rounded-none border border-[#3A2528] bg-white px-4 text-sm font-semibold tracking-wide text-[#3A2528] transition hover:bg-[#F7F2EF]"
-      >
-        <Zap size={18} />
-
-        Buy Now
-      </button>
-
-    </div>
-
-  ) : (
-
-    /* ======================================
-       OUT OF STOCK
-    ====================================== */
-
-    <div className="space-y-3">
-
-      <button
-        type="button"
-        onClick={() => {
-          setNotifySuccess("");
-          setShowNotifyModal(true);
-        }}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] px-4 text-sm font-semibold tracking-wide text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#29181B] hover:shadow-xl"
-      >
-        <Bell size={18} />
-
-        Notify Me When Available
-      </button>
-
-      <p className="text-center text-xs text-[#817671]">
-        We'll notify you when this product is back in stock.
-      </p>
-
-    </div>
-
-  )}
-
-  {/* SECURITY MESSAGE */}
-
-  <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#817671]">
-
-    <ShieldCheck
-      size={14}
-      className="text-[#C78B7B]"
-    />
-
-    Secure checkout · Carefully packed · Easy returns
-
-  </div>
-
-</div>
-
-              {/* WISHLIST */}
-
-              <button
-                type="button"
-                onClick={
-                  handleWishlist
-                }
-                className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-none border text-sm font-medium transition ${
-                  favorite
-                    ? "border-[#C78B7B] bg-[#FCF1EE] text-[#C78B7B]"
-                    : "border-[#DCD3CE] bg-white text-[#444] hover:border-[#C78B7B] hover:text-[#C78B7B]"
-                }`}
-              >
-
-                <Heart
-                  size={18}
-                  className={
-                    favorite
-                      ? "fill-current"
-                      : ""
-                  }
-                />
-
-                {favorite
-                  ? "Remove from Wishlist"
-                  : "Add to Wishlist"}
-
-              </button>
-
-              {/* DELIVERY */}
+              {/* DELIVERY CHECK (ABOVE ACTIONS) */}
               {product.stock > 0 && (
-              <div className="mt-7 border-y border-[#E8E0DB] bg-transparent py-6">
+                <div className="mt-6 w-full max-w-full overflow-hidden border-t border-[#E8E0DB] pt-5">
+                  <div className="mb-3 flex items-start gap-2.5 min-w-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F8EEE9]">
+                      <MapPin
+                        size={16}
+                        className="text-[#CB8161]"
+                      />
+                    </div>
 
-                <div className="mb-4 flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#555]">
+                        Check Delivery
+                      </p>
 
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F8EEE9]">
+                      <p className="mt-0.5 text-[11px] leading-normal text-[#817671]">
+                        Enter your 6-digit pincode to check delivery availability.
+                      </p>
+                    </div>
+                  </div>
 
-                    <MapPin
-                      size={18}
-                      className="text-[#C78B7B]"
+                  <div className="flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={pincode}
+                      onChange={(e) => {
+                        setPincode(
+                          e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 6)
+                        );
+                        setDeliveryMessage("");
+                      }}
+                      placeholder="Enter 6-digit pincode"
+                      className="h-11 w-full min-w-0 rounded-lg border border-[#DED5D0] bg-[#FCFAF8] px-3.5 text-xs text-[#3A302D] outline-none transition focus:border-[#CB8161] sm:flex-1"
                     />
 
-                  </div>
-
-                  <div>
-
-                    <p className="text-sm font-semibold text-[#333]">
+                    <button
+                      type="button"
+                      onClick={checkDelivery}
+                      className="h-11 w-full shrink-0 rounded-lg bg-[#1F1F1F] px-5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98] sm:w-auto"
+                    >
                       Check Delivery
-                    </p>
-
-                    <p className="mt-1 text-xs text-[#817671]">
-                      Enter your pincode to check delivery availability.
-                    </p>
-
+                    </button>
                   </div>
 
+                  {deliveryMessage && (
+                    <div
+                      className={`mt-2.5 w-full max-w-full rounded-lg p-3 ${
+                        deliveryMessage.startsWith("✓")
+                          ? "bg-[#F3F8F1]"
+                          : deliveryMessage.includes("Checking")
+                          ? "bg-[#F8F3EF]"
+                          : "bg-[#FFF1F1]"
+                      }`}
+                    >
+                      <p
+                        className={`break-words text-xs font-medium leading-relaxed ${
+                          deliveryMessage.startsWith("✓")
+                            ? "text-[#55734E]"
+                            : deliveryMessage.includes("Checking")
+                            ? "text-[#8A6A62]"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {deliveryMessage}
+                      </p>
+                    </div>
+                  )}
                 </div>
+              )}
 
-                <div className="flex flex-col gap-2 sm:flex-row">
+              {/* ==========================================
+                  ACTIONS (ADD TO CART / BUY NOW)
+              ========================================== */}
 
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={pincode}
-                    onChange={(e) =>
-                      setPincode(
-                        e.target.value
-                          .replace(
-                            /\D/g,
-                            ""
-                          )
-                          .slice(
-                            0,
-                            6
-                          )
-                      )
-                    }
-                    placeholder="Enter 6-digit pincode"
-                    className="h-12 min-w-0 flex-1 rounded-xl border border-[#DED5D0] bg-[#FCFAF8] px-4 text-sm outline-none transition focus:border-[#C78B7B]"
+              <div className="mt-7 border-t border-[#E8E0DB] pt-6">
+                {/* OPTION VALIDATION INLINE MESSAGE */}
+                {optionValidationError && (
+                  <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#CB8161]/40 bg-[#FAF5F2] px-4 py-3 text-xs font-medium text-[#1F1F1F] shadow-xs transition-all duration-300 animate-in fade-in slide-in-from-bottom-1">
+                    <AlertTriangle size={15} className="shrink-0 text-[#CB8161]" />
+                    <span className="flex-1">{optionValidationError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setOptionValidationError("")}
+                      className="text-gray-400 transition hover:text-black"
+                      aria-label="Dismiss error"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {product.stock > 0 ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {/* ADD TO CART */}
+                    <button
+                      type="button"
+                      onClick={handleAddToCart}
+                      className="flex h-13 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-4 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                    >
+                      <ShoppingCart size={16} />
+                      Add to Cart
+                    </button>
+
+                    {/* BUY NOW */}
+                    <button
+                      type="button"
+                      onClick={handleBuyNow}
+                      className="flex h-13 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-4 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                    >
+                      <Zap size={16} />
+                      Buy Now
+                    </button>
+                  </div>
+                ) : (
+                  /* OUT OF STOCK */
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={openNotifyModalHandler}
+                      className="flex h-13 w-full items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-4 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                    >
+                      <Bell size={16} />
+                      Notify Me When Available
+                    </button>
+
+                    <p className="text-center text-xs text-[#817671]">
+                      We'll notify you when this product is back in stock.
+                    </p>
+                  </div>
+                )}
+
+                {/* SECURITY MESSAGE */}
+                <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#817671]">
+                  <ShieldCheck
+                    size={14}
+                    className="text-[#C78B7B]"
                   />
-
-                  <button
-                    type="button"
-                    onClick={
-                      checkDelivery
-                    }
-                    className="h-12 rounded-xl bg-[#F4EEEB] px-6 text-sm font-semibold text-[#3A2528] transition hover:bg-[#EDE2DD]"
-                  >
-                    Check
-                  </button>
-
+                  Secure checkout · Carefully packed · Easy returns
                 </div>
-
-                {deliveryMessage && (
-  <div
-    className={`mt-4 rounded-xl p-4 ${
-      deliveryMessage.startsWith("✓")
-        ? "bg-[#F3F8F1]"
-        : deliveryMessage.includes("Checking")
-        ? "bg-[#F8F3EF]"
-        : "bg-[#FFF1F1]"
-    }`}
-  >
-    <p
-      className={`text-sm font-medium ${
-        deliveryMessage.startsWith("✓")
-          ? "text-[#55734E]"
-          : deliveryMessage.includes("Checking")
-          ? "text-[#8A6A62]"
-          : "text-red-600"
-      }`}
-    >
-      {deliveryMessage}
-    </p>
-  </div>
-)}
-</div>
-)}
+              </div>
 
               {/* TRUST / SERVICE FEATURES */}
 
@@ -4378,26 +4321,37 @@ const checkDelivery = async () => {
           </div>
         )}
 
+
+
   {/* ==========================================
     NOTIFY ME MODAL
 ========================================== */}
 
 {showNotifyModal && (
-  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+  <div
+    onClick={(e) => {
+      if (e.target === e.currentTarget) {
+        closeNotifyModalHandler();
+      }
+    }}
+    className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm transition-opacity duration-300 ${
+      isClosingNotifyModal ? "opacity-0" : "opacity-100"
+    }`}
+  >
 
-    <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+    <div
+      className={`relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all duration-300 ${
+        isClosingNotifyModal ? "animate-icon-modal-close" : "animate-icon-modal-open"
+      }`}
+    >
 
-      {/* CLOSE */}
+      {/* CLOSE BUTTON */}
 
       <button
         type="button"
-        onClick={() => {
-          if (!notifyLoading) {
-            setShowNotifyModal(false);
-            setNotifySuccess("");
-          }
-        }}
+        onClick={closeNotifyModalHandler}
         className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[#F7F2EF] text-[#3A2528] transition hover:bg-[#EDE2DD]"
+        aria-label="Close modal"
       >
         <X size={18} />
       </button>
@@ -4405,49 +4359,52 @@ const checkDelivery = async () => {
       {/* ICON */}
 
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#F8EEE9]">
-
         <Bell
           size={25}
           className="text-[#C78B7B]"
         />
-
       </div>
 
-      {/* TITLE */}
+      {/* TITLE & SUBTITLE */}
 
-      <h2 className="mt-5 text-center font-serif text-2xl text-[#2E2E2E]">
-        Notify Me When Available
+      <h2 className="mt-5 text-center font-serif text-2xl font-bold uppercase tracking-wide text-[#3A2528]">
+        NOTIFY WHEN AVAILABLE
       </h2>
 
-      <p className="mt-2 text-center text-sm leading-6 text-[#777]">
-        Enter your email address and we'll let you know when{" "}
-        <span className="font-semibold text-[#3A2528]">
-          {product.name}
-        </span>{" "}
-        is back in stock.
+      <p className="mt-2 text-center text-xs text-[#777]">
+        Sign up with your email and we&apos;ll notify you!
       </p>
 
-      {/* SUCCESS */}
+      {/* SUCCESS STATE / FORM */}
 
       {notifySuccess ? (
 
-        <div className="mt-5 rounded-xl bg-[#F3F8F1] p-4 text-center">
+        <div className="mt-6 rounded-2xl border border-[#E3F0E0] bg-[#F4F9F2] p-6 text-center shadow-xs">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E2F0DD] text-[#426639]">
+            <CheckCircle2 size={24} />
+          </div>
 
-          <CheckCircle2
-            size={22}
-            className="mx-auto text-[#55734E]"
-          />
+          <h3 className="font-serif text-lg font-bold text-[#3A2528]">
+            {notifySuccess.includes("before") ? "Already Subscribed!" : "You're on the list! 🎉"}
+          </h3>
 
-          <p className="mt-2 text-sm font-medium text-[#55734E]">
+          <p className="mt-2 text-xs leading-relaxed text-[#556650]">
             {notifySuccess}
           </p>
 
+          <button
+            type="button"
+            onClick={closeNotifyModalHandler}
+            className="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-[#3A2528] text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:bg-[#29181B]"
+          >
+            CONFIRM
+          </button>
         </div>
 
       ) : (
 
         <>
-          {/* EMAIL */}
+          {/* EMAIL INPUT */}
 
           <div className="mt-6">
 
@@ -4458,35 +4415,38 @@ const checkDelivery = async () => {
             <input
               type="email"
               value={notifyEmail}
+              autoFocus
               onChange={(e) =>
                 setNotifyEmail(e.target.value)
               }
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   handleNotifyMe();
+                } else if (e.key === "Escape") {
+                  closeNotifyModalHandler();
                 }
               }}
-              placeholder="Enter your email"
+              placeholder="Enter your email address"
               disabled={notifyLoading}
               className="h-12 w-full rounded-xl border border-[#DED5D0] bg-[#FCFAF8] px-4 text-sm outline-none transition focus:border-[#C78B7B] disabled:cursor-not-allowed disabled:opacity-60"
             />
 
           </div>
 
-          {/* SUBMIT */}
+          {/* SUBMIT BUTTON */}
 
           <button
             type="button"
             onClick={handleNotifyMe}
             disabled={notifyLoading}
-            className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-sm font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-xs font-bold uppercase tracking-wider text-white shadow-md transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-60"
           >
 
-            <Bell size={17} />
+            <Bell size={16} />
 
             {notifyLoading
-              ? "Saving..."
-              : "Notify Me"}
+              ? "SAVING..."
+              : "NOTIFY ME"}
 
           </button>
 
@@ -4502,6 +4462,25 @@ const checkDelivery = async () => {
 
   </div>
 )}
+      <CheckoutPaymentModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        directItems={
+          product
+            ? [
+                {
+                  _id: product._id,
+                  name: product.name,
+                  price: sellingPrice,
+                  quantity,
+                  color: selectedColor,
+                  size: selectedSize,
+                  image: product.images?.[0] || "/placeholder-product.jpg",
+                },
+              ]
+            : undefined
+        }
+      />
       <Footer />
     </>
   );

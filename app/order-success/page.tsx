@@ -321,17 +321,17 @@ function OrderSuccessContent() {
 
             <div className="relative mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 lg:py-20">
 
-              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-[#E6D8D1] bg-[#FBF3EF] shadow-sm">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 shadow-xs">
 
                 <CheckCircle2
-                  size={54}
+                  size={46}
                   strokeWidth={1.5}
-                  className="text-[#78966F]"
+                  className="text-emerald-600"
                 />
 
               </div>
 
-              <div className="mt-7 flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-[#C78B7B]">
+              <div className="mt-6 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em] text-[#CB8161]">
 
                 <Sparkles
                   size={13}
@@ -345,7 +345,7 @@ function OrderSuccessContent() {
 
               </div>
 
-              <h1 className="mt-3 font-serif text-4xl font-semibold text-[#2E2E2E] sm:text-5xl lg:text-6xl">
+              <h1 className="mt-3 font-serif text-3xl font-semibold text-[#1F1F1F] sm:text-4xl lg:text-5xl">
                 Your Order is Confirmed
               </h1>
 

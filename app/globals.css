@@ -95,6 +95,19 @@
   --sidebar-accent-foreground: #1F1F1F;
   --sidebar-border: #E6E6E6;
   --sidebar-ring: #1F1F1F;
+
+  /* ==========================================
+     JEWELRY DESIGN SYSTEM TOKENS
+     ========================================== */
+  --jewelry-primary: #1F1F1F;
+  --jewelry-accent: #CB8161;
+  --jewelry-accent-hover: #B56F50;
+  --jewelry-bg: #FFFFFF;
+  --jewelry-bg-warm: #FCFAF7;
+  --jewelry-text-dark: #1F1F1F;
+  --jewelry-text-muted: #666666;
+  --jewelry-border-light: rgba(0, 0, 0, 0.08);
+  --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
@@ -190,6 +203,35 @@
     font-family: var(--font-inter), Arial, Helvetica, sans-serif;
     font-weight: 500;
     letter-spacing: -0.015em;
+  }
+
+  .font-serif-luxury {
+    font-family: var(--font-cormorant), "Bodoni Moda", "Playfair Display", Georgia, serif;
+  }
+
+  .bg-gold-accent {
+    background-color: #CB8161;
+  }
+
+  .text-gold-accent {
+    color: #CB8161;
+  }
+
+  .border-hairline {
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .luxury-card {
+    background-color: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 0.5rem;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .luxury-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.06);
+    border-color: rgba(203, 129, 97, 0.3);
   }
 }
 /* Premium Animations and Transitions */
@@ -627,6 +669,235 @@ select:focus-visible {
   }
 }
 
+/* ==========================================
+   GLOBAL ANIMATION SYSTEM
+   ========================================== */
+
+:root {
+  --drawer-duration: 300ms;
+  --drawer-easing: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes panelSlideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panelSlideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panelSlideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes drawerSlideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawerSlideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes backdropFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pageInBottom {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes modalIconExpand {
+  from {
+    opacity: 0;
+    transform: scale(0.2) translate(40%, 40%);
+    transform-origin: bottom right;
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translate(0, 0);
+    transform-origin: bottom right;
+  }
+}
+
+@keyframes modalIconContract {
+  from {
+    opacity: 1;
+    transform: scale(1) translate(0, 0);
+    transform-origin: bottom right;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.15) translate(40%, 40%);
+    transform-origin: bottom right;
+  }
+}
+
+@keyframes navbarSearchExpand {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+    transform-origin: top center;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transform-origin: top center;
+  }
+}
+
+@keyframes navbarSearchContract {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transform-origin: top center;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+    transform-origin: top center;
+  }
+}
+
+.animate-dropdown-fade {
+  animation: dropdownFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-pop {
+  animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-icon-modal-open {
+  animation: modalIconExpand 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-icon-modal-close {
+  animation: modalIconContract 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-navbar-search-open {
+  animation: navbarSearchExpand 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-navbar-search-close {
+  animation: navbarSearchContract 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-page-in-bottom {
+  animation: pageInBottom 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-panel-in-left {
+  animation: panelSlideInLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-panel-in-right {
+  animation: panelSlideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-panel-out-right {
+  animation: panelSlideOutRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-in-left {
+  animation: drawerSlideInLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-drawer-out-left {
+  animation: drawerSlideOutLeft 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-backdrop-fade {
+  animation: backdropFadeIn 0.24s ease-out forwards;
+}
+
+.animate-backdrop-fade-out {
+  animation: backdropFadeOut 0.24s ease-in forwards;
+}
+
+.transition-premium {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-duration: 280ms;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -636,4 +907,77 @@ select:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ======================================================
+   GLOBAL COMMERCIAL JEWELLERY TYPOGRAPHY & BUTTON SYSTEM
+   ====================================================== */
+
+:root {
+  --text-primary: #2E2927;
+  --text-secondary: #6B6360;
+  --text-muted: #9E9692;
+  --border-subtle: #F0EAE5;
+  --brand-accent: #C78B7B;
+  --brand-accent-hover: #A86F60;
+}
+
+body {
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-serif-heading {
+  font-family: var(--font-cormorant), Georgia, serif;
+  color: var(--text-primary);
+}
+
+.price-display {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  background-color: #1F1F1F;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 200ms ease-out;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #3A2528;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid #D5CCC4;
+  background-color: #FCFAF8;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3A2528;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 200ms ease-out;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: #C78B7B;
+  background-color: #FFFFFF;
 }

@@ -16,16 +16,6 @@ type Product = {
   stock?: number;
 };
 
-const CATEGORY_ORDER = [
-  "Necklace",
-  "Earrings",
-  "Rings",
-  "Bangles",
-  "Bracelets",
-  "Anklets",
-  "Jewelry Set",
-];
-
 const normalizeCategory = (value?: string) =>
   String(value || "")
     .trim()
@@ -41,22 +31,25 @@ const getSellingPrice = (product: Product) =>
 
 export default function CategoryProductSections() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
-        const response = await api.get("/products");
+        const [prodsRes, catsRes] = await Promise.all([
+          api.get("/products"),
+          api.get("/categories"),
+        ]);
 
-        const data =
-          response.data?.products ||
-          response.data ||
-          [];
+        const prods = prodsRes.data?.products || prodsRes.data || [];
+        const cats = catsRes.data?.categories || [];
 
         if (mounted) {
-          setProducts(Array.isArray(data) ? data : []);
+          setProducts(Array.isArray(prods) ? prods : []);
+          setDbCategories(Array.isArray(cats) ? cats.filter((c: any) => c.isActive !== false) : []);
         }
       } catch (error) {
         console.error(
@@ -66,6 +59,7 @@ export default function CategoryProductSections() {
 
         if (mounted) {
           setProducts([]);
+          setDbCategories([]);
         }
       } finally {
         if (mounted) {
@@ -74,7 +68,7 @@ export default function CategoryProductSections() {
       }
     };
 
-    void loadProducts();
+    void loadData();
 
     return () => {
       mounted = false;
@@ -106,52 +100,35 @@ export default function CategoryProductSections() {
   const categories = useMemo(() => {
     const ordered: string[] = [];
 
-    // First use our preferred jewellery order.
-    CATEGORY_ORDER.forEach((preferredCategory) => {
-      const match = Array.from(
-        groupedCategories.keys()
-      ).find(
-        (category) =>
-          normalizeCategory(category) ===
-          normalizeCategory(preferredCategory)
+    // Order according to DB categories first.
+    dbCategories.forEach((catObj) => {
+      const catName = catObj.name;
+      const match = Array.from(groupedCategories.keys()).find(
+        (key) => key === normalizeCategory(catName)
       );
 
-      if (match) {
-        const originalProduct = products.find(
-          (product) =>
-            normalizeCategory(product.category) ===
-            normalizeCategory(match)
-        );
-
-        if (
-          originalProduct?.category &&
-          !ordered.includes(originalProduct.category)
-        ) {
-          ordered.push(originalProduct.category);
-        }
+      if (match && !ordered.includes(catName)) {
+        ordered.push(catName);
       }
     });
 
-    // Then include any new category Admin creates.
-    groupedCategories.forEach(
-      (_items, normalizedCategory) => {
-        const originalProduct = products.find(
-          (product) =>
-            normalizeCategory(product.category) ===
-            normalizedCategory
-        );
+    // Then include any remaining categories found in products.
+    groupedCategories.forEach((_items, normalizedCategory) => {
+      const originalProduct = products.find(
+        (product) =>
+          normalizeCategory(product.category) === normalizedCategory
+      );
 
-        if (
-          originalProduct?.category &&
-          !ordered.includes(originalProduct.category)
-        ) {
-          ordered.push(originalProduct.category);
-        }
+      if (
+        originalProduct?.category &&
+        !ordered.some((o) => normalizeCategory(o) === normalizedCategory)
+      ) {
+        ordered.push(originalProduct.category);
       }
-    );
+    });
 
     return ordered;
-  }, [groupedCategories, products]);
+  }, [dbCategories, groupedCategories, products]);
 
   if (loading) {
     return (

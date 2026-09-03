@@ -8,6 +8,8 @@ import {
   Truck,
   Info,
 } from "lucide-react";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 
 export const metadata = {
   title: "Shipping & Delivery",
@@ -17,7 +19,9 @@ export const metadata = {
 
 export default function ShippingPage() {
   return (
-    <main className="min-h-screen bg-[#FCFAF7] text-[#2E2E2E]">
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-[#FCFAF7] text-[#2E2E2E]">
       {/* ========================================
           Hero
       ======================================== */}
@@ -195,13 +199,15 @@ export default function ShippingPage() {
         <div className="mt-12 text-center">
           <Link
             href="/shop"
-            className="inline-flex items-center gap-2 border border-[#2E2024] bg-[#2E2024] px-7 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#4A3439]"
+            className="inline-flex items-center gap-2 rounded-md bg-[#1F1F1F] px-7 py-3 text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161]"
           >
             <ArrowLeft size={16} />
             Continue Shopping
           </Link>
         </div>
       </section>
-    </main>
+      </main>
+      <Footer />
+    </>
   );
 }

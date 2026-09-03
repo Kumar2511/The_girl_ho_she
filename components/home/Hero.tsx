@@ -26,7 +26,7 @@ export default function Hero({
   // We are intentionally NOT using the old 3-slide carousel.
   const heroImage =
     banners.find((banner) => banner.image)?.image ||
-    "/hero-jewelry.png";
+    "/hero-jewelery.png";
 
   return (
     <section className="relative w-full overflow-hidden bg-[#24201F]">

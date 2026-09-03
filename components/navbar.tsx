@@ -7,7 +7,7 @@ import {
 } from "react";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import {
   Menu,
@@ -23,6 +23,7 @@ import { useCart } from "@/context/cart-context";
 import { useWishlist } from "@/context/wishlist-context";
 import { useAuth } from "@/context/AuthContext";
 import CartDrawer from "@/components/cart-drawer";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 /* =========================================================
    NAVIGATION
@@ -30,27 +31,13 @@ import CartDrawer from "@/components/cart-drawer";
 
 const navLinks = [
   { name: "Home", href: "/" },
-  { name: "Shop", href: "/shop" },
+  { name: "Shop All", href: "/shop" },
+  { name: "Antique Jewellery", href: "/shop" },
   { name: "Collections", href: "/collections" },
   { name: "Reviews", href: "/reviews" },
 ];
 
-/* =========================================================
-   COLLECTIONS
-   Used only inside MOBILE CATEGORIES.
-   These are NOT shown as search results.
-========================================================= */
 
-const collectionList = [
-  { name: "Necklace", icon: "📿" },
-  { name: "Earrings", icon: "✨" },
-  { name: "Bangles", icon: "💫" },
-  { name: "Rings", icon: "💍" },
-  { name: "Bracelets", icon: "👑" },
-  { name: "Anklets", icon: "🦶" },
-  { name: "Hair Accessories", icon: "🌸" },
-  { name: "Bridal Collection", icon: "👰" },
-];
 
 /* =========================================================
    PRODUCT TYPE
@@ -77,15 +64,79 @@ export default function Navbar() {
 
   const searchRef =
     useRef<HTMLDivElement | null>(null);
+  const antiqueRef =
+    useRef<HTMLDivElement | null>(null);
+  const desktopAccountRef =
+    useRef<HTMLDivElement | null>(null);
 
   /* =======================================================
      STATE
   ======================================================= */
 
-  const [mobileOpen, setMobileOpen] =
-    useState(false);
+  const [isMobileMounted, setIsMobileMounted] = useState(false);
+  const [isMobileVisible, setIsMobileVisible] = useState(false);
+
+  const [isDesktopAccountMounted, setIsDesktopAccountMounted] = useState(false);
+  const [isDesktopAccountVisible, setIsDesktopAccountVisible] = useState(false);
+
+  const openDesktopAccount = () => {
+    setIsDesktopAccountMounted(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsDesktopAccountVisible(true);
+      });
+    });
+  };
+
+  const closeDesktopAccount = () => {
+    setIsDesktopAccountVisible(false);
+    setTimeout(() => {
+      setIsDesktopAccountMounted(false);
+    }, 240);
+  };
+
+  const toggleDesktopAccount = () => {
+    if (isDesktopAccountVisible) {
+      closeDesktopAccount();
+    } else {
+      openDesktopAccount();
+    }
+  };
+
+  const openMobileMenu = () => {
+    setIsMobileMounted(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsMobileVisible(true);
+      });
+    });
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileVisible(false);
+    setTimeout(() => {
+      setIsMobileMounted(false);
+      setCategoriesOpen(false);
+      setAccountSectionOpen(false);
+      setMobilePanel("main");
+    }, 300);
+  };
+
+  const toggleMobileMenu = () => {
+    if (isMobileVisible) {
+      closeMobileMenu();
+    } else {
+      openMobileMenu();
+    }
+  };
+
+  const [mobilePanel, setMobilePanel] =
+    useState<"main" | "antique">("main");
 
   const [categoriesOpen, setCategoriesOpen] =
+    useState(false);
+
+  const [isAntiqueOpen, setIsAntiqueOpen] =
     useState(false);
 
   const [accountSectionOpen, setAccountSectionOpen] =
@@ -100,8 +151,29 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] =
     useState(false);
 
+  const [isClosingSearch, setIsClosingSearch] =
+    useState(false);
+
   const [searchLoading, setSearchLoading] =
     useState(false);
+
+  const closeSearch = () => {
+    setIsClosingSearch(true);
+    setTimeout(() => {
+      setSearchOpen(false);
+      setIsClosingSearch(false);
+    }, 260);
+  };
+
+  const openSearch = () => {
+    setIsClosingSearch(false);
+    setSearchOpen(true);
+    if (isMobileVisible) {
+      closeMobileMenu();
+    }
+  };
+
+  useScrollLock(searchOpen);
 
   /* =======================================================
      CONTEXTS
@@ -109,63 +181,51 @@ export default function Navbar() {
 
   const { cart, openCart } = useCart();
 
-  const { wishlist } =
-    useWishlist();
+  const { wishlist } = useWishlist();
 
-  const { user, logout } =
-    useAuth();
+  const { user, logout } = useAuth();
 
-  const cartCount =
-    cart?.length || 0;
+  const cartCount = cart?.length || 0;
 
-  const wishlistCount =
-    wishlist?.length || 0;
+  const wishlistCount = wishlist?.length || 0;
+
+  const [navCategories, setNavCategories] = useState<string[]>([]);
+  const [navCollections, setNavCollections] = useState<{ name: string; query: string }[]>([]);
 
   /* =======================================================
-     MOBILE MENU — LOCK BACKGROUND SCROLL
+     FETCH PRODUCTS FOR SEARCH & TAXONOMY
   ======================================================= */
 
   useEffect(() => {
-    if (!mobileOpen) {
-      document.body.style.overflow = "";
-      return;
-    }
+    const fetchNavTaxonomy = async () => {
+      try {
+        const [catRes, colRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/categories`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/collections`),
+        ]);
 
-    const originalOverflow =
-      document.body.style.overflow;
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          if (Array.isArray(catData.categories) && catData.categories.length > 0) {
+            setNavCategories(catData.categories.filter((c: any) => c.isActive !== false).map((c: any) => c.name));
+          }
+        }
 
-    document.body.style.overflow =
-      "hidden";
-
-    return () => {
-      document.body.style.overflow =
-        originalOverflow;
+        if (colRes.ok) {
+          const colData = await colRes.json();
+          if (Array.isArray(colData.collections) && colData.collections.length > 0) {
+            setNavCollections(colData.collections.filter((c: any) => c.isActive !== false).map((c: any) => ({
+              name: c.name,
+              query: `collection=${encodeURIComponent(c.name)}`,
+            })));
+          }
+        }
+      } catch (err) {
+        console.error("Navbar taxonomy fetch error:", err);
+      }
     };
-  }, [mobileOpen]);
-
- // ==========================================
-// SEARCH — LOCK BACKGROUND SCROLL
-// ==========================================
-
-useEffect(() => {
-  if (!searchOpen) {
-    return;
-  }
-
-  const originalOverflow =
-    document.body.style.overflow;
-
-  document.body.style.overflow = "hidden";
-
-  return () => {
-    document.body.style.overflow =
-      originalOverflow;
-  };
-}, [searchOpen]);
-
-  /* =======================================================
-     FETCH PRODUCTS FOR SEARCH
-  ======================================================= */
+    fetchNavTaxonomy();
+  }, []);
 
   useEffect(() => {
     const fetchProducts =
@@ -250,6 +310,69 @@ useEffect(() => {
       );
     };
   }, []);
+
+  /* =======================================================
+     CLOSE ANTIQUE DROPDOWN WHEN CLICKING OUTSIDE OR ESCAPE
+  ======================================================= */
+
+  useEffect(() => {
+    const handleAntiqueOutsideClick = (event: MouseEvent) => {
+      if (
+        antiqueRef.current &&
+        !antiqueRef.current.contains(event.target as Node)
+      ) {
+        setIsAntiqueOpen(false);
+      }
+    };
+
+    const handleAntiqueKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsAntiqueOpen(false);
+      }
+    };
+
+    const handleOpenAntiqueCustomEvent = () => {
+      openMobileMenu();
+      setMobilePanel("antique");
+    };
+
+    const handleDesktopAccountOutsideClick = (event: MouseEvent) => {
+      if (
+        desktopAccountRef.current &&
+        !desktopAccountRef.current.contains(event.target as Node)
+      ) {
+        if (isDesktopAccountVisible) {
+          closeDesktopAccount();
+        }
+      }
+    };
+
+    const handleDesktopAccountKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && isDesktopAccountVisible) {
+        closeDesktopAccount();
+      }
+    };
+
+    window.addEventListener("open-antique-jewellery", handleOpenAntiqueCustomEvent);
+    document.addEventListener("mousedown", handleAntiqueOutsideClick);
+    document.addEventListener("keydown", handleAntiqueKeyDown);
+    document.addEventListener("mousedown", handleDesktopAccountOutsideClick);
+    document.addEventListener("keydown", handleDesktopAccountKeyDown);
+
+    return () => {
+      window.removeEventListener("open-antique-jewellery", handleOpenAntiqueCustomEvent);
+      document.removeEventListener("mousedown", handleAntiqueOutsideClick);
+      document.removeEventListener("keydown", handleAntiqueKeyDown);
+      document.removeEventListener("mousedown", handleDesktopAccountOutsideClick);
+      document.removeEventListener("keydown", handleDesktopAccountKeyDown);
+    };
+  }, [isDesktopAccountVisible]);
+
+  /* =======================================================
+     BODY SCROLL LOCK WHEN MOBILE DRAWER IS OPEN
+  ======================================================= */
+
+  useScrollLock(isMobileVisible);
 
   /* =======================================================
      SEARCH TERM
@@ -393,7 +516,7 @@ useEffect(() => {
       }
 
       setSearchOpen(false);
-      setMobileOpen(false);
+      closeMobileMenu();
 
       router.push(
         `/shop?search=${encodeURIComponent(
@@ -457,7 +580,7 @@ useEffect(() => {
       collection: string
     ) => {
       setSearchOpen(false);
-      setMobileOpen(false);
+      closeMobileMenu();
       setCategoriesOpen(false);
 
       router.push(
@@ -476,7 +599,7 @@ useEffect(() => {
       productId: string
     ) => {
       setSearchOpen(false);
-      setMobileOpen(false);
+      closeMobileMenu();
 
       router.push(
         `/shop/${productId}`
@@ -484,15 +607,33 @@ useEffect(() => {
     };
 
   /* =======================================================
-     CLOSE MOBILE MENU
+     CHECKOUT NAVBAR SUPPRESSION
   ======================================================= */
+  const pathname = usePathname();
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
 
-  const closeMobileMenu =
-    () => {
-      setMobileOpen(false);
-      setCategoriesOpen(false);
-      setAccountSectionOpen(false);
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const checkModalState = () => {
+      setIsCheckoutModalOpen(document.body.classList.contains("checkout-modal-open"));
     };
+
+    checkModalState();
+    const observer = new MutationObserver(checkModalState);
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const isCheckoutRoute =
+    pathname?.startsWith("/checkout") ||
+    pathname?.startsWith("/payment") ||
+    isCheckoutModalOpen;
+
+  if (isCheckoutRoute) {
+    return null;
+  }
 
   /* =======================================================
      RENDER
@@ -506,8 +647,9 @@ useEffect(() => {
 
       <header
         className="
-          relative
-          z-50
+          sticky
+          top-0
+          z-[250]
           w-full
           border-b
           border-[#EEE5DE]
@@ -559,13 +701,9 @@ useEffect(() => {
 
               <button
                 type="button"
-                onClick={() =>
-                  setMobileOpen(
-                    !mobileOpen
-                  )
-                }
+                onClick={toggleMobileMenu}
                 aria-label={
-                  mobileOpen
+                  isMobileVisible
                     ? "Close menu"
                     : "Open menu"
                 }
@@ -580,7 +718,7 @@ useEffect(() => {
                   hover:text-[#A86C58]
                 "
               >
-                {mobileOpen ? (
+                {isMobileVisible ? (
                   <X
                     className="
                       h-5
@@ -601,15 +739,7 @@ useEffect(() => {
 
               <button
                 type="button"
-                onClick={() => {
-                  setSearchOpen(
-                    !searchOpen
-                  );
-
-                  setMobileOpen(
-                    false
-                  );
-                }}
+                onClick={openSearch}
                 aria-label="Search jewellery"
                 className="
                   flex
@@ -639,15 +769,7 @@ useEffect(() => {
 
             <button
               type="button"
-              onClick={() => {
-                setSearchOpen(
-                  !searchOpen
-                );
-
-                setMobileOpen(
-                  false
-                );
-              }}
+              onClick={openSearch}
               aria-label="Search jewellery"
               className="
                 hidden
@@ -755,7 +877,7 @@ useEffect(() => {
               <Link
                 href="/wishlist"
                 onClick={() => {
-                  setMobileOpen(false);
+                  closeMobileMenu();
                   setCategoriesOpen(false);
                   setAccountSectionOpen(false);
                 }}
@@ -792,7 +914,7 @@ useEffect(() => {
                       items-center
                       justify-center
                       rounded-full
-                      bg-[#B86A6A]
+                      bg-[#CB8161]
                       px-1
                       text-[8px]
                       font-bold
@@ -809,105 +931,146 @@ useEffect(() => {
               ================================================= */}
 
               <div
+                ref={desktopAccountRef}
                 className="
+                  relative
                   hidden
                   items-center
-                  gap-1
                   lg:flex
                 "
               >
-
-                {!user ? (
-                  <>
-                    {/* LOGIN */}
-
-                    <Link
-                      href="/login"
-                      className="
-                        flex
-                        h-10
-                        items-center
-                        gap-2
-                        px-3
-                        text-[11px]
-                        font-medium
-                        uppercase
-                        tracking-[0.08em]
-                        text-[#4A403D]
-                        transition
-                        hover:text-[#A86C58]
-                      "
-                    >
-                      <User
-                        className="
-                          h-[16px]
-                          w-[16px]
-                        "
-                      />
-
-                      <span>
-                        Login
-                      </span>
-                    </Link>
-
-                    {/* REGISTER */}
-
-                    <Link
-                      href="/register"
-                      className="
-                        flex
-                        h-10
-                        items-center
-                        px-2
-                        text-[11px]
-                        font-medium
-                        uppercase
-                        tracking-[0.08em]
-                        text-[#8D7B73]
-                        transition
-                        hover:text-[#A86C58]
-                      "
-                    >
-                      Register
-                    </Link>
-                  </>
-                ) : (
-                  <Link
-                    href="/account/profile"
+                <button
+                  type="button"
+                  onClick={toggleDesktopAccount}
+                  aria-label="Account options"
+                  aria-expanded={isDesktopAccountVisible}
+                  className="
+                    flex
+                    h-10
+                    items-center
+                    gap-2
+                    px-3
+                    text-[11px]
+                    font-medium
+                    uppercase
+                    tracking-[0.08em]
+                    text-[#4A403D]
+                    transition
+                    hover:text-[#A86C58]
+                  "
+                >
+                  <User
                     className="
-                      flex
-                      h-10
-                      items-center
-                      gap-2
-                      px-3
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.08em]
-                      text-[#4A403D]
-                      transition
-                      hover:text-[#A86C58]
+                      h-[16px]
+                      w-[16px]
                     "
+                  />
+
+                  <span className="max-w-[110px] truncate">
+                    {user ? user.name || "My Account" : "Account"}
+                  </span>
+
+                  <ArrowRight
+                    size={12}
+                    className={`text-[#B99A8E] transition-transform duration-200 ${
+                      isDesktopAccountVisible ? "rotate-90" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* DROPDOWN MENU (TOP TO BOTTOM ANIMATION) */}
+
+                {isDesktopAccountMounted && (
+                  <div
+                    className={`
+                      absolute
+                      right-0
+                      top-full
+                      mt-2
+                      w-48
+                      rounded-xl
+                      border
+                      border-[#EEE5DE]
+                      bg-white
+                      p-2
+                      shadow-xl
+                      transition-all
+                      duration-200
+                      ease-out
+                      z-[300]
+                      ${
+                        isDesktopAccountVisible
+                          ? "opacity-100 translate-y-0 scale-100"
+                          : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
+                      }
+                    `}
                   >
-                    <User
-                      className="
-                        h-[16px]
-                        w-[16px]
-                      "
-                    />
+                    {user ? (
+                      <>
+                        <Link
+                          href="/wishlist"
+                          onClick={closeDesktopAccount}
+                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#3A302D] transition hover:bg-[#FAF5F2] hover:text-[#CB8161]"
+                        >
+                          <Heart size={14} className="text-[#A86C58]" />
+                          <span>Wishlist</span>
+                        </Link>
 
-                    <span
-                      className="
-                        max-w-[110px]
-                        truncate
-                      "
-                    >
-                      {user.name ||
-                        "My Account"}
-                    </span>
-                  </Link>
+                        <Link
+                          href="/account"
+                          onClick={closeDesktopAccount}
+                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#3A302D] transition hover:bg-[#FAF5F2] hover:text-[#CB8161]"
+                        >
+                          <User size={14} className="text-[#A86C58]" />
+                          <span>My Account</span>
+                        </Link>
+
+                        <Link
+                          href="/account/orders"
+                          onClick={closeDesktopAccount}
+                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#3A302D] transition hover:bg-[#FAF5F2] hover:text-[#CB8161]"
+                        >
+                          <ShoppingBag size={14} className="text-[#A86C58]" />
+                          <span>My Orders</span>
+                        </Link>
+
+                        <div className="my-1 border-t border-[#F3ECE7]" />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            closeDesktopAccount();
+                            logout();
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs font-medium text-red-600 transition hover:bg-red-50"
+                        >
+                          <ArrowRight size={14} className="rotate-180" />
+                          <span>Logout</span>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/login"
+                          onClick={closeDesktopAccount}
+                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#3A302D] transition hover:bg-[#FAF5F2] hover:text-[#CB8161]"
+                        >
+                          <User size={14} className="text-[#A86C58]" />
+                          <span>Login</span>
+                        </Link>
+
+                        <Link
+                          href="/register"
+                          onClick={closeDesktopAccount}
+                          className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-[#3A302D] transition hover:bg-[#FAF5F2] hover:text-[#CB8161]"
+                        >
+                          <ArrowRight size={14} className="text-[#A86C58]" />
+                          <span>Register</span>
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 )}
-
               </div>
 
               {/* =================================================
@@ -950,7 +1113,7 @@ useEffect(() => {
                       items-center
                       justify-center
                       rounded-full
-                      bg-[#B86A6A]
+                      bg-[#CB8161]
                       px-1
                       text-[8px]
                       font-bold
@@ -978,6 +1141,15 @@ useEffect(() => {
       fixed
       inset-0
       z-[150]
+      flex
+      flex-col
+      items-center
+      justify-start
+      px-3
+      pt-[72px]
+      sm:px-4
+      sm:pt-[84px]
+      lg:pt-[96px]
     "
     role="dialog"
     aria-modal="true"
@@ -994,18 +1166,17 @@ useEffect(() => {
     <button
       type="button"
       aria-label="Close search"
-      onClick={() => {
-        setSearchOpen(false);
-      }}
-      className="
-        absolute
+      onClick={closeSearch}
+      className={`
+        fixed
         inset-0
         h-full
         w-full
         cursor-default
-        bg-black/25
-        backdrop-blur-[3px]
-      "
+        bg-black/35
+        backdrop-blur-xs
+        ${isClosingSearch ? "animate-backdrop-fade-out" : "animate-backdrop-fade"}
+      `}
     />
 
     {/* =================================================
@@ -1017,13 +1188,11 @@ useEffect(() => {
       onClick={(e) => {
         e.stopPropagation();
       }}
-      className="
-        absolute
-        left-1/2
-        top-[105px]
-        w-[calc(100%-32px)]
+      className={`
+        relative
+        z-10
+        w-full
         max-w-[760px]
-        -translate-x-1/2
 
         overflow-hidden
         rounded-[18px]
@@ -1035,12 +1204,8 @@ useEffect(() => {
 
         shadow-[0_25px_70px_rgba(50,30,20,0.25)]
 
-        sm:top-[115px]
-        sm:w-[calc(100%-48px)]
-
-        lg:top-[125px]
-        lg:w-[760px]
-      "
+        ${isClosingSearch ? "animate-navbar-search-close" : "animate-navbar-search-open"}
+      `}
     >
 
       {/* =================================================
@@ -1573,31 +1738,105 @@ useEffect(() => {
               "
             >
 
-              {navLinks.map(
-                (item) => (
-                  <Link
-                    key={
-                      item.href
-                    }
-                    href={
-                      item.href
-                    }
-                    className="
-                      relative
-                      py-3
-                      text-[11px]
-                      font-medium
-                      uppercase
-                      tracking-[0.13em]
-                      text-[#4A403D]
-                      transition
-                      hover:text-[#A86C58]
-                    "
-                  >
-                    {item.name}
-                  </Link>
-                )
-              )}
+              {navLinks.map((item) => {
+                const isAntique = item.name === "Antique Jewellery";
+
+                if (isAntique) {
+                  return (
+                    <div key="antique-jewellery-nav" ref={antiqueRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsAntiqueOpen((curr) => !curr)}
+                        className={`relative flex items-center gap-1 py-3 text-[11px] font-medium uppercase tracking-[0.13em] transition ${
+                          isAntiqueOpen ? "text-[#C78B7B]" : "text-[#4A403D] hover:text-[#A86C58]"
+                        }`}
+                      >
+                        {item.name}
+                        <span className={`text-[9px] opacity-60 transition-transform duration-200 ${isAntiqueOpen ? "rotate-180" : ""}`}>
+                          ▾
+                        </span>
+                      </button>
+
+                      {/* ANTIQUE JEWELLERY DISCOVERY DROPDOWN (CLICK ONLY) */}
+                      {isAntiqueOpen && (
+                        <div className="animate-dropdown-fade absolute left-1/2 top-full z-50 w-[680px] -translate-x-1/2 rounded-2xl border border-[#EBE3DE] bg-white p-6 shadow-2xl">
+                          <div className="grid grid-cols-2 gap-8">
+                            {/* CATEGORIES COLUMN */}
+                            <div>
+                              <div className="mb-3 flex items-center justify-between border-b border-[#F4EEE9] pb-2">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C78B7B]">
+                                  Categories
+                                </span>
+                                <Link
+                                  href="/shop"
+                                  onClick={() => setIsAntiqueOpen(false)}
+                                  className="text-[10px] font-semibold text-[#3A2528] underline hover:text-[#C78B7B]"
+                                >
+                                  View All
+                                </Link>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                                {navCategories.map((cat) => (
+                                  <Link
+                                    key={cat}
+                                    href={`/shop?category=${encodeURIComponent(cat)}`}
+                                    onClick={() => setIsAntiqueOpen(false)}
+                                    className="rounded-lg px-2 py-1.5 text-xs text-[#4A403D] transition hover:bg-[#FDFBF7] hover:text-[#C78B7B]"
+                                  >
+                                    ✦ {cat}
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* COLLECTIONS COLUMN */}
+                            <div>
+                              <div className="mb-3 flex items-center justify-between border-b border-[#F4EEE9] pb-2">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#C78B7B]">
+                                  Collections
+                                </span>
+                                <Link
+                                  href="/collections"
+                                  onClick={() => setIsAntiqueOpen(false)}
+                                  className="text-[10px] font-semibold text-[#3A2528] underline hover:text-[#C78B7B]"
+                                >
+                                  Explore All
+                                </Link>
+                              </div>
+
+                              <div className="grid grid-cols-1 gap-y-1">
+                                {navCollections.map((col) => (
+                                  <Link
+                                    key={col.name}
+                                    href={`/shop?${col.query}`}
+                                    onClick={() => setIsAntiqueOpen(false)}
+                                    className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-[#4A403D] transition hover:bg-[#FDFBF7] hover:text-[#C78B7B]"
+                                  >
+                                    <span>✨ {col.name}</span>
+                                    <span className="text-[10px] opacity-40">→</span>
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={item.href} className="relative">
+                    <Link
+                      href={item.href}
+                      className="relative flex items-center gap-1 py-3 text-[11px] font-medium uppercase tracking-[0.13em] text-[#4A403D] transition hover:text-[#A86C58]"
+                    >
+                      {item.name}
+                    </Link>
+                  </div>
+                );
+              })}
 
             </div>
 
@@ -1608,12 +1847,16 @@ useEffect(() => {
             MOBILE MENU DRAWER
         ================================================= */}
 
-        {mobileOpen && (
+        {isMobileMounted && (
           <div
             className="
               fixed
-              inset-0
+              inset-x-0
+              bottom-0
+              top-[64px]
               z-[200]
+              overflow-hidden
+              sm:top-[70px]
               lg:hidden
             "
             role="dialog"
@@ -1625,123 +1868,42 @@ useEffect(() => {
             <button
               type="button"
               aria-label="Close menu"
-              onClick={
-                closeMobileMenu
-              }
-              className="
+              onClick={closeMobileMenu}
+              className={`
                 absolute
                 inset-0
-                bg-black/20
-              "
+                bg-black/40
+                backdrop-blur-xs
+                transition-opacity
+                duration-300
+                ${isMobileVisible ? "opacity-100" : "opacity-0"}
+              `}
             />
 
-            {/* DRAWER */}
+            {/* DRAWER (HALF-SCREEN MOBILE WIDTH) */}
 
             <aside
-              className="
+              data-scrollable="true"
+              className={`
                 absolute
                 left-0
                 top-0
                 flex
-                h-[100dvh]
-                w-[82%]
-                max-w-[360px]
+                h-full
+                w-[72%]
+                max-w-[280px]
                 flex-col
+                border-r
+                border-[#EEE5DE]
                 bg-white
-                shadow-[10px_0_35px_rgba(50,30,20,0.12)]
-              "
-              onClick={(e) =>
-                e.stopPropagation()
-              }
+                shadow-2xl
+                transition-transform
+                duration-300
+                ease-out
+                ${isMobileVisible ? "translate-x-0" : "-translate-x-full"}
+              `}
+              onClick={(e) => e.stopPropagation()}
             >
-
-              {/* =================================================
-                  DRAWER HEADER
-              ================================================= */}
-
-              <div
-                className="
-                  flex
-                  h-[64px]
-                  shrink-0
-                  items-center
-                  border-b
-                  border-[#EEE5DE]
-                  px-5
-                "
-              >
-
-                <button
-                  type="button"
-                  onClick={
-                    closeMobileMenu
-                  }
-                  aria-label="Close menu"
-                  className="
-                    flex
-                    h-9
-                    w-9
-                    items-center
-                    justify-start
-                    text-[#3A302D]
-                  "
-                >
-                  <X
-                    className="
-                      h-[18px]
-                      w-[18px]
-                    "
-                  />
-                </button>
-
-                <Link
-                  href="/"
-                  onClick={
-                    closeMobileMenu
-                  }
-                  className="
-                    absolute
-                    left-1/2
-                    -translate-x-1/2
-                  "
-                >
-
-                  <div
-                    className="
-                      flex
-                      flex-col
-                      items-center
-                    "
-                  >
-
-                    <span
-                      className="
-                        font-serif
-                        text-[18px]
-                        leading-none
-                        text-[#5A3542]
-                      "
-                    >
-                      The_girl_ho_se
-                    </span>
-
-                    <span
-                      className="
-                        mt-1
-                        text-[6px]
-                        uppercase
-                        tracking-[0.3em]
-                        text-[#9A7B70]
-                      "
-                    >
-                      Jewellery
-                    </span>
-
-                  </div>
-
-                </Link>
-
-              </div>
 
               {/* =================================================
                   NAVIGATION AREA
@@ -1750,17 +1912,11 @@ useEffect(() => {
               <div
                 className="
                   flex-1
-                  overflow-hidden
+                  min-h-0
+                  overflow-y-auto
+                  overscroll-contain
                 "
               >
-
-                <div
-                  className="
-                    h-full
-                    overflow-y-auto
-                    overscroll-contain
-                  "
-                >
 
                   {/* =================================================
                       MENU
@@ -1780,243 +1936,102 @@ useEffect(() => {
                       "
                     >
 
-                      <p
-                        className="
-                          mb-2
-                          text-[8px]
-                          font-bold
-                          uppercase
-                          tracking-[0.22em]
-                          text-[#A78C82]
-                        "
-                      >
-                        Menu
-                      </p>
+                      {mobilePanel === "main" ? (
+                        /* PANEL 1: MAIN MENU */
+                        <div className="animate-panel-in-left space-y-1">
+                          {/* HOME */}
+                          <Link
+                            href="/"
+                            onClick={closeMobileMenu}
+                            className="flex items-center justify-between border-b border-[#F3ECE7] py-3.5 text-[14px] font-medium text-[#3A302D]"
+                          >
+                            <span>Home</span>
+                            <ArrowRight size={14} className="text-[#B99A8E]" />
+                          </Link>
 
-                      {/* HOME */}
+                          {/* ANTIQUE JEWELLERY (SLIDES TO PANEL 2) */}
+                          <button
+                            type="button"
+                            onClick={() => setMobilePanel("antique")}
+                            className="flex w-full items-center justify-between border-b border-[#F3ECE7] py-3.5 text-[14px] font-medium text-[#3A302D]"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>Antique Jewellery</span>
+                              <span className="rounded-full bg-[#F5EBE6] px-2 py-0.5 text-[10px] font-bold text-[#C78B7B]">
+                                Explore
+                              </span>
+                            </span>
+                            <ArrowRight size={14} className="text-[#B99A8E]" />
+                          </button>
 
-                      <Link
-                        href="/"
-                        onClick={
-                          closeMobileMenu
-                        }
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                          border-b
-                          border-[#F3ECE7]
-                          py-3.5
-                          text-[14px]
-                          text-[#3A302D]
-                        "
-                      >
-                        Home
-                      </Link>
+                          {/* REVIEWS */}
+                          <Link
+                            href="/reviews"
+                            onClick={closeMobileMenu}
+                            className="flex items-center justify-between py-3.5 text-[14px] font-medium text-[#3A302D]"
+                          >
+                            <span>Reviews</span>
+                            <ArrowRight size={14} className="text-[#B99A8E]" />
+                          </Link>
+                        </div>
+                      ) : (
+                        /* PANEL 2: ANTIQUE JEWELLERY SUBMENU */
+                        <div className="animate-panel-in-right max-h-[55vh] space-y-4 overflow-y-auto overscroll-contain pr-1">
+                          {/* BACK BUTTON */}
+                          <button
+                            type="button"
+                            onClick={() => setMobilePanel("main")}
+                            className="flex items-center gap-2 rounded-xl bg-[#F5EBE6] px-3.5 py-2 text-xs font-semibold text-[#3A2528] transition hover:bg-[#E8D9D1]"
+                          >
+                            <span>←</span>
+                            <span>Main Menu</span>
+                          </button>
 
-                      {/* SHOP */}
-
-                      <Link
-                        href="/shop"
-                        onClick={
-                          closeMobileMenu
-                        }
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                          border-b
-                          border-[#F3ECE7]
-                          py-3.5
-                          text-[14px]
-                          text-[#3A302D]
-                        "
-                      >
-
-                        <span>
-                          Shop
-                        </span>
-
-                        <ArrowRight
-                          size={
-                            14
-                          }
-                          className="
-                            text-[#B99A8E]
-                          "
-                        />
-
-                      </Link>
-
-                      {/* COLLECTIONS */}
-
-                      <Link
-                        href="/collections"
-                        onClick={
-                          closeMobileMenu
-                        }
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                          border-b
-                          border-[#F3ECE7]
-                          py-3.5
-                          text-[14px]
-                          text-[#3A302D]
-                        "
-                      >
-
-                        <span>
-                          Collections
-                        </span>
-
-                        <ArrowRight
-                          size={
-                            14
-                          }
-                          className="
-                            text-[#B99A8E]
-                          "
-                        />
-
-                      </Link>
-
-                      {/* CATEGORIES */}
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCategoriesOpen(
-                            (current) =>
-                              !current
-                          );
-
-                          setAccountSectionOpen(
-                            false
-                          );
-                        }}
-                        className="
-                          flex
-                          w-full
-                          items-center
-                          justify-between
-                          border-b
-                          border-[#F3ECE7]
-                          py-3.5
-                          text-left
-                          text-[14px]
-                          text-[#3A302D]
-                        "
-                      >
-
-                        <span>
-                          Categories
-                        </span>
-
-                        <ArrowRight
-                          size={
-                            14
-                          }
-                          className={`
-                            text-[#B99A8E]
-                            transition-transform
-                            ${
-                              categoriesOpen
-                                ? "rotate-90"
-                                : ""
-                            }
-                          `}
-                        />
-
-                      </button>
-
-                      {/* CATEGORY CONTENT */}
-
-                      {categoriesOpen && (
-                        <div
-                          className="
-                            border-b
-                            border-[#F3ECE7]
-                            bg-[#FBF8F6]
-                            px-3
-                            py-2
-                          "
-                        >
-
-                          {collectionList.map(
-                            (
-                              collection
-                            ) => (
-                              <button
-                                key={
-                                  collection.name
-                                }
-                                type="button"
-                                onClick={() =>
-                                  handleCollectionClick(
-                                    collection.name
-                                  )
-                                }
-                                className="
-                                  flex
-                                  w-full
-                                  items-center
-                                  gap-3
-                                  rounded-md
-                                  px-3
-                                  py-2.5
-                                  text-left
-                                  text-[13px]
-                                  text-[#3A302D]
-                                  transition
-                                  hover:bg-white
-                                  hover:text-[#A86C58]
-                                "
-                              >
-
-                                <span
-                                  className="
-                                    w-5
-                                    text-sm
-                                  "
-                                >
-                                  {
-                                    collection.icon
-                                  }
-                                </span>
-
-                                <span>
-                                  {
-                                    collection.name
-                                  }
-                                </span>
-
-                              </button>
-                            )
+                          {/* CATEGORIES SECTION */}
+                          {navCategories.length > 0 && (
+                            <div>
+                              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#C78B7B]">
+                                Categories
+                              </p>
+                              <div className="grid grid-cols-1 gap-1 border-l-2 border-[#C78B7B]/30 pl-3">
+                                {navCategories.map((cat) => (
+                                  <Link
+                                    key={cat}
+                                    href={`/shop?category=${encodeURIComponent(cat)}`}
+                                    onClick={closeMobileMenu}
+                                    className="flex items-center justify-between py-2 text-xs font-medium text-[#4A403D] hover:text-[#C78B7B]"
+                                  >
+                                    <span>✦ {cat}</span>
+                                    <span className="text-[10px] opacity-40">→</span>
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
                           )}
 
+                          {/* COLLECTIONS SECTION */}
+                          {navCollections.length > 0 && (
+                            <div className="border-t border-[#F3ECE7] pt-3">
+                              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#C78B7B]">
+                                Collections
+                              </p>
+                              <div className="grid grid-cols-1 gap-1 border-l-2 border-[#C78B7B]/30 pl-3">
+                                {navCollections.map((col) => (
+                                  <Link
+                                    key={col.name}
+                                    href={`/shop?${col.query}`}
+                                    onClick={closeMobileMenu}
+                                    className="flex items-center justify-between py-2 text-xs font-medium text-[#4A403D] hover:text-[#C78B7B]"
+                                  >
+                                    <span>✨ {col.name}</span>
+                                    <span className="text-[10px] opacity-40">→</span>
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
-
-                      {/* REVIEWS */}
-
-                      <Link
-                        href="/reviews"
-                        onClick={
-                          closeMobileMenu
-                        }
-                        className="
-                          flex
-                          items-center
-                          justify-between
-                          py-3.5
-                          text-[14px]
-                          text-[#3A302D]
-                        "
-                      >
-                        Reviews
-                      </Link>
 
                     </div>
 
@@ -2026,11 +2041,9 @@ useEffect(() => {
 
                   <div
                     className="
-                      min-h-[120px]
+                      min-h-[40px]
                     "
                   />
-
-                </div>
 
               </div>
 
@@ -2100,10 +2113,11 @@ useEffect(() => {
                           <span
                             className="
                               text-[14px]
+                              font-medium
                               text-[#3A302D]
                             "
                           >
-                            Login
+                            My Account 
                           </span>
 
                         </div>
@@ -2279,49 +2293,70 @@ useEffect(() => {
                       {accountSectionOpen && (
                         <div
                           className="
+                            animate-panel-in-right
                             mt-3
                             border-t
                             border-[#F0E8E3]
                             pt-2
+                            space-y-1
                           "
                         >
-
-                          {/* MY PROFILE */}
+                          {/* WISHLIST */}
 
                           <Link
-                            href="/account"
-                            onClick={
-                              closeMobileMenu
-                            }
+                            href="/wishlist"
+                            onClick={closeMobileMenu}
                             className="
-                              block
-                              py-2.5
+                              flex
+                              items-center
+                              gap-2.5
+                              py-2
                               pl-7
                               text-[13px]
                               text-[#3A302D]
                             "
                           >
-                            My Profile
+                            <Heart size={14} className="text-[#A86C58]" />
+                            <span>Wishlist</span>
+                          </Link>
+
+                          {/* MY ACCOUNT */}
+
+                          <Link
+                            href="/account"
+                            onClick={closeMobileMenu}
+                            className="
+                              flex
+                              items-center
+                              gap-2.5
+                              py-2
+                              pl-7
+                              text-[13px]
+                              text-[#3A302D]
+                            "
+                          >
+                            <User size={14} className="text-[#A86C58]" />
+                            <span>My Account</span>
                           </Link>
 
                           {/* MY ORDERS */}
 
                           <Link
                             href="/account/orders"
-                            onClick={
-                              closeMobileMenu
-                            }
+                            onClick={closeMobileMenu}
                             className="
-                              block
-                              py-2.5
+                              flex
+                              items-center
+                              gap-2.5
+                              py-2
                               pl-7
                               text-[13px]
                               text-[#3A302D]
                             "
                           >
-                            My Orders
+                            <ShoppingBag size={14} className="text-[#A86C58]" />
+                            <span>My Orders</span>
                           </Link>
-
 
                           {/* LOGOUT */}
 
@@ -2332,16 +2367,19 @@ useEffect(() => {
                               closeMobileMenu();
                             }}
                             className="
-                              block
+                              flex
                               w-full
-                              py-2.5
+                              items-center
+                              gap-2.5
+                              py-2
                               pl-7
                               text-left
                               text-[13px]
                               text-red-600
                             "
                           >
-                            Logout
+                            <ArrowRight size={14} className="rotate-180" />
+                            <span>Logout</span>
                           </button>
 
                         </div>

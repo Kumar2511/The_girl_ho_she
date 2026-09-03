@@ -16,6 +16,7 @@ import Toast from "@/components/toast";
 
 import { useWishlist } from "@/context/wishlist-context";
 import { useCart } from "@/context/cart-context";
+import { formatPrice } from "@/lib/utils";
 
 type ToastState = {
   message: string;
@@ -184,7 +185,7 @@ export default function WishlistPage() {
 
                 <Link
                   href="/shop"
-                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#3A2528] px-8 text-sm font-semibold text-white transition hover:bg-[#29181B]"
+                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-8 text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
                 >
                   Explore Jewellery
 
@@ -304,13 +305,8 @@ export default function WishlistPage() {
 
                       {/* Price */}
 
-                      <p className="mt-2 text-base font-bold text-[#2E2E2E] sm:text-lg">
-                        ₹
-                        {Number(
-                          item.price || 0
-                        ).toLocaleString(
-                          "en-IN"
-                        )}
+                      <p className="mt-2 font-serif text-base font-bold text-[#2E2E2E] sm:text-lg">
+                        {formatPrice(item.price || 0)}
                       </p>
 
                       {/* Add To Cart */}
@@ -328,7 +324,7 @@ export default function WishlistPage() {
                             ? `Adding ${item.name} to cart`
                             : `Add ${item.name} to cart`
                         }
-                        className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-[#3A2528] text-xs font-semibold text-white transition hover:bg-[#29181B] disabled:cursor-not-allowed disabled:opacity-70 sm:text-sm"
+                        className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[#1F1F1F] text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 sm:text-xs"
                       >
 
                         {isAdding ? (

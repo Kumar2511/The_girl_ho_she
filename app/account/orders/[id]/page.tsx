@@ -30,6 +30,7 @@ import { useCart } from "@/context/cart-context";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import api from "@/lib/api";
+import { formatPrice } from "@/lib/utils";
 import Toast from "@/components/toast";
 
 interface OrderProduct {
@@ -1345,14 +1346,7 @@ const handleDownloadInvoice = async () => {
                           </div>
 
                           <p className="mt-4 text-sm text-[#777]">
-                            ₹
-                            {Number(
-                              item.price ||
-                                0
-                            ).toLocaleString(
-                              "en-IN"
-                            )}{" "}
-                            each
+                            {formatPrice(item.price || 0)} each
                           </p>
 
                         </div>
@@ -1364,19 +1358,7 @@ const handleDownloadInvoice = async () => {
                           </p>
 
                           <p className="mt-1 font-serif text-xl font-semibold text-[#3A2528]">
-                            ₹
-                            {(
-                              Number(
-                                item.price ||
-                                  0
-                              ) *
-                              Number(
-                                item.quantity ||
-                                  0
-                              )
-                            ).toLocaleString(
-                              "en-IN"
-                            )}
+                            {formatPrice(Number(item.price || 0) * Number(item.quantity || 0))}
                           </p>
 
                         </div>
@@ -1754,13 +1736,7 @@ const handleDownloadInvoice = async () => {
                   </p>
 
                   <p className="mt-1 font-serif text-4xl font-semibold text-[#3A2528]">
-                    ₹
-                    {Number(
-                      order.totalAmount ||
-                        0
-                    ).toLocaleString(
-                      "en-IN"
-                    )}
+                    {formatPrice(order.totalAmount || 0)}
                   </p>
 
                 </div>
@@ -1883,7 +1859,7 @@ const handleDownloadInvoice = async () => {
                 </p>
 
                 <Link
-                  href="/share-your-look"
+                  href="/share-your-loo"
                   className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#3A2528] px-7 text-xs font-semibold text-white transition hover:bg-[#29181B]"
                 >
                   Share Your Look

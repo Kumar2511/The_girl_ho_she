@@ -2,13 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, MapPin } from "lucide-react";
+import Link from "next/link";
+
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { addAddress } from "@/services/profileService";
+import { useToast } from "@/context/toast-context";
 
 export default function AddAddressPage() {
   const router = useRouter();
-
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const [form, setForm] = useState({
     fullName: "",
@@ -38,21 +44,18 @@ export default function AddAddressPage() {
       !form.state ||
       !form.pincode
     ) {
-      alert("Please fill all required fields.");
+      showToast("Please fill all required fields.", "error");
       return;
     }
 
     try {
       setLoading(true);
-
       await addAddress(form);
-
-      alert("✅ Address added successfully");
-
+      showToast("Address added successfully", "success");
       router.push("/account/addresses");
     } catch (error) {
       console.error(error);
-      alert("❌ Failed to save address");
+      showToast("Failed to save address", "error");
     } finally {
       setLoading(false);
     }
@@ -60,106 +63,155 @@ export default function AddAddressPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#FCFAF7] py-10 px-4">
+      <main className="min-h-screen bg-[#FCFAF7]">
+        <Navbar />
 
-        <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-md border border-[#E8E3DC] p-8">
+        <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
+          <Link
+            href="/account/addresses"
+            className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[#888] hover:text-[#CB8161]"
+          >
+            <ArrowLeft size={13} /> Back to Saved Addresses
+          </Link>
 
-          <h1 className="text-3xl font-bold text-[#2E2E2E] mb-2">
-            Add New Address
-          </h1>
-
-          <p className="text-gray-500 mb-8">
-            Add a delivery address for your future orders.
-          </p>
-
-          <div className="space-y-5">
-
-            <input
-              type="text"
-              name="fullName"
-              placeholder="Full Name"
-              value={form.fullName}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-[#C78B7B]"
-            />
-
-            <input
-              type="text"
-              name="phone"
-              placeholder="Phone Number"
-              value={form.phone}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-[#C78B7B]"
-            />
-
-            <textarea
-              name="address"
-              placeholder="House No, Street, Area..."
-              value={form.address}
-              onChange={handleChange}
-              rows={4}
-              className="w-full rounded-lg border border-gray-300 p-3 resize-none focus:outline-none focus:ring-2 focus:ring-[#C78B7B]"
-            />
-
-            <input
-              type="text"
-              name="city"
-              placeholder="City"
-              value={form.city}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-[#C78B7B]"
-            />
-
-            <input
-              type="text"
-              name="state"
-              placeholder="State"
-              value={form.state}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-[#C78B7B]"
-            />
-
-            <input
-              type="text"
-              name="pincode"
-              placeholder="Pincode"
-              value={form.pincode}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-[#C78B7B]"
-            />
-
-            <input
-              type="text"
-              name="country"
-              value={form.country}
-              onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-[#C78B7B]"
-            />
-
-            <div className="flex gap-4">
-
-              <button
-                onClick={saveAddress}
-                disabled={loading}
-                className="flex-1 bg-[#C78B7B] hover:bg-[#B5776B] text-white py-3 rounded-lg font-semibold transition"
-              >
-                {loading ? "Saving..." : "Save Address"}
-              </button>
-
-              <button
-                onClick={() => router.push("/account/addresses")}
-                className="flex-1 border border-[#C78B7B] text-[#C78B7B] py-3 rounded-lg font-semibold hover:bg-[#FCFAF7] transition"
-              >
-                Cancel
-              </button>
-
+          <div className="rounded-3xl border border-[#E8DFD9] bg-white p-6 shadow-sm sm:p-8">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FAF4F0] text-[#CB8161]">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <h1 className="font-serif text-2xl font-semibold text-[#2E2E2E]">
+                  Add New Delivery Address
+                </h1>
+                <p className="text-xs text-[#777]">
+                  Save your address details for seamless checkout
+                </p>
+              </div>
             </div>
 
-          </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#444]">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  placeholder="e.g. Priya Sharma"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  className="h-11 w-full rounded-xl border border-[#E3DAD4] px-4 text-xs text-[#2E2E2E] outline-none transition focus:border-[#CB8161]"
+                />
+              </div>
 
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#444]">
+                  Phone Number *
+                </label>
+                <input
+                  type="text"
+                  name="phone"
+                  placeholder="e.g. 9876543210"
+                  value={form.phone}
+                  onChange={handleChange}
+                  className="h-11 w-full rounded-xl border border-[#E3DAD4] px-4 text-xs text-[#2E2E2E] outline-none transition focus:border-[#CB8161]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#444]">
+                  Street Address / Flat / Building *
+                </label>
+                <textarea
+                  name="address"
+                  placeholder="House No., Building Name, Street Name..."
+                  value={form.address}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full rounded-xl border border-[#E3DAD4] p-3 text-xs text-[#2E2E2E] outline-none transition focus:border-[#CB8161]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#444]">
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    name="city"
+                    placeholder="City"
+                    value={form.city}
+                    onChange={handleChange}
+                    className="h-11 w-full rounded-xl border border-[#E3DAD4] px-4 text-xs text-[#2E2E2E] outline-none transition focus:border-[#CB8161]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#444]">
+                    State *
+                  </label>
+                  <input
+                    type="text"
+                    name="state"
+                    placeholder="State"
+                    value={form.state}
+                    onChange={handleChange}
+                    className="h-11 w-full rounded-xl border border-[#E3DAD4] px-4 text-xs text-[#2E2E2E] outline-none transition focus:border-[#CB8161]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#444]">
+                    Pincode *
+                  </label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    placeholder="6-digit pincode"
+                    value={form.pincode}
+                    onChange={handleChange}
+                    className="h-11 w-full rounded-xl border border-[#E3DAD4] px-4 text-xs text-[#2E2E2E] outline-none transition focus:border-[#CB8161]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-[#444]">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    name="country"
+                    value={form.country}
+                    onChange={handleChange}
+                    className="h-11 w-full rounded-xl border border-[#E3DAD4] bg-gray-50 px-4 text-xs text-[#2E2E2E] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={saveAddress}
+                  disabled={loading}
+                  className="flex-1 rounded-md bg-[#1F1F1F] py-3 text-xs font-semibold uppercase tracking-wider text-white shadow-md transition-all duration-300 hover:bg-[#CB8161] disabled:opacity-60"
+                >
+                  {loading ? "Saving..." : "Save Address"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/account/addresses")}
+                  className="rounded-md border border-[#DCD3CE] px-6 py-3 text-xs font-semibold text-[#2E2E2E] transition hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-      </div>
+        <Footer />
+      </main>
     </ProtectedRoute>
   );
 }

@@ -11,7 +11,10 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+import { useEffect, useState } from "react";
 import { useCart } from "@/context/cart-context";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { formatPrice } from "@/lib/utils";
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -24,6 +27,28 @@ export default function CartDrawer() {
     increaseQuantity,
     decreaseQuantity,
   } = useCart();
+
+  const [isCartMounted, setIsCartMounted] = useState(false);
+  const [isCartVisible, setIsCartVisible] = useState(false);
+
+  useEffect(() => {
+    if (isCartOpen) {
+      setIsCartMounted(true);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsCartVisible(true);
+        });
+      });
+    } else {
+      setIsCartVisible(false);
+      const timer = setTimeout(() => {
+        setIsCartMounted(false);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isCartOpen]);
+
+  useScrollLock(isCartVisible);
 
   // ==========================================
   // Totals
@@ -66,47 +91,50 @@ export default function CartDrawer() {
     router.push("/checkout");
   };
 
+  if (!isCartMounted) return null;
+
   return (
     <>
       {/* ======================================
           BACKDROP
       ====================================== */}
 
-      {isCartOpen && (
-        <button
-          type="button"
-          aria-label="Close cart"
-          onClick={closeCart}
-          className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-[2px]"
-        />
-      )}
+      <button
+        type="button"
+        aria-label="Close cart"
+        onClick={closeCart}
+        className={`fixed inset-0 z-[255] bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 ${
+          isCartVisible ? "opacity-100" : "opacity-0"
+        }`}
+      />
 
       {/* ======================================
           DRAWER
       ====================================== */}
 
       <aside
-        className={`fixed right-0 top-0 z-[100] flex h-screen w-full max-w-[430px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
-          isCartOpen
+        data-scrollable="true"
+        className={`fixed right-0 top-0 z-[260] flex h-screen w-full max-w-[430px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
+          isCartVisible
             ? "translate-x-0"
             : "translate-x-full"
         }`}
-        aria-hidden={!isCartOpen}
+        aria-hidden={!isCartVisible}
       >
 
         {/* ====================================
             HEADER
         ==================================== */}
 
-        <div className="flex shrink-0 items-center justify-between border-b border-[#E8E0DB] px-5 py-5">
+        <div className="flex shrink-0 items-center justify-between border-b border-neutral-200/80 px-5 py-4">
 
           <div>
 
-            <h2 className="font-serif text-2xl text-[#2E2E2E]">
+            <h2 className="font-serif text-2xl text-[#1F1F1F]">
               Your Cart
             </h2>
 
-            <p className="mt-1 text-xs text-[#817671]">
+            <p className="mt-0.5 text-xs text-[#666666]">
               {totalItems}{" "}
               {totalItems === 1
                 ? "item"
@@ -118,10 +146,10 @@ export default function CartDrawer() {
           <button
             type="button"
             onClick={closeCart}
-            className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-[#F7F2EF]"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-neutral-100 hover:text-black"
             aria-label="Close cart"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
 
         </div>
@@ -133,18 +161,18 @@ export default function CartDrawer() {
         {cart.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
 
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#F8EEE9]">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#FAF5F2]">
               <ShoppingBag
-                size={30}
-                className="text-[#C78B7B]"
+                size={28}
+                className="text-[#CB8161]"
               />
             </div>
 
-            <h3 className="mt-6 font-serif text-2xl text-[#2E2E2E]">
+            <h3 className="mt-6 font-serif text-2xl text-[#1F1F1F]">
               Your cart is empty
             </h3>
 
-            <p className="mt-2 max-w-xs text-sm leading-6 text-[#817671]">
+            <p className="mt-2 max-w-xs text-sm leading-6 text-[#666666]">
               Discover something beautiful
               and add your favourite jewellery
               pieces to your cart.
@@ -156,7 +184,7 @@ export default function CartDrawer() {
                 closeCart();
                 router.push("/shop");
               }}
-              className="mt-7 rounded-full bg-[#3A2528] px-7 py-3 text-sm font-semibold text-white transition hover:bg-[#29181B]"
+              className="mt-7 rounded-md bg-[#CB8161] px-7 py-3 text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-[#B56F50] active:scale-[0.98]"
             >
               Continue Shopping
             </button>
@@ -170,17 +198,17 @@ export default function CartDrawer() {
 
             <div className="flex-1 overflow-y-auto px-5 py-5">
 
-              <div className="space-y-5">
+              <div className="space-y-4">
 
                 {cart.map((item) => (
                   <div
                     key={`${item._id}-${item.color || ""}-${item.size || ""}`}
-                    className="flex gap-4 border-b border-[#EEE7E2] pb-5"
+                    className="flex gap-4 border-b border-neutral-100 pb-4"
                   >
 
                     {/* Image */}
 
-                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#F6F1EE]">
+                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-[#FAF7F4] border border-neutral-200/60">
 
                       <Image
                         src={
@@ -189,7 +217,7 @@ export default function CartDrawer() {
                         }
                         alt={item.name}
                         fill
-                        sizes="96px"
+                        sizes="80px"
                         className="object-cover"
                       />
 
@@ -201,7 +229,7 @@ export default function CartDrawer() {
 
                       <div className="flex items-start justify-between gap-2">
 
-                        <h3 className="line-clamp-2 text-sm font-semibold leading-5 text-[#332D2A]">
+                        <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-[#1F1F1F]">
                           {item.name}
                         </h3>
 
@@ -214,11 +242,11 @@ export default function CartDrawer() {
                               item.size
                             )
                           }
-                          className="shrink-0 text-[#999] transition hover:text-red-500"
+                          className="shrink-0 text-gray-400 transition hover:text-red-500"
                           aria-label={`Remove ${item.name}`}
                         >
                           <Trash2
-                            size={16}
+                            size={15}
                           />
                         </button>
 
@@ -228,7 +256,7 @@ export default function CartDrawer() {
 
                       {(item.color ||
                         item.size) && (
-                        <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-[#817671]">
+                        <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-[#666666]">
 
                           {item.color && (
                             <span>
@@ -249,20 +277,15 @@ export default function CartDrawer() {
 
                       {/* Price */}
 
-                      <p className="mt-2 text-sm font-semibold text-[#3A2528]">
-                        ₹
-                        {Number(
-                          item.price
-                        ).toLocaleString(
-                          "en-IN"
-                        )}
+                      <p className="mt-1 text-xs font-semibold text-[#1F1F1F]">
+                        {formatPrice(item.price)}
                       </p>
 
                       {/* Quantity */}
 
-                      <div className="mt-3 flex items-center justify-between">
+                      <div className="mt-2.5 flex items-center justify-between">
 
-                        <div className="flex h-8 items-center rounded-full border border-[#DDD4CF]">
+                        <div className="flex h-7 items-center rounded-md border border-neutral-200">
 
                           <button
                             type="button"
@@ -273,14 +296,14 @@ export default function CartDrawer() {
                                 item.size
                               )
                             }
-                            className="flex h-full w-8 items-center justify-center rounded-l-full transition hover:bg-[#F7F2EF]"
+                            className="flex h-full w-7 items-center justify-center rounded-l-md transition hover:bg-neutral-100"
                           >
                             <Minus
-                              size={12}
+                              size={11}
                             />
                           </button>
 
-                          <span className="w-8 text-center text-xs font-semibold">
+                          <span className="w-7 text-center text-xs font-semibold text-[#1F1F1F]">
                             {item.quantity}
                           </span>
 
@@ -293,16 +316,16 @@ export default function CartDrawer() {
                                 item.size
                               )
                             }
-                            className="flex h-full w-8 items-center justify-center rounded-r-full transition hover:bg-[#F7F2EF]"
+                            className="flex h-full w-7 items-center justify-center rounded-r-md transition hover:bg-neutral-100"
                           >
                             <Plus
-                              size={12}
+                              size={11}
                             />
                           </button>
 
                         </div>
 
-                        <span className="text-sm font-semibold text-[#332D2A]">
+                        <span className="text-xs font-bold text-[#1F1F1F]">
                           ₹
                           {(
                             Number(
@@ -331,13 +354,13 @@ export default function CartDrawer() {
                 SUMMARY
             ================================== */}
 
-            <div className="shrink-0 border-t border-[#E8E0DB] bg-[#FCFAF8] px-5 pb-5 pt-4">
+            <div className="shrink-0 border-t border-neutral-200/80 bg-[#FAF8F5] px-5 pb-5 pt-4">
 
               {/* Free Shipping Message */}
 
               {subtotal > 0 &&
                 subtotal < 499 && (
-                  <p className="mb-4 rounded-xl bg-[#F5EDE8] px-4 py-3 text-xs leading-5 text-[#795E55]">
+                  <p className="mb-3.5 rounded-md bg-[#FAF0EA] px-3.5 py-2.5 text-xs text-[#CB8161] font-medium border border-[#CB8161]/20">
                     Add ₹
                     {(
                       499 -
@@ -351,7 +374,7 @@ export default function CartDrawer() {
                 )}
 
               {subtotal >= 499 && (
-                <p className="mb-4 rounded-xl bg-[#EDF5E9] px-4 py-3 text-xs font-medium text-[#55734E]">
+                <p className="mb-3.5 rounded-md bg-emerald-50 px-3.5 py-2.5 text-xs font-medium text-emerald-800 border border-emerald-200">
                   ✓ You qualify for free
                   shipping.
                 </p>
@@ -359,24 +382,21 @@ export default function CartDrawer() {
 
               {/* Subtotal */}
 
-              <div className="space-y-3 text-sm">
+              <div className="space-y-2 text-xs">
 
-                <div className="flex justify-between text-[#6D625E]">
+                <div className="flex justify-between text-[#666666]">
 
                   <span>
                     Subtotal
                   </span>
 
                   <span>
-                    ₹
-                    {subtotal.toLocaleString(
-                      "en-IN"
-                    )}
+                    {formatPrice(subtotal)}
                   </span>
 
                 </div>
 
-                <div className="flex justify-between text-[#6D625E]">
+                <div className="flex justify-between text-[#666666]">
 
                   <span>
                     Shipping
@@ -385,24 +405,21 @@ export default function CartDrawer() {
                   <span>
                     {shipping === 0
                       ? "FREE"
-                      : `₹${shipping}`}
+                      : formatPrice(shipping)}
                   </span>
 
                 </div>
 
-                <div className="h-px bg-[#E2DAD5]" />
+                <div className="h-px bg-neutral-200/80 my-2" />
 
                 <div className="flex items-center justify-between">
 
-                  <span className="font-semibold text-[#302725]">
+                  <span className="font-semibold text-[#1F1F1F]">
                     Total
                   </span>
 
-                  <span className="font-serif text-xl font-semibold text-[#302725]">
-                    ₹
-                    {total.toLocaleString(
-                      "en-IN"
-                    )}
+                  <span className="font-serif text-lg font-bold text-[#1F1F1F]">
+                    {formatPrice(total)}
                   </span>
 
                 </div>
@@ -411,19 +428,19 @@ export default function CartDrawer() {
 
               {/* Buttons */}
 
-              <div className="mt-5 grid gap-2">
+              <div className="mt-4 grid gap-2">
 
                 <button
                   type="button"
                   onClick={
                     handleCheckout
                   }
-                  className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-sm font-semibold text-white transition hover:bg-[#29181B]"
+                  className="flex h-11 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-[#CB8161] active:scale-[0.98]"
                 >
                   Checkout
 
                   <ArrowRight
-                    size={16}
+                    size={15}
                   />
                 </button>
 
@@ -432,7 +449,7 @@ export default function CartDrawer() {
                   onClick={
                     handleViewCart
                   }
-                  className="h-11 rounded-xl border border-[#3A2528] bg-white text-sm font-semibold text-[#3A2528] transition hover:bg-[#F7F2EF]"
+                  className="h-10 rounded-md border border-[#1F1F1F] bg-white text-xs font-semibold uppercase tracking-wider text-[#1F1F1F] transition hover:bg-[#1F1F1F] hover:text-white active:scale-[0.98]"
                 >
                   View Cart
                 </button>

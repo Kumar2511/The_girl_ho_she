@@ -61,7 +61,7 @@ export default function VipSubscribe() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-8 flex flex-col gap-4 sm:flex-row"
+      className="mt-4 flex w-full flex-col gap-3 sm:flex-row sm:items-center"
     >
       <input
         type="email"
@@ -69,16 +69,16 @@ export default function VipSubscribe() {
         onChange={(e) =>
           setEmail(e.target.value)
         }
-        placeholder="Enter your email"
+        placeholder="Enter your email address"
         disabled={loading}
-        className="h-14 flex-1 rounded-full border border-white/20 bg-white/10 px-6 text-white outline-none placeholder:text-white/50 focus:border-[#C78B7B] disabled:opacity-60"
+        className="h-12 sm:h-13 w-full flex-1 rounded-xl border border-[#DCD3CE] bg-white px-4 py-3 text-sm text-[#2E2E2E] outline-none placeholder:text-[#888] shadow-xs transition focus:border-[#CB8161] focus:ring-2 focus:ring-[#CB8161]/10 disabled:opacity-60"
         required
       />
 
       <button
         type="submit"
         disabled={loading}
-        className="h-14 rounded-full bg-[#C78B7B] px-8 font-semibold text-white transition hover:bg-[#B5776B] disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-12 sm:h-13 w-full sm:w-auto shrink-0 rounded-xl bg-[#1F1F1F] px-7 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading
           ? "Subscribing..."

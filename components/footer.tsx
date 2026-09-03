@@ -51,7 +51,7 @@ export default function Footer() {
                 <MapPin
                   size={18}
                   strokeWidth={1.7}
-                  className="mt-0.5 shrink-0 text-[#C78B7B]"
+                  className="mt-0.5 shrink-0 text-[#CB8161]"
                 />
 
                 <p className="min-w-0 text-sm leading-6 text-[#665E59]">
@@ -69,12 +69,12 @@ export default function Footer() {
                 <Phone
                   size={18}
                   strokeWidth={1.7}
-                  className="shrink-0 text-[#C78B7B]"
+                  className="shrink-0 text-[#CB8161]"
                 />
 
                 <a
                   href="tel:+918870734341"
-                  className="break-words text-sm text-[#665E59] transition-colors hover:text-[#C78B7B]"
+                  className="break-words text-sm text-[#665E59] transition-colors hover:text-[#CB8161]"
                 >
                   +91 88707 34341
                 </a>
@@ -88,12 +88,12 @@ export default function Footer() {
                 <Mail
                   size={18}
                   strokeWidth={1.7}
-                  className="mt-0.5 shrink-0 text-[#C78B7B]"
+                  className="mt-0.5 shrink-0 text-[#CB8161]"
                 />
 
                 <a
                   href="mailto:thegirlhousecustomercare@gmail.com"
-                  className="min-w-0 break-all text-sm leading-6 text-[#665E59] transition-colors hover:text-[#C78B7B]"
+                  className="min-w-0 break-all text-sm leading-6 text-[#665E59] transition-colors hover:text-[#CB8161]"
                 >
                   thegirlhousecustomercare@gmail.com
                 </a>
@@ -125,7 +125,7 @@ export default function Footer() {
               </Link>
 
               <Link
-                href="/privacy-policy"
+                href="/privacy"
                 className="w-fit text-sm text-[#665E59] transition-colors hover:text-[#C78B7B]"
               >
                 Privacy Policy
@@ -177,17 +177,17 @@ export default function Footer() {
               </Link>
 
               <Link
-                href="/shop"
+                href="/collections"
                 className="w-fit text-sm text-[#665E59] transition-colors hover:text-[#C78B7B]"
               >
-                Shop
+                Collections
               </Link>
 
               <Link
-                href="/contact"
+                href="/reviews"
                 className="w-fit text-sm text-[#665E59] transition-colors hover:text-[#C78B7B]"
               >
-                Contact
+                Reviews
               </Link>
 
             </nav>
@@ -258,7 +258,7 @@ export default function Footer() {
               </span>
 
               <Link
-                href="/privacy-policy"
+                href="/privacy"
                 className="transition-colors hover:text-[#C78B7B]"
               >
                 Privacy policy

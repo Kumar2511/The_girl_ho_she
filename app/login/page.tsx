@@ -16,6 +16,8 @@ import Link from "next/link";
 
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/toast-context";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -101,10 +103,15 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <main className="min-h-screen bg-[#FCFAF7] flex items-center justify-center">
-        <p className="text-[#777]">
-          Loading...
-        </p>
+      <main className="min-h-screen bg-[#FCFAF7] flex flex-col justify-between">
+        <Navbar />
+        <div className="flex items-center justify-center py-20">
+          <div className="flex items-center gap-3 text-[#777]">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#C78B7B] border-t-transparent" />
+            <span>Loading...</span>
+          </div>
+        </div>
+        <Footer />
       </main>
     );
   }
@@ -114,163 +121,171 @@ export default function LoginPage() {
   // ==========================================
 
   return (
-    <main className="min-h-screen bg-[#FCFAF7] flex items-center justify-center px-4 py-12">
+    <main className="min-h-screen bg-[#FCFAF7] flex flex-col justify-between overflow-x-hidden">
+      <Navbar />
 
-      <div className="w-full max-w-md rounded-xl border border-[#ECE6E1] bg-white p-8 shadow-sm">
+      <div className="mx-auto my-10 sm:my-14 w-full max-w-md px-4 sm:px-6">
+        <div className="rounded-2xl border border-[#ECE6E1] bg-white p-6 sm:p-8 shadow-sm">
 
-        {/* Logo */}
-        <div className="mb-6 flex justify-center">
-          <ShoppingBag
-            size={28}
-            className="text-[#C78B7B]"
-          />
-        </div>
-
-        {/* Heading */}
-        <h1 className="mb-3 text-center font-serif text-5xl text-[#2E2E2E]">
-          Welcome Back
-        </h1>
-
-        <p className="mb-10 text-center text-[#777]">
-          Login to continue shopping with
-          Mahalaksmi Jewellery.
-        </p>
-
-        {/* Login / Register Tabs */}
-        <div className="mb-8 grid grid-cols-2 rounded-lg bg-[#F5F1EF] p-1">
-
-          <button
-            type="button"
-            className="rounded-md bg-white py-3 font-medium text-[#2E2E2E] shadow-sm"
-          >
-            Login
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              router.push("/register")
-            }
-            className="rounded-md py-3 font-medium text-[#777] transition hover:text-[#3A2528]"
-          >
-            Register
-          </button>
-
-        </div>
-
-        {/* Login Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
-
-          {/* Email */}
-          <input
-            type="email"
-            placeholder="Email Address"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            className="h-12 w-full border border-[#E6E0DA] bg-white px-4 text-[#2E2E2E] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#3A2528]"
-            required
-          />
-
-          {/* Password */}
-          <div className="relative">
-
-            <input
-              type={
-                showPassword
-                  ? "text"
-                  : "password"
-              }
-              placeholder="Password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              className="h-12 w-full border border-[#E6E0DA] bg-white px-4 pr-12 text-[#2E2E2E] outline-none transition placeholder:text-[#9CA3AF] focus:border-[#3A2528]"
-              required
+          {/* Logo */}
+          <div className="mb-6 flex justify-center">
+            <ShoppingBag
+              size={32}
+              className="text-[#C78B7B]"
             />
+          </div>
+
+          {/* Heading */}
+          <h1 className="mb-2 text-center font-serif text-3xl sm:text-4xl text-[#2E2E2E]">
+            Welcome Back
+          </h1>
+
+          <p className="mb-8 text-center text-xs sm:text-sm text-[#777]">
+            Login to continue shopping with Mahalaksmi Jewellery.
+          </p>
+
+          {/* Login / Register Tabs */}
+          <div className="mb-6 grid grid-cols-2 rounded-xl bg-[#F5F1EF] p-1 text-xs sm:text-sm">
+            <button
+              type="button"
+              className="rounded-lg bg-white py-2.5 font-semibold text-[#2E2E2E] shadow-sm transition"
+            >
+              Login
+            </button>
 
             <button
               type="button"
               onClick={() =>
-                setShowPassword(
-                  !showPassword
-                )
+                router.push("/register")
               }
-              className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-[#777] transition hover:text-[#3A2528]"
-              aria-label={
-                showPassword
-                  ? "Hide password"
-                  : "Show password"
-              }
+              className="rounded-lg py-2.5 font-medium text-[#777] transition hover:text-[#3A2528]"
             >
-              {showPassword ? (
-                <EyeOff size={20} />
+              Register
+            </button>
+          </div>
+
+          {/* Login Form */}
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
+
+            {/* Email */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#666]">
+                Email Address
+              </label>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
+                className="h-12 w-full rounded-xl border border-[#E6E0DA] bg-white px-4 text-sm text-[#2E2E2E] outline-none transition-all duration-200 placeholder:text-[#9CA3AF] focus:border-[#C78B7B] focus:ring-1 focus:ring-[#C78B7B]"
+                required
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[#666]">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-[#C78B7B] transition hover:underline"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
+
+              <div className="relative">
+                <input
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
+                  className="h-12 w-full rounded-xl border border-[#E6E0DA] bg-white px-4 pr-12 text-sm text-[#2E2E2E] outline-none transition-all duration-200 placeholder:text-[#9CA3AF] focus:border-[#C78B7B] focus:ring-1 focus:ring-[#C78B7B]"
+                  required
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPassword(
+                      !showPassword
+                    )
+                  }
+                  className="absolute right-0 top-0 flex h-12 w-12 items-center justify-center text-[#777] transition hover:text-[#3A2528]"
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-sm font-semibold text-white transition-all duration-200 hover:bg-[#C78B7B] disabled:cursor-not-allowed disabled:opacity-60 shadow-md"
+            >
+              {loading ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Signing In...</span>
+                </>
               ) : (
-                <Eye size={20} />
+                <span>Login</span>
               )}
             </button>
 
-          </div>
+          </form>
 
-          {/* Forgot Password */}
-          <div className="text-right">
-
-            <Link
-              href="/forgot-password"
-              className="text-sm text-[#3A2528] hover:underline"
-            >
-              Forgot Password?
-            </Link>
-
-          </div>
-
-          {/* Login Button */}
+          {/* Guest Login */}
           <button
-            type="submit"
-            disabled={loading}
-            className="mt-2 flex h-12 w-full items-center justify-center rounded-full bg-[#8D4E67] font-semibold text-white transition hover:bg-[#7B4259] disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            onClick={() =>
+              router.push("/")
+            }
+            className="mt-5 w-full text-center text-xs font-medium text-[#7B5A56] transition hover:text-[#3A2528]"
           >
-            {loading
-              ? "Signing In..."
-              : "Login"}
+            Continue as Guest →
           </button>
 
-        </form>
-
-        {/* Guest Login */}
-        <button
-          type="button"
-          onClick={() =>
-            router.push("/")
-          }
-          className="mt-6 w-full text-center text-[#7B5A56] transition hover:text-[#3A2528]"
-        >
-          Continue as Guest →
-        </button>
-
-        {/* Register */}
-        <div className="mt-8 border-t border-[#ECE6E1] pt-6 text-center">
-
-          <span className="text-[#777]">
-            Don't have an account?
-          </span>
-
-          <Link
-            href="/register"
-            className="ml-2 font-semibold text-[#3A2528] hover:underline"
-          >
-            Register
-          </Link>
+          {/* Register */}
+          <div className="mt-6 border-t border-[#ECE6E1] pt-5 text-center text-xs sm:text-sm">
+            <span className="text-[#777]">
+              Don&apos;t have an account?
+            </span>
+            <Link
+              href="/register"
+              className="ml-2 font-bold text-[#C78B7B] transition hover:underline"
+            >
+              Register Now
+            </Link>
+          </div>
 
         </div>
-
       </div>
 
+      <Footer />
     </main>
   );
 }

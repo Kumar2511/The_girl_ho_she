@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Search, Star, Quote } from "lucide-react";
-import  api  from "@/lib/api";
+import api from "@/lib/api";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 
 type Review = {
   _id: string;
@@ -151,6 +153,7 @@ export default function ReviewsPage() {
 
   return (
     <main className="min-h-screen bg-[#FBF8F4] text-[#3F3732]">
+      <Navbar />
 
       {/* ==================================================
           HERO
@@ -427,6 +430,7 @@ export default function ReviewsPage() {
 
       </section>
 
+      <Footer />
     </main>
   );
 }

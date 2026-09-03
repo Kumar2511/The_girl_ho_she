@@ -1,5 +1,7 @@
 'use client';
 
+import Link from "next/link";
+
 interface FeaturedCollectionCardProps {
   className?: string;
   title: string;
@@ -8,6 +10,7 @@ interface FeaturedCollectionCardProps {
   productsCount: number;
   highlight?: string;
   gradient?: boolean;
+  href?: string;
 }
 
 export function FeaturedCollectionCard({
@@ -18,11 +21,15 @@ export function FeaturedCollectionCard({
   productsCount,
   highlight,
   gradient = false,
+  href,
 }: FeaturedCollectionCardProps) {
+  const targetHref = href || `/collections?collection=${encodeURIComponent(title)}`;
+
   return (
-    <div
-  className={`group relative overflow-hidden rounded-[32px] h-[460px] bg-white shadow-lg hover:shadow-2xl transition-all duration-700 hover:-translate-y-3 ${className || ""}`}
->
+    <Link
+      href={targetHref}
+      className={`group relative block overflow-hidden rounded-[32px] h-[460px] bg-white shadow-lg hover:shadow-2xl transition-all duration-700 hover:-translate-y-3 ${className || ""}`}
+    >
       {/* Background Image */}
       <img
         src={image}
@@ -54,12 +61,12 @@ export function FeaturedCollectionCard({
               {productsCount} Items
             </span>
             <svg
-  className="w-6 h-6 transition-all duration-300 group-hover:translate-x-2 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              className="w-6 h-6 transition-all duration-300 group-hover:translate-x-2 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -1582,9 +1582,14 @@ useEffect(() => {
       0
     );
 
-  // ==========================================
-  // PAGE
-  // ==========================================
+  const handleCancelBack = () => {
+    const origin = typeof window !== "undefined" ? sessionStorage.getItem("checkout_origin") : null;
+    if (origin && origin.startsWith("/shop/")) {
+      router.push(origin);
+    } else {
+      router.push("/cart");
+    }
+  };
 
   return (
     <>
@@ -2294,16 +2299,17 @@ useEffect(() => {
                     BACK
                 ================================= */}
 
-                <Link
-                  href="/checkout"
+                <button
+                  type="button"
+                  onClick={handleCancelBack}
                   className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-[#665B56] transition hover:text-[#C78B7B]"
                 >
                   <ArrowLeft
                     size={15}
                   />
 
-                  Back to Checkout
-                </Link>
+                  Cancel & Return
+                </button>
 
               </div>
 

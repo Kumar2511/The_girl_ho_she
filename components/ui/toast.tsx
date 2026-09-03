@@ -28,22 +28,22 @@ export default function Toast({
   const config = {
     success: {
       icon: CheckCircle,
-      iconClass: "text-green-500",
+      iconClass: "text-emerald-600",
     },
 
     error: {
       icon: XCircle,
-      iconClass: "text-red-500",
+      iconClass: "text-rose-600",
     },
 
     warning: {
       icon: AlertTriangle,
-      iconClass: "text-yellow-500",
+      iconClass: "text-[#CB8161]",
     },
 
     info: {
       icon: Info,
-      iconClass: "text-blue-500",
+      iconClass: "text-[#CB8161]",
     },
   };
 
@@ -51,25 +51,25 @@ export default function Toast({
   const Icon = selected.icon;
 
   return (
-    <div className="fixed right-4 top-5 z-[9999] w-[calc(100%-2rem)] max-w-sm">
-      <div className="flex items-start gap-3 rounded-lg border border-[#ECE6E1] bg-white p-4 shadow-lg">
+    <div className="fixed right-4 top-5 z-[9999] w-[calc(100%-2rem)] max-w-sm transition-all duration-300 animate-in fade-in slide-in-from-top-2">
+      <div className="flex items-center gap-3 rounded-md border border-neutral-200/90 bg-white/95 p-3.5 shadow-md backdrop-blur-xs">
 
         <Icon
-          size={21}
-          className={`mt-0.5 shrink-0 ${selected.iconClass}`}
+          size={18}
+          className={`shrink-0 ${selected.iconClass}`}
         />
 
-        <p className="flex-1 text-sm font-medium leading-6 text-[#2E2E2E]">
+        <p className="flex-1 text-xs font-medium leading-snug text-[#1F1F1F]">
           {message}
         </p>
 
         <button
           type="button"
           onClick={onClose}
-          className="shrink-0 text-[#999] transition hover:text-[#2E2E2E]"
+          className="shrink-0 text-gray-400 transition hover:text-[#1F1F1F]"
           aria-label="Close notification"
         >
-          <X size={18} />
+          <X size={15} />
         </button>
 
       </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 import VipSubscribe from "@/components/home/vip-subscribe";
 import CategoryProductSections from "@/components/home/category-product-sections";
@@ -9,6 +10,7 @@ import Hero from "@/components/home/Hero";
 import { TrustBadge } from "@/components/trust-badge";
 import { InstagramGallery } from "@/components/instagram-gallery";
 import Footer from "@/components/footer";
+import FloatingSocialButtons from "@/components/FloatingSocialButtons";
 
 export default async function Home() {
   // ============================================
@@ -107,12 +109,6 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[#FCFAF7]">
-
-      {/* ============================================
-          ANNOUNCEMENT / SHIPPING BAR
-      ============================================ */}
-
-      <AnnouncementBar />
 
       {/* ============================================
           MAIN NAVIGATION
@@ -275,9 +271,10 @@ export default async function Home() {
               Tag us in your photos for a chance to be featured
             </p>
 
-            <button
-              type="button"
+            <Link
+              href="/share-your-loo"
               className="
+                inline-block
                 rounded-xl
                 bg-[#F4EEE8]
                 px-8
@@ -290,7 +287,7 @@ export default async function Home() {
               "
             >
               Share Your Look
-            </button>
+            </Link>
 
           </div>
 
@@ -348,7 +345,7 @@ export default async function Home() {
             </Link>
 
             <a
-              href="https://wa.me/1234567890"
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "918870734341"}`}
               target="_blank"
               rel="noopener noreferrer"
               className="
@@ -423,7 +420,7 @@ export default async function Home() {
               Get 15% off your first purchase + exclusive access to limited editions before anyone else.
             </p>
 
-            <div className="mx-auto mb-6 flex max-w-md gap-3">
+            <div className="mx-auto mb-6 w-full max-w-md">
               <VipSubscribe />
             </div>
 
@@ -440,6 +437,7 @@ export default async function Home() {
           FOOTER
       ============================================ */}
 
+      <FloatingSocialButtons />
       <Footer />
 
     </main>
