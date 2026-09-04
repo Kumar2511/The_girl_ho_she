@@ -244,12 +244,14 @@ export default function CheckoutPaymentModal({
         const res = await api.get("/upi");
         if (res.data) {
           setUPISettings({
-            upiId: res.data.upiId || "",
-            accountName: res.data.accountName || "Mahalaksmi Jewellery",
-            qrCode: res.data.qrCode || "",
-            paymentInstructions: res.data.paymentInstructions || "",
-            enabled: res.data.enabled !== false,
-          });
+  upiId: res.data.settings?.upiId || "",
+  accountName:
+    res.data.settings?.accountName || "Mahalaksmi Jewellery",
+  qrCode: res.data.settings?.qrCode || "",
+  paymentInstructions:
+    res.data.settings?.paymentInstructions || "",
+  enabled: res.data.settings?.enabled !== false,
+});
         }
       } catch (error) {
         console.error("UPI settings error:", error);
