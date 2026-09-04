@@ -241,7 +241,7 @@ export default function CheckoutPaymentModal({
     // Fetch UPI Settings
     const fetchUPI = async () => {
       try {
-        const res = await api.get("/upi-settings");
+        const res = await api.get("/upi");
         if (res.data) {
           setUPISettings({
             upiId: res.data.upiId || "",
