@@ -30,11 +30,19 @@ export function useScrollLock(isLocked: boolean) {
     document.body.style.width = "100%";
     document.body.style.touchAction = "none";
 
-    // 4. Prevent background touchmove scrolling
+    // 4. Prevent background touchmove scrolling except for scrollable containers
     const handleTouchMove = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target && target.closest("[data-scrollable='true']")) {
-        return; // Allow touch scrolling inside elements marked data-scrollable="true"
+      if (
+        target &&
+        (target.closest("[data-scrollable='true']") ||
+          target.closest("input") ||
+          target.closest("textarea") ||
+          target.closest("select") ||
+          target.closest(".overflow-y-auto") ||
+          target.closest(".overflow-auto"))
+      ) {
+        return; // Allow touch scrolling inside scrollable elements & inputs
       }
       if (e.cancelable) {
         e.preventDefault();

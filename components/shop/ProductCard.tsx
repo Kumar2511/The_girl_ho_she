@@ -15,6 +15,7 @@ import {
 
 import { useCart } from "@/context/cart-context";
 import { useWishlist } from "@/context/wishlist-context";
+import { useToast } from "@/context/toast-context";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils";
 
@@ -69,6 +70,7 @@ export default function ProductCard({
     useState("");
 
   const { addToCart } = useCart();
+  const { showToast } = useToast();
 
   const {
     addToWishlist,
@@ -177,6 +179,8 @@ export default function ProductCard({
       stock: currentStock ?? 0,
       quantity: 1,
     });
+
+    showToast("Product added to cart", "success");
   };
 
   // ======================================
@@ -322,7 +326,7 @@ export default function ProductCard({
           PRODUCT CARD
       ====================================== */}
 
-      <div className="group overflow-hidden rounded-lg border border-neutral-200/80 bg-white transition duration-300 hover:border-[#CB8161]/40 hover:shadow-md">
+      <div className="group flex min-h-[417.88px] w-full flex-col overflow-hidden rounded-[3px] border border-[#F0EBE6] bg-white transition-all duration-300 hover:border-[#CB8161]/40 hover:shadow-sm">
 
         {/* ======================================
             IMAGE
@@ -330,23 +334,29 @@ export default function ProductCard({
 
         <Link href={`/shop/${id}`}>
           <div
-            className="relative aspect-square overflow-hidden bg-[#FAF7F4]"
-            onMouseEnter={() =>
-              setIsHovered(true)
-            }
-            onMouseLeave={() =>
-              setIsHovered(false)
-            }
-          >
+  className="
+    relative
+    aspect-[4/5]
+    w-full
+    overflow-hidden
+    bg-[#FAF7F4]
+  "
+  onMouseEnter={() =>
+    setIsHovered(true)
+  }
+  onMouseLeave={() =>
+    setIsHovered(false)
+  }
+>
             <Image
               src={image}
               alt={name}
               fill
-              sizes="(max-width:768px)100vw,25vw"
+              sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
               className={`object-cover transition-all duration-500 ease-out ${
                 isOutOfStock
                   ? "grayscale-[35%]"
-                  : "group-hover:scale-105"
+                  : "group-hover:scale-[1.04]"
               }`}
             />
 
@@ -357,7 +367,7 @@ export default function ProductCard({
                 src={hoverImage}
                 alt={name}
                 fill
-                sizes="(max-width:768px)100vw,25vw"
+                sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
                 className={`absolute inset-0 object-cover transition-opacity duration-300 ${
                   isHovered &&
                   !isOutOfStock
@@ -370,17 +380,17 @@ export default function ProductCard({
             {/* Badge */}
 
             {product.badge &&
-  !isOutOfStock && (
-    <span className="absolute left-3 top-3 rounded-md bg-[#CB8161] px-2.5 py-1 text-xs font-medium text-white shadow-sm">
-      {product.badge}
-    </span>
-  )}
+              !isOutOfStock && (
+                <span className="absolute left-2.5 top-2.5 rounded-md bg-[#CB8161] px-2 py-0.5 text-[10px] sm:text-xs font-medium text-white shadow-xs">
+                  {product.badge}
+                </span>
+              )}
 
             {/* Discount */}
 
             {discount > 0 &&
               !isOutOfStock && (
-                <span className="absolute left-3 top-3 rounded-md bg-[#CB8161] px-2.5 py-1 text-xs font-medium text-white shadow-sm">
+                <span className="absolute left-2.5 top-2.5 rounded-md bg-[#CB8161] px-2 py-0.5 text-[10px] sm:text-xs font-medium text-white shadow-xs">
                   -{discount}%
                 </span>
               )}
@@ -391,7 +401,7 @@ export default function ProductCard({
 
             {isOutOfStock && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/35">
-                <span className="rounded-md bg-[#1F1F1F]/95 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.15em] text-white shadow-md">
+                <span className="rounded-md bg-[#1F1F1F]/95 px-3.5 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.12em] text-white shadow-xs">
                   Out of Stock
                 </span>
               </div>
@@ -400,7 +410,7 @@ export default function ProductCard({
             {/* Low Stock */}
 
             {isLowStock && (
-              <span className="absolute bottom-3 left-3 rounded-md bg-[#CB8161] px-2.5 py-1 text-xs font-medium text-white shadow-sm">
+              <span className="absolute bottom-2.5 left-2.5 rounded-md bg-[#CB8161] px-2 py-0.5 text-[10px] sm:text-xs font-medium text-white shadow-xs">
                 Only {currentStock} left
               </span>
             )}
@@ -418,19 +428,23 @@ export default function ProductCard({
                 e.preventDefault();
                 e.stopPropagation();
 
-                favorite
-                  ? removeFromWishlist(id)
-                  : addToWishlist({
-                      _id: id,
-                      name,
-                      image,
-                      price,
-                    });
+                if (favorite) {
+                  removeFromWishlist(id);
+                  showToast("Product removed from wishlist", "info");
+                } else {
+                  addToWishlist({
+                    _id: id,
+                    name,
+                    image,
+                    price,
+                  });
+                  showToast("Product added to wishlist", "success");
+                }
               }}
-              className="absolute right-3 top-3 flex min-h-[38px] min-w-[38px] items-center justify-center rounded-full bg-white/90 p-2 shadow-sm backdrop-blur-xs transition duration-300 hover:scale-105 hover:bg-white"
+              className="absolute right-2.5 top-2.5 flex min-h-[34px] min-w-[34px] items-center justify-center rounded-full bg-white/90 p-1.5 shadow-xs backdrop-blur-xs transition duration-300 hover:scale-105 hover:bg-white"
             >
               <Heart
-                className={`h-4 w-4 ${
+                className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${
                   favorite
                     ? "fill-[#CB8161] text-[#CB8161]"
                     : "text-gray-600 hover:text-[#CB8161]"
@@ -441,76 +455,75 @@ export default function ProductCard({
         </Link>
 
         {/* ======================================
-            PRODUCT INFO
+            PRODUCT INFO (ARSHIS VISUAL STRUCTURE)
+            IMAGE -> PRODUCT TITLE -> STAR RATING + REVIEWS -> PRICE
         ====================================== */}
 
-        <div className="space-y-2 p-4 sm:p-5">
+        <div className="flex flex-1 flex-col justify-between px-3 py-4 sm:px-4 sm:py-5">
 
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
-            {category}
-          </p>
+          <div className="space-y-1 sm:space-y-1.5">
 
-          <Link href={`/shop/${id}`}>
-            <h3 className="line-clamp-2 font-sans text-[13px] sm:text-[15px] font-medium leading-snug text-[#252525] transition-colors duration-200 group-hover:text-[#CB8161]">
-              {name}
-            </h3>
-          </Link>
+           <p className="font-sans text-[10px] uppercase tracking-[0.12em] text-[#505655]">
+  {category}
+</p>
 
-          {/* Rating */}
+            {/* PRODUCT TITLE: Bodoni Moda (font-serif), weight 400 */}
 
-          {numReviews > 0 ? (
-            <div className="flex items-center gap-1.5 text-xs text-[#505655]">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <Link href={`/shop/${id}`}>
+              <h3 className="line-clamp-3 font-serif text-[14px] font-normal leading-[1.45] tracking-[0.02em] text-[#252525] transition-colors duration-200 group-hover:text-[#CB8161] sm:text-[15px]">
+  {name}
+</h3>
+            </Link>
 
-              <span className="text-xs font-medium text-[#252525]">
-                {averageRating.toFixed(1)}
-              </span>
+            {/* STAR RATING + REVIEWS: Poppins (font-sans), weight 400 */}
 
-              <span className="text-[11px] text-[#505655]/70">
-                ({numReviews})
-              </span>
-            </div>
-          ) : (
-            <div className="text-[11px] text-[#505655]/60 italic">
-              No reviews yet
-            </div>
-          )}
+            {numReviews > 0 ? (
+              <div className="flex min-h-[20px] items-center gap-1 font-sans text-[11px] text-[#505655] sm:text-xs">
+                <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                <span className="font-normal text-[#252525]">
+                  {averageRating.toFixed(1)}
+                </span>
+                <span className="font-normal text-[#505655]/70">
+                  ({numReviews})
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 font-sans text-[10px] sm:text-[11px] font-normal text-[#505655]/60">
+                <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400/50 shrink-0" />
+                <span>Subtle Luxury</span>
+              </div>
+            )}
 
-          {/* Price */}
+          </div>
 
-          <div className="mt-auto flex flex-wrap items-baseline gap-2 border-t border-[#F5EBE6] pt-2">
-            <span className="font-sans text-[14px] sm:text-[16px] font-medium tracking-normal text-[#252525]">
-              {formatPrice(price)}
-            </span>
+          {/* PRICE: Poppins (font-sans), weight 500 */}
+
+          <div className="mt-auto flex min-h-[34px] flex-wrap items-baseline gap-1.5 border-t border-[#F5EBE6] pt-3">
+            <span className="font-sans text-[14px] font-medium tracking-normal text-[#252525] sm:text-[15px]">
+  {formatPrice(price)}
+</span>
 
             {originalPrice > price && (
-              <span className="text-xs font-normal text-[#505655]/70 line-through">
-                {formatPrice(originalPrice)}
-              </span>
+             <span className="font-sans text-[11px] font-normal text-[#505655]/70 line-through sm:text-xs">
+  {formatPrice(originalPrice)}
+</span>
             )}
           </div>
 
-          {/* ======================================
-              STOCK STATUS
-          ====================================== */}
+          {/* STOCK STATUS */}
 
-          <div className="min-h-[18px]">
+          <div className="min-h-[16px]">
             {isOutOfStock ? (
-              <p className="text-xs font-semibold text-[#8B4A5A]">
+              <p className="font-sans text-[10px] sm:text-xs font-medium text-[#8B4A5A]">
                 Currently unavailable
               </p>
             ) : isLowStock ? (
-              <p className="text-xs font-medium text-[#CB8161]">
-                Hurry! Only{" "}
-                {currentStock} left
-                in stock
-              </p>
-            ) : currentStock !== undefined && currentStock > 0 ? (
-              <p className="text-xs font-medium text-emerald-700">
-                In Stock
+              <p className="font-sans text-[10px] sm:text-xs font-medium text-[#CB8161]">
+                Hurry! Only {currentStock} left
               </p>
             ) : null}
           </div>
+
         </div>
       </div>
 

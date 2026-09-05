@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans: var(--font-poppins), Poppins, system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-bodoni), "Bodoni Moda", Georgia, serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -1001,6 +1003,7 @@ p {
   border-radius: 6px;
   background-color: #2C332F;
   padding: 12px 20px;
+  font-family: var(--font-body-family);
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.05em;
@@ -1013,15 +1016,37 @@ p {
   background-color: #1F1F1F;
 }
 
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 6px;
+  background-color: #CB8161;
+  padding: 12px 20px;
+  font-family: var(--font-body-family);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: #FFFFFF;
+  min-height: 45px;
+  transition: all 200ms ease-out;
+}
+
+.btn-accent:hover:not(:disabled) {
+  background-color: #B56F50;
+}
+
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   border-radius: 6px;
-  border: 1px solid rgba(37, 37, 37, 0.2);
+  border: 1px solid rgba(37, 37, 37, 0.20);
   background-color: #FFFFFF;
   padding: 12px 20px;
+  font-family: var(--font-body-family);
   font-size: 15px;
   font-weight: 500;
   color: #505655;
@@ -1032,4 +1057,15 @@ p {
 .btn-secondary:hover:not(:disabled) {
   border-color: #CB8161;
   background-color: #FCFAF7;
+  color: #252525;
+}
+
+@media (max-width: 640px) {
+  .btn-primary,
+  .btn-accent,
+  .btn-secondary {
+    font-size: 14px;
+    min-height: 44px;
+    padding: 11px 16px;
+  }
 }

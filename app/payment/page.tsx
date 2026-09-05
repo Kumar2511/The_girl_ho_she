@@ -1621,7 +1621,7 @@ useEffect(() => {
     <>
       <Navbar />
 
-      <main className="min-h-screen bg-[#FCFAF7]">
+      <main className="min-h-[100dvh] w-full overflow-x-hidden bg-[#FCFAF7] pb-16 touch-pan-y">
 
         {/* =====================================
             HEADER

@@ -28,7 +28,7 @@ export function ProductGrid<TProduct = any>({
   if (isLoading) {
     return (
       <section
-        className={`grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-14 ${className}`}
+        className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-6 ${className}`}
         aria-label="Loading products"
       >
         {Array.from({ length: 8 }).map(
@@ -61,7 +61,7 @@ export function ProductGrid<TProduct = any>({
 
   return (
     <section
-      className={`grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-14 ${className}`}
+      className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-6 ${className}`}
       aria-label="Product collection"
     >
       {products.map((product, index) => (

@@ -802,7 +802,7 @@ export default function CheckoutPaymentModal({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6 sm:p-6">
+        <div data-scrollable="true" className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-5 space-y-6 sm:p-6">
           {/* STEP: SUCCESS */}
           {currentStep === "SUCCESS" && (
             <div className="py-8 text-center space-y-4">

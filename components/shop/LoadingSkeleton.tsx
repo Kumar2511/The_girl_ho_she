@@ -8,7 +8,7 @@ export function LoadingSkeleton({ count = 8, className = "" }: LoadingSkeletonPr
     <section
       aria-label="Loading products"
       aria-busy="true"
-      className={`grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-14 ${className}`}
+      className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-6 ${className}`}
     >
       {Array.from({ length: count }).map((_, index) => (
         <div

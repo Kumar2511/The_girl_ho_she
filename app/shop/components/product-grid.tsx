@@ -15,10 +15,21 @@ export default function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-
+    <div
+      className="
+        grid
+        grid-cols-2
+        gap-x-[10px]
+        gap-y-[20px]
+        sm:gap-x-4
+        sm:gap-y-8
+        md:grid-cols-3
+        lg:grid-cols-4
+        lg:gap-x-6
+        lg:gap-y-10
+      "
+    >
       {products.map((product) => (
-
         <ProductCard
           key={product._id || product.id}
           id={product._id || product.id}
@@ -40,8 +51,8 @@ export default function ProductGrid({
             product.newArrival
               ? "NEW"
               : product.bestSeller
-              ? "BEST"
-              : undefined
+                ? "BEST"
+                : undefined
           }
           averageRating={
             product.averageRating || 4.8
@@ -50,12 +61,10 @@ export default function ProductGrid({
             product.numReviews || 0
           }
           stock={
-            product.stock ?? 0
+            product.stock ?? undefined
           }
         />
-
       ))}
-
     </div>
   );
 }

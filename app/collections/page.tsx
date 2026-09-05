@@ -200,6 +200,7 @@ function CollectionsContent() {
                   onClick={closeFilter}
                 />
                 <div
+                  data-scrollable="true"
                   className={`fixed inset-x-4 top-1/2 z-50 mx-auto max-w-sm -translate-y-1/2 rounded-2xl border border-[#E8E0DB] bg-white p-4 shadow-2xl transition-all duration-280 ease-out sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72 sm:translate-y-0 sm:p-3 ${
                     isFilterVisible
                       ? "translate-x-0 opacity-100 scale-100"
@@ -207,20 +208,23 @@ function CollectionsContent() {
                   }`}
                 >
                   <div className="flex items-center justify-between border-b border-[#F3ECE7] pb-3 px-1">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#3A2528]">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[#252525]">
                       Select Collection
                     </span>
                     <button
                       type="button"
                       onClick={closeFilter}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-[#777] transition hover:bg-[#F5F1EF] hover:text-[#333]"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-[#505655] transition hover:bg-[#F5F1EF] hover:text-[#252525]"
                       aria-label="Close filter"
                     >
                       <X size={18} />
                     </button>
                   </div>
 
-                  <div className="mt-3 max-h-[60vh] space-y-1.5 overflow-y-auto overscroll-contain pr-1">
+                  <div
+                    data-scrollable="true"
+                    className="mt-3 max-h-[65dvh] space-y-1.5 overflow-y-auto overscroll-contain touch-pan-y pr-1"
+                  >
                     {/* ALL COLLECTIONS */}
                     <button
                       type="button"

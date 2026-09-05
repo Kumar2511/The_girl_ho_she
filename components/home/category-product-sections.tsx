@@ -139,7 +139,7 @@ export default function CategoryProductSections() {
             <div className="mx-auto mt-4 h-8 w-56 animate-pulse rounded bg-[#E8DCD4]" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-5">
+          <div className="grid grid-cols-2 gap-[10px] px-[15px] sm:gap-4 sm:px-6 md:grid-cols-3 lg:grid-cols-4 lg:px-8">
             {[1, 2, 3, 4].map((item) => (
               <div
                 key={item}
@@ -653,34 +653,44 @@ function ProductCard({
 
       {/* DETAILS */}
 
-      <div className="p-3 sm:p-4">
+      <div className="p-3 sm:p-4 space-y-1.5">
 
-        <p className="mb-1 text-[9px] uppercase tracking-[0.16em] text-[#C78B7B]">
+        <p className="font-sans text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.18em] text-[#C78B7B]">
           {product.category}
         </p>
 
         <h3
           className="
             line-clamp-2
-            min-h-[34px]
             font-serif
-            text-sm
-            leading-5
-            text-[#2E2E2E]
-            sm:text-base
+            text-[13px]
+            sm:text-[15px]
+            font-normal
+            leading-tight
+            sm:leading-snug
+            text-[#252525]
+            transition-colors
+            duration-200
+            group-hover:text-[#CB8161]
           "
         >
           {product.name}
         </h3>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1 font-sans text-[10px] sm:text-[11px] font-normal text-[#505655]">
+          <span className="text-amber-400">★</span>
+          <span>5.0</span>
+          <span className="text-[#505655]/70">(Reviews)</span>
+        </div>
 
-          <span className="text-sm font-semibold text-[#2E2E2E] sm:text-base">
+        <div className="pt-1.5 border-t border-[#F5EBE6] flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+
+          <span className="font-sans text-[13px] sm:text-[15px] font-medium text-[#252525]">
             ₹{sellingPrice.toLocaleString("en-IN")}
           </span>
 
           {hasDiscount && (
-            <span className="text-[10px] text-[#999] line-through sm:text-xs">
+            <span className="font-sans text-[11px] sm:text-xs font-normal text-[#505655]/70 line-through">
               ₹{originalPrice.toLocaleString("en-IN")}
             </span>
           )}

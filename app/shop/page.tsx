@@ -577,8 +577,7 @@ function ShopContent() {
           Shop
       ====================================== */}
 
-      <section className="mx-auto max-w-[1450px] px-5 py-8 lg:px-10">
-        {/* =====================================
+<section className="mx-auto max-w-[1450px] px-[15px] py-8 lg:px-10">        {/* =====================================
             MOBILE TOOLBAR BAR (md:hidden)
         ====================================== */}
 

@@ -56,7 +56,7 @@ export function ToastProvider({
 
       timerRef.current = setTimeout(() => {
         setToast(null);
-      }, 3000);
+      }, 2600);
     },
     []
   );

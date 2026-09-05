@@ -1814,6 +1814,8 @@ const reviewVideoInputRef =
 
       size: selectedSize,
     });
+
+    showToast("Product added to cart", "success");
   };
 
   // ==========================================
@@ -2943,7 +2945,7 @@ const checkDelivery = async () => {
                     <button
                       type="button"
                       onClick={handleAddToCart}
-                      className="flex h-13 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-4 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                      className="flex h-[45px] w-full items-center justify-center gap-2 rounded-md bg-[#2C332F] px-4 font-sans text-xs sm:text-sm font-medium uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
                     >
                       <ShoppingCart size={16} />
                       Add to Cart
@@ -2953,7 +2955,7 @@ const checkDelivery = async () => {
                     <button
                       type="button"
                       onClick={handleBuyNow}
-                      className="flex h-13 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-4 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                      className="flex h-[45px] w-full items-center justify-center gap-2 rounded-md bg-[#CB8161] px-4 font-sans text-xs sm:text-[15px] font-medium uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#2C332F] active:scale-[0.98]"
                     >
                       <Zap size={16} />
                       Buy Now
