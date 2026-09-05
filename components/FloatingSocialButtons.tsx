@@ -145,13 +145,43 @@ export default function FloatingSocialButtons() {
   // ========================================================
   // ROUTE / CHECKOUT MODAL SUPPRESSION CHECK (AFTER ALL HOOKS)
   // ========================================================
+  // ========================================================
+  // ROUTE / CHECKOUT MODAL SUPPRESSION CHECK (AFTER ALL HOOKS)
+  // ========================================================
+  const isAuthRoute =
+    pathname?.startsWith("/login") ||
+    pathname?.startsWith("/register") ||
+    pathname?.startsWith("/forgot-password") ||
+    pathname?.startsWith("/reset-password");
+
   const isCheckoutOrPaymentRoute =
     pathname?.startsWith("/checkout") ||
     pathname?.startsWith("/payment") ||
     pathname?.startsWith("/order-success") ||
     isCheckoutModalOpen;
 
-  if (isCheckoutOrPaymentRoute) {
+  const isProfileOrAccount =
+    pathname?.startsWith("/profile") ||
+    pathname?.startsWith("/account");
+
+  const isHome = pathname === "/";
+  const isCart = pathname === "/cart";
+  const isPDP = Boolean(pathname?.startsWith("/shop/") && pathname !== "/shop");
+
+  // Visibility Rules:
+  // 1. Find Your Product: Visible ONLY on Home (/), Cart (/cart), PDP (/shop/[id])
+  //    Hidden on Login, Register, Profile/Account, Checkout, or Checkout Modal open
+  const showFindProduct =
+    (isHome || isCart || isPDP) &&
+    !isProfileOrAccount &&
+    !isAuthRoute &&
+    !isCheckoutOrPaymentRoute;
+
+  // 2. WhatsApp & Instagram: Visible on Home, Cart, PDP, Profile/Account, and normal shopping pages
+  //    Hidden on Login, Register, Checkout, and Checkout Modal open
+  const showCommButtons = !isAuthRoute && !isCheckoutOrPaymentRoute;
+
+  if (!showFindProduct && !showCommButtons) {
     return null;
   }
 
@@ -162,7 +192,7 @@ export default function FloatingSocialButtons() {
       {/* ========================================================
           LEFT SIDE — DYNAMIC ANNOUNCEMENT WIDGET (LEFT TO RIGHT SLIDE)
       ======================================================== */}
-      {activeAnnouncement && !announcementDismissed && (
+      {showCommButtons && activeAnnouncement && !announcementDismissed && (
         <div
           className={`fixed bottom-5 left-5 z-[100] max-w-[280px] sm:max-w-[320px] transition-all duration-700 ease-in-out ${
             animState === "enter"
@@ -222,70 +252,72 @@ export default function FloatingSocialButtons() {
       ======================================================== */}
       <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-3">
         {/* Find My Product */}
-        <FindProductButton />
+        {showFindProduct && <FindProductButton />}
 
         {/* Combined Communication Button */}
-        <div className="relative">
-          {/* Popover Menu */}
-          {commMenuOpen && (
-            <div className="absolute bottom-14 right-0 mb-2 flex flex-col gap-2 rounded-2xl border border-[#E8DFD9] bg-white p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-[170px]">
-              {/* Instagram */}
-              <a
-                href="https://www.instagram.com/the_girl_ho_se/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setCommMenuOpen(false)}
-                className="flex items-center gap-3 rounded-xl p-2.5 text-xs font-semibold text-[#2E2E2E] transition-all hover:bg-[#FAF4F0] hover:text-[#E1306C]"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] text-white">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
-                  >
-                    <rect width="20" height="20" x="2" y="2" rx="5" />
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                  </svg>
-                </div>
-                <span>Instagram</span>
-              </a>
+        {showCommButtons && (
+          <div className="relative">
+            {/* Popover Menu */}
+            {commMenuOpen && (
+              <div className="absolute bottom-14 right-0 mb-2 flex flex-col gap-2 rounded-2xl border border-[#E8DFD9] bg-white p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-[170px]">
+                {/* Instagram */}
+                <a
+                  href="https://www.instagram.com/the_girl_ho_se/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setCommMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl p-2.5 text-xs font-semibold text-[#2E2E2E] transition-all hover:bg-[#FAF4F0] hover:text-[#E1306C]"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#833AB4] via-[#E1306C] to-[#F77737] text-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <rect width="20" height="20" x="2" y="2" rx="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                    </svg>
+                  </div>
+                  <span>Instagram</span>
+                </a>
 
-              {/* WhatsApp */}
-              <a
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "918870734341"}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setCommMenuOpen(false)}
-                className="flex items-center gap-3 rounded-xl p-2.5 text-xs font-semibold text-[#2E2E2E] transition-all hover:bg-[#FAF4F0] hover:text-[#25D366]"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366] text-white">
-                  <MessageCircle size={18} strokeWidth={2} />
-                </div>
-                <span>WhatsApp</span>
-              </a>
-            </div>
-          )}
-
-          {/* Trigger Button */}
-          <button
-            type="button"
-            onClick={() => setCommMenuOpen((prev) => !prev)}
-            aria-label="Contact Us"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1F1F1F] text-white shadow-xl transition-all duration-300 hover:scale-110 hover:bg-[#CB8161] hover:shadow-2xl active:scale-95"
-          >
-            {commMenuOpen ? (
-              <X size={20} />
-            ) : (
-              <MessageSquareText size={20} />
+                {/* WhatsApp */}
+                <a
+                  href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "918870734341"}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setCommMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl p-2.5 text-xs font-semibold text-[#2E2E2E] transition-all hover:bg-[#FAF4F0] hover:text-[#25D366]"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366] text-white">
+                    <MessageCircle size={18} strokeWidth={2} />
+                  </div>
+                  <span>WhatsApp</span>
+                </a>
+              </div>
             )}
-          </button>
-        </div>
+
+            {/* Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setCommMenuOpen((prev) => !prev)}
+              aria-label="Contact Us"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[#1F1F1F] text-white shadow-xl transition-all duration-300 hover:scale-110 hover:bg-[#CB8161] hover:shadow-2xl active:scale-95"
+            >
+              {commMenuOpen ? (
+                <X size={20} />
+              ) : (
+                <MessageSquareText size={20} />
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

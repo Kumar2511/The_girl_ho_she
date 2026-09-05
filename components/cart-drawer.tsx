@@ -12,12 +12,18 @@ import {
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/cart-context";
+import { useWishlist } from "@/context/wishlist-context";
+import { useToast } from "@/context/toast-context";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { formatPrice } from "@/lib/utils";
 
 export default function CartDrawer() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { addToWishlist } = useWishlist();
+  const { showToast } = useToast();
 
   const {
     cart,
@@ -26,6 +32,7 @@ export default function CartDrawer() {
     removeFromCart,
     increaseQuantity,
     decreaseQuantity,
+    syncCartStock,
   } = useCart();
 
   const [isCartMounted, setIsCartMounted] = useState(false);
@@ -34,6 +41,9 @@ export default function CartDrawer() {
   useEffect(() => {
     if (isCartOpen) {
       setIsCartMounted(true);
+      if (syncCartStock && addToWishlist) {
+        syncCartStock(addToWishlist, showToast);
+      }
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsCartVisible(true);
@@ -88,6 +98,18 @@ export default function CartDrawer() {
     if (cart.length === 0) return;
 
     closeCart();
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("checkout_origin", "/cart");
+    }
+
+    if (!user) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("redirect_after_login", "/checkout");
+      }
+      router.push("/login?redirect=/checkout");
+      return;
+    }
+
     router.push("/checkout");
   };
 

@@ -19,8 +19,11 @@ import {
 
 import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
-
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/cart-context";
+import { useWishlist } from "@/context/wishlist-context";
+import { useToast } from "@/context/toast-context";
 import api from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
 
@@ -34,12 +37,23 @@ type ShippingSettings = {
 };
 
 export default function CartPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const { addToWishlist } = useWishlist();
   const {
     cart,
     removeFromCart,
     increaseQuantity,
     decreaseQuantity,
+    syncCartStock,
   } = useCart();
+
+  useEffect(() => {
+    if (syncCartStock && addToWishlist) {
+      syncCartStock(addToWishlist, showToast);
+    }
+  }, []);
 
   // ==========================================
   // SHIPPING SETTINGS
@@ -732,9 +746,17 @@ export default function CartPage() {
 
                       <Link
                         href="/checkout"
-                        onClick={() => {
+                        onClick={(e) => {
                           if (typeof window !== "undefined") {
                             sessionStorage.setItem("checkout_origin", "/cart");
+                          }
+                          if (!user) {
+                            e.preventDefault();
+                            showToast("Please log in to proceed to checkout.", "info");
+                            if (typeof window !== "undefined") {
+                              sessionStorage.setItem("redirect_after_login", "/checkout");
+                            }
+                            router.push("/login?redirect=/checkout");
                           }
                         }}
                         className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"

@@ -9,9 +9,10 @@ import {
 import {
   useEffect,
   useState,
+  Suspense,
 } from "react";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { useAuth } from "@/context/AuthContext";
@@ -19,8 +20,9 @@ import { useToast } from "@/context/toast-context";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const {
     user,
@@ -40,13 +42,27 @@ export default function LoginPage() {
   const [loading, setLoading] =
     useState(false);
 
+  const getRedirectTarget = () => {
+    const param = searchParams?.get("redirect") || searchParams?.get("returnUrl");
+    if (param) return param;
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("redirect_after_login");
+      if (stored) return stored;
+    }
+    return "/";
+  };
+
   // ==========================================
   // Redirect if already logged in
   // ==========================================
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace("/");
+      const target = getRedirectTarget();
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("redirect_after_login");
+      }
+      router.replace(target);
     }
   }, [user, authLoading, router]);
 
@@ -73,8 +89,13 @@ export default function LoginPage() {
           "success"
         );
 
+        const target = getRedirectTarget();
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("redirect_after_login");
+        }
+
         setTimeout(() => {
-          router.replace("/");
+          router.replace(target);
         }, 500);
       } else {
         showToast(
@@ -287,5 +308,19 @@ export default function LoginPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#FCFAF7]">
+          <div className="w-10 h-10 border-4 border-[#C78B7B] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }

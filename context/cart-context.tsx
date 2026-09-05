@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import api from "@/lib/api";
 
 interface CartItem {
   _id: string;
@@ -24,12 +25,16 @@ interface CartItem {
 interface CartContextType {
   cart: CartItem[];
 
-  addToCart: (product: CartItem) => void;
+  addToCart: (product: CartItem, options?: { silent?: boolean }) => void;
 
   removeFromCart: (
     _id: string,
     color?: string,
     size?: string
+  ) => void;
+
+  removeItemsFromCart: (
+    itemsToRemove: { _id: string; color?: string; size?: string }[]
   ) => void;
 
   increaseQuantity: (
@@ -45,6 +50,16 @@ interface CartContextType {
   ) => void;
 
   clearCart: () => void;
+
+  syncCartStock: (
+    addToWishlist: (item: {
+      _id: string;
+      name: string;
+      price: number;
+      image: string;
+    }) => void,
+    showToast?: (message: string, type?: "success" | "error" | "info") => void
+  ) => Promise<void>;
 
   // Cart Drawer
   isCartOpen: boolean;
@@ -134,7 +149,8 @@ export const CartProvider = ({
   // ========================================
 
   const addToCart = (
-    product: CartItem
+    product: CartItem,
+    options?: { silent?: boolean }
   ) => {
     setCart((prevCart) => {
       const productColor =
@@ -210,8 +226,10 @@ export const CartProvider = ({
       ];
     });
 
-    // Open drawer after adding
-    setIsCartOpen(true);
+    // Open drawer after adding unless silent mode is requested
+    if (!options?.silent) {
+      setIsCartOpen(true);
+    }
   };
 
   // ========================================
@@ -231,6 +249,30 @@ export const CartProvider = ({
             _id,
             color,
             size
+          )
+      )
+    );
+  };
+
+  // ========================================
+  // Remove Specific Items from Cart (e.g. Purchased Items)
+  // ========================================
+
+  const removeItemsFromCart = (
+    itemsToRemove: { _id: string; color?: string; size?: string }[]
+  ) => {
+    if (!itemsToRemove || itemsToRemove.length === 0) return;
+
+    setCart((prevCart) =>
+      prevCart.filter(
+        (cartItem) =>
+          !itemsToRemove.some((remItem) =>
+            isSameVariant(
+              cartItem,
+              remItem._id,
+              remItem.color,
+              remItem.size
+            )
           )
       )
     );
@@ -341,6 +383,73 @@ export const CartProvider = ({
   };
 
   // ========================================
+  // Inventory Sync (Cart -> Wishlist)
+  // ========================================
+
+  const syncCartStock = async (
+    addToWishlist: (item: {
+      _id: string;
+      name: string;
+      price: number;
+      image: string;
+    }) => void,
+    showToast?: (message: string, type?: "success" | "error" | "info") => void
+  ) => {
+    if (!cart || cart.length === 0) return;
+
+    try {
+      const productIds = Array.from(new Set(cart.map((item) => item._id)));
+
+      const responses = await Promise.allSettled(
+        productIds.map((id) => api.get(`/products/${id}`))
+      );
+
+      const outOfStockIds = new Set<string>();
+
+      responses.forEach((res, index) => {
+        if (res.status === "fulfilled" && res.value?.data?.product) {
+          const prod = res.value.data.product;
+          if (
+            prod.stock !== undefined &&
+            prod.stock !== null &&
+            Number(prod.stock) <= 0
+          ) {
+            outOfStockIds.add(productIds[index]);
+          }
+        }
+      });
+
+      if (outOfStockIds.size === 0) return;
+
+      const itemsToRemove = cart.filter((item) => outOfStockIds.has(item._id));
+
+      if (itemsToRemove.length > 0) {
+        itemsToRemove.forEach((item) => {
+          addToWishlist({
+            _id: item._id,
+            name: item.name,
+            price: item.price,
+            image: item.image,
+          });
+
+          if (showToast) {
+            showToast(
+              `"${item.name}" is out of stock and has been moved to your Wishlist.`,
+              "info"
+            );
+          }
+        });
+
+        setCart((prevCart) =>
+          prevCart.filter((item) => !outOfStockIds.has(item._id))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to sync cart stock:", error);
+    }
+  };
+
+  // ========================================
   // Provider
   // ========================================
 
@@ -353,11 +462,15 @@ export const CartProvider = ({
 
         removeFromCart,
 
+        removeItemsFromCart,
+
         increaseQuantity,
 
         decreaseQuantity,
 
         clearCart,
+
+        syncCartStock,
 
         isCartOpen,
 

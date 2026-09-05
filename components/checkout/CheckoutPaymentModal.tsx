@@ -30,6 +30,7 @@ import QRCode from "qrcode";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/cart-context";
+import { useWishlist } from "@/context/wishlist-context";
 import { useToast } from "@/context/toast-context";
 import { formatPrice } from "@/lib/utils";
 import { getAddresses, addAddress, updateAddress } from "@/services/profileService";
@@ -79,7 +80,8 @@ export default function CheckoutPaymentModal({
 }: CheckoutPaymentModalProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, removeItemsFromCart, syncCartStock } = useCart();
+  const { addToWishlist } = useWishlist();
   const { showToast } = useToast();
 
   useScrollLock(isOpen);
@@ -188,6 +190,15 @@ export default function CheckoutPaymentModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    if (!user) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("redirect_after_login", "/checkout");
+      }
+      onClose();
+      router.push("/login?redirect=/checkout");
+      return;
+    }
+
     setShowCancelConfirm(false);
     setIsHomePending(false);
     setIsSummaryExpanded(false);
@@ -261,6 +272,9 @@ export default function CheckoutPaymentModal({
     fetchAddresses();
     fetchShipping();
     fetchUPI();
+    if (syncCartStock && addToWishlist) {
+      syncCartStock(addToWishlist, showToast);
+    }
   }, [isOpen]);
 
   // ==========================================
@@ -326,7 +340,10 @@ export default function CheckoutPaymentModal({
           if (typeof window !== "undefined") {
             sessionStorage.removeItem("pending_order_id");
           }
-          if (!directItems || directItems.length === 0) {
+          // Remove only purchased items from active cart
+          if (items && items.length > 0) {
+            removeItemsFromCart(items);
+          } else {
             clearCart();
           }
           showToast("Payment verified successfully!", "success");
@@ -340,7 +357,7 @@ export default function CheckoutPaymentModal({
     const pollInterval = setInterval(checkStatus, 4000);
 
     return () => clearInterval(pollInterval);
-  }, [currentStep, createdOrderId, isOpen, directItems, clearCart, showToast]);
+  }, [currentStep, createdOrderId, isOpen, items, removeItemsFromCart, clearCart, showToast]);
 
   // ==========================================
   // UNLOCK QR & GENERATE QR CODE
@@ -706,16 +723,19 @@ export default function CheckoutPaymentModal({
         {/* Header with Top-Left Home Icon & Top-Right Expandable Order Summary */}
         <div className="sticky top-0 z-10 border-b border-[#F0EAE5] bg-white px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-2">
-            {/* TOP-LEFT HOME BUTTON */}
+            {/* TOP-LEFT BRAND WORDMARK / LOGO */}
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleHomeClick}
-                className="flex items-center gap-1.5 rounded-xl border border-[#E0D8D2] bg-[#FCFAF8] px-3 py-1.5 text-xs text-[#2E2927] transition hover:border-[#C78B7B] hover:bg-white"
+                className="group flex items-center gap-1.5 rounded-xl border border-[#E0D8D2] bg-[#FCFAF8] px-3 py-1.5 transition hover:border-[#C78B7B] hover:bg-white"
                 title="Return to Home"
+                aria-label="The Girl House Home"
               >
-                <Home size={15} className="text-[#C78B7B]" />
-                <span className="font-bold">Home</span>
+                <span className="text-[10px] leading-none text-[#C98F7B]">✦</span>
+                <span className="font-serif text-xs sm:text-sm font-bold tracking-tight text-[#5A3542] group-hover:text-[#C78B7B] transition-colors">
+                  The_girl_ho_se
+                </span>
               </button>
             </div>
 

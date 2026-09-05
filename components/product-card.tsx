@@ -27,7 +27,7 @@ export default function ProductCard({
   badge,
   averageRating = 0,
   numReviews = 0,
-  stock = 0,
+  stock,
 }: ProductCardProps) {
   const isDiscounted = Boolean(originalPrice && originalPrice > price);
 

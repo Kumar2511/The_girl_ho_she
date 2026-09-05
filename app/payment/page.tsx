@@ -20,6 +20,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import api from "@/lib/api";
 import { useCart } from "@/context/cart-context";
+import { useAuth } from "@/context/AuthContext";
 import QRCode from "qrcode";
 
 type PaymentMethod = "RAZORPAY" | "COD" | "UPI";
@@ -40,7 +41,17 @@ declare global {
 
 export default function PaymentPage() {
   const router = useRouter();
-  const { clearCart } = useCart();
+  const { user, loading: authLoading } = useAuth();
+  const { clearCart, removeItemsFromCart } = useCart();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("redirect_after_login", "/payment");
+      }
+      router.replace("/login?redirect=/payment");
+    }
+  }, [authLoading, user, router]);
 
   const [checkoutData, setCheckoutData] =
     useState<any>(null);
@@ -649,7 +660,12 @@ useEffect(() => {
           setTimeout(resolve, 700)
       );
 
-      clearCart();
+      const purchasedItems = checkoutData?.items || checkoutData?.cart || [];
+      if (purchasedItems && purchasedItems.length > 0) {
+        removeItemsFromCart(purchasedItems);
+      } else {
+        clearCart();
+      }
 
       localStorage.removeItem(
         "checkoutData"
@@ -1057,7 +1073,12 @@ useEffect(() => {
     // CLEANUP
     // ========================================
 
-    clearCart();
+    const purchasedItems = checkoutData?.items || checkoutData?.cart || [];
+    if (purchasedItems && purchasedItems.length > 0) {
+      removeItemsFromCart(purchasedItems);
+    } else {
+      clearCart();
+    }
 
     localStorage.removeItem(
       "checkoutData"
@@ -1444,7 +1465,12 @@ useEffect(() => {
             setTimeout(resolve, 800)
         );
 
-        clearCart();
+        const purchasedItems = checkoutData?.items || checkoutData?.cart || [];
+        if (purchasedItems && purchasedItems.length > 0) {
+          removeItemsFromCart(purchasedItems);
+        } else {
+          clearCart();
+        }
 
         localStorage.removeItem(
           "checkoutData"

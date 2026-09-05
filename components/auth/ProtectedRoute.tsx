@@ -16,7 +16,13 @@ export default function ProtectedRoute({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/login");
+      if (typeof window !== "undefined") {
+        const currentPath = window.location.pathname + window.location.search;
+        sessionStorage.setItem("redirect_after_login", currentPath);
+        router.replace(`/login?redirect=${encodeURIComponent(currentPath)}`);
+      } else {
+        router.replace("/login");
+      }
     }
   }, [loading, user, router]);
 
