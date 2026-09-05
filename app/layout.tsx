@@ -1,4 +1,4 @@
-import { Inter, Cormorant_Garamond } from "next/font/google";
+import { Poppins, Bodoni_Moda } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/cart-context";
 import FloatingSocialButtons from "@/components/FloatingSocialButtons";
@@ -10,18 +10,19 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 // ========================================
-// Fonts
+// Fonts (Arshis-Inspired Typography System)
 // ========================================
 
-const inter = Inter({
+const poppins = Poppins({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-poppins",
   display: "swap",
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const cormorant = Cormorant_Garamond({
+const bodoniModa = Bodoni_Moda({
   subsets: ["latin"],
-  variable: "--font-cormorant",
+  variable: "--font-bodoni",
   display: "swap",
   weight: ["400", "500", "600", "700"],
 });
@@ -142,7 +143,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${cormorant.variable}`}
+        className={`${poppins.variable} ${bodoniModa.variable}`}
       >
         <AuthProvider>
           <CartProvider>

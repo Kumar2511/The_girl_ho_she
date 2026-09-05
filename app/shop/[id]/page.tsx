@@ -31,6 +31,7 @@ import {
   Video,
   Loader2,
   AlertTriangle,
+  Share2,
 } from "lucide-react";
 
 import api from "@/lib/api";
@@ -40,6 +41,7 @@ import ProductCard from "@/components/product-card";
 import { formatPrice } from "@/lib/utils";
 import CheckoutPaymentModal from "@/components/checkout/CheckoutPaymentModal";
 
+import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/cart-context";
 import { useWishlist } from "@/context/wishlist-context";
 import { useToast } from "@/context/toast-context";
@@ -50,6 +52,7 @@ export default function ProductDetailsPage() {
   const id = params.id as string;
   const router = useRouter();
 
+  const { user } = useAuth();
   const { addToCart } = useCart();
   const { showToast } = useToast();
 
@@ -671,7 +674,10 @@ const reviewVideoInputRef =
 
         sizes: data.sizes || [],
 
-        stock: data.stock || 0,
+        stock:
+          data.stock !== undefined && data.stock !== null
+            ? Number(data.stock)
+            : undefined,
 
         featured:
           data.featured || false,
@@ -786,6 +792,19 @@ const reviewVideoInputRef =
                 item.featured
                   ? "Featured"
                   : "",
+
+              stock:
+                item.stock !== undefined && item.stock !== null
+                  ? Number(item.stock)
+                  : undefined,
+
+              averageRating:
+                item.averageRating !== undefined ? Number(item.averageRating) : 0,
+
+              numReviews:
+                item.numReviews !== undefined
+                  ? Number(item.numReviews)
+                  : (item.totalReviews !== undefined ? Number(item.totalReviews) : 0),
             })
           );
 
@@ -1748,7 +1767,7 @@ const reviewVideoInputRef =
   // ==========================================
 
   const handleAddToCart = () => {
-    if (product.stock <= 0) return;
+    if (product.stock !== undefined && product.stock <= 0) return;
 
     const needColor = product.colors?.length > 0 && !selectedColor;
     const needSize = product.sizes?.length > 0 && !selectedSize;
@@ -1798,35 +1817,11 @@ const reviewVideoInputRef =
   };
 
   // ==========================================
-  // Wishlist
-  // ==========================================
-
-  const handleWishlist = () => {
-    if (favorite) {
-      removeFromWishlist(
-        product._id
-      );
-    } else {
-      addToWishlist({
-        _id: product._id,
-
-        name: product.name,
-
-        image:
-          product.images?.[0] ||
-          "/placeholder-product.jpg",
-
-        price: sellingPrice,
-      });
-    }
-  };
-
-  // ==========================================
   // Buy Now
   // ==========================================
 
   const handleBuyNow = () => {
-    if (product.stock <= 0) return;
+    if (product.stock !== undefined && product.stock <= 0) return;
 
     const needColor = product.colors?.length > 0 && !selectedColor;
     const needSize = product.sizes?.length > 0 && !selectedSize;
@@ -1854,11 +1849,112 @@ const reviewVideoInputRef =
 
     setOptionValidationError("");
 
+    // Silently add/persist product into Cart before proceeding to checkout
+    addToCart(
+      {
+        _id: product._id,
+        name: product.name,
+        image: product.images?.[0] || "/placeholder-product.jpg",
+        price: sellingPrice,
+        stock: product.stock,
+        quantity,
+        color: selectedColor,
+        size: selectedSize,
+      },
+      { silent: true }
+    );
+
     if (typeof window !== "undefined") {
       sessionStorage.setItem("checkout_origin", `/shop/${product._id}`);
     }
 
+    if (!user) {
+      showToast("Please log in to proceed to checkout.", "info");
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("redirect_after_login", "/checkout");
+      }
+      router.push("/login?redirect=/checkout");
+      return;
+    }
+
     setIsCheckoutModalOpen(true);
+  };
+
+  // ==========================================
+  // Close Checkout Modal & Reset PDP State
+  // ==========================================
+
+  const handleCloseCheckoutModal = () => {
+    setIsCheckoutModalOpen(false);
+    setSelectedColor("");
+    setSelectedSize("");
+    setPincode("");
+    setDeliveryMessage("");
+    setOptionValidationError("");
+    setQuantity(1);
+  };
+
+  // ==========================================
+  // Product Share Feature
+  // ==========================================
+
+  const handleShareProduct = async () => {
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+    const shareData = {
+      title: product?.name || "The Girl House",
+      text: `Check out ${product?.name || "this item"} at The Girl House!`,
+      url: shareUrl,
+    };
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (error: any) {
+        if (error?.name !== "AbortError") {
+          copyToClipboard(shareUrl);
+        }
+      }
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Product link copied to clipboard!", "success");
+      }).catch(() => {
+        showToast("Failed to copy link.", "error");
+      });
+    } else if (typeof document !== "undefined") {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        showToast("Product link copied to clipboard!", "success");
+      } catch (err) {
+        showToast("Failed to copy link.", "error");
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  // ==========================================
+  // Specifications Smooth Scroll
+  // ==========================================
+
+  const handleScrollToSpecifications = () => {
+    setActiveTab("specifications");
+    setTimeout(() => {
+      const el = document.getElementById("product-tabs-section");
+      if (el) {
+        const yOffset = -90;
+        const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: "smooth" });
+      }
+    }, 50);
   };
 
   // ==========================================
@@ -2452,21 +2548,19 @@ const checkDelivery = async () => {
 
               {/* Product Name */}
 
-              <h1 className="mt-2 max-w-xl text-3xl font-medium leading-[1.12] tracking-[-0.02em] text-[#2E2E2E] sm:text-4xl">
+              <h1 className="mt-2 max-w-xl font-serif text-[22px] sm:text-[26px] lg:text-[28px] font-normal leading-[1.25] tracking-tight text-[#252525]">
                 {product.name}
               </h1>
 
-              {/* Collection */}
+              {/* Collection / SKU */}
 
-              {product.collection && (
-                <p className="mt-2 text-sm text-[#8A6A62]">
-                  {product.collection}
-                </p>
-              )}
+              <p className="mt-1 text-xs font-normal text-[#505655]">
+                {product.collection || product.sku ? `SKU: ${product.sku || product._id?.slice(-8)}` : null}
+              </p>
 
               {/* Rating */}
 
-              <div className="mt-5 flex flex-wrap items-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
 
                 <div className="flex items-center gap-0.5">
 
@@ -2494,7 +2588,7 @@ const checkDelivery = async () => {
 
                 </div>
 
-                <span className="text-sm font-medium text-[#444]">
+                <span className="text-sm font-medium text-[#252525]">
                   {averageRating >
                   0
                     ? averageRating.toFixed(
@@ -2510,7 +2604,7 @@ const checkDelivery = async () => {
                       "reviews"
                     )
                   }
-                  className="text-sm text-gray-500 underline-offset-4 hover:underline"
+                  className="text-sm text-[#505655] underline-offset-4 hover:underline"
                 >
                   {totalReviews}{" "}
                   Reviews
@@ -2518,25 +2612,25 @@ const checkDelivery = async () => {
 
               </div>
 
-              <div className="my-6 h-px bg-[#E8E0DB]" />
+              <div className="my-5 h-px bg-[#E8E0DB]" />
 
               {/* PRICE */}
 
-              <div className="mt-6">
+              <div className="mt-5">
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-baseline gap-3">
 
-                  <span className="font-serif text-3xl font-bold tracking-tight text-[#2E2E2E]">
+                  <span className="font-sans text-[18px] sm:text-[20px] font-medium tracking-normal text-[#252525]">
                     {formatPrice(sellingPrice)}
                   </span>
 
                   {hasDiscount && (
                     <>
-                      <span className="text-base text-gray-400 line-through">
+                      <span className="font-sans text-[14px] sm:text-[15px] font-normal text-[#505655]/70 line-through">
                         {formatPrice(product.price)}
                       </span>
 
-                      <span className="rounded-full bg-[#F4E4E0] px-3 py-1 text-xs font-semibold text-[#A65E55]">
+                      <span className="rounded-full bg-[#FAF4F0] border border-[#E8DFD9] px-2.5 py-0.5 text-xs font-medium text-[#CB8161]">
                         Save {discount}%
                       </span>
                     </>
@@ -2544,7 +2638,7 @@ const checkDelivery = async () => {
 
                 </div>
 
-                <p className="mt-2 text-xs text-[#8B817D]">
+                <p className="mt-1.5 text-xs text-[#505655]">
                   Inclusive of applicable taxes
                 </p>
 
@@ -2568,41 +2662,26 @@ const checkDelivery = async () => {
               {/* STOCK */}
 
               <div className="mt-5">
-
-                {product.stock >
-                0 ? (
-
-                  <div className="flex items-center gap-3">
-
-                    <span className="flex items-center gap-2 text-sm font-medium text-[#55734E]">
-
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#6C9A72]" />
-
-                      In Stock
-
-                    </span>
-
-                    {product.stock <=
-                      5 && (
-
-                      <span className="text-xs font-medium text-[#A65E55]">
-                        Only{" "}
-                        {
-                          product.stock
-                        }{" "}
-                        left
-                      </span>
-                    )}
-
-                  </div>
-
-                ) : (
-
+                {product.stock !== undefined && product.stock <= 0 ? (
                   <span className="font-medium text-red-600">
                     Currently unavailable
                   </span>
-                )}
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-2 text-sm font-medium text-[#55734E]">
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#6C9A72]" />
+                      In Stock
+                    </span>
 
+                    {product.stock !== undefined &&
+                      product.stock > 0 &&
+                      product.stock <= 5 && (
+                        <span className="text-xs font-medium text-[#A65E55]">
+                          Only {product.stock} left
+                        </span>
+                      )}
+                  </div>
+                )}
               </div>
 
               {/* COLOR */}
@@ -2674,11 +2753,7 @@ const checkDelivery = async () => {
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setActiveTab(
-                          "specifications"
-                        )
-                      }
+                      onClick={handleScrollToSpecifications}
                       className="text-xs font-medium text-[#CB8161] underline underline-offset-4"
                     >
                       View Size Information
@@ -2767,7 +2842,7 @@ const checkDelivery = async () => {
               </div>
 
               {/* DELIVERY CHECK (ABOVE ACTIONS) */}
-              {product.stock > 0 && (
+              {(product.stock === undefined || product.stock > 0) && (
                 <div className="mt-6 w-full max-w-full overflow-hidden border-t border-[#E8E0DB] pt-5">
                   <div className="mb-3 flex items-start gap-2.5 min-w-0">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F8EEE9]">
@@ -2862,7 +2937,7 @@ const checkDelivery = async () => {
                   </div>
                 )}
 
-                {product.stock > 0 ? (
+                {product.stock === undefined || product.stock > 0 ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {/* ADD TO CART */}
                     <button
@@ -2909,6 +2984,18 @@ const checkDelivery = async () => {
                     className="text-[#C78B7B]"
                   />
                   Secure checkout · Carefully packed · Easy returns
+                </div>
+
+                {/* SHARE PRODUCT */}
+                <div className="mt-4 flex items-center justify-center border-t border-[#E8E0DB] pt-4">
+                  <button
+                    type="button"
+                    onClick={handleShareProduct}
+                    className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#3A2528] transition hover:text-[#CB8161]"
+                  >
+                    <Share2 size={16} />
+                    Share Product
+                  </button>
                 </div>
               </div>
 
@@ -2967,7 +3054,7 @@ const checkDelivery = async () => {
             DESCRIPTION / SPECS / REVIEWS
         ====================================== */}
 
-        <section className="border-t border-[#E8E0DB] bg-white">
+        <section id="product-tabs-section" className="border-t border-[#E8E0DB] bg-white">
 
           <div className="mx-auto max-w-6xl px-5 py-14 lg:px-8">
 
@@ -4464,7 +4551,7 @@ const checkDelivery = async () => {
 )}
       <CheckoutPaymentModal
         isOpen={isCheckoutModalOpen}
-        onClose={() => setIsCheckoutModalOpen(false)}
+        onClose={handleCloseCheckoutModal}
         directItems={
           product
             ? [

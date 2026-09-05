@@ -124,14 +124,15 @@ export default function ProductCard({
   // ======================================
 
   const currentStock =
-    Number(product.stock ?? 0);
+    product.stock !== undefined && product.stock !== null
+      ? Number(product.stock)
+      : undefined;
 
   const isOutOfStock =
-    currentStock <= 0;
+    currentStock !== undefined ? currentStock <= 0 : false;
 
   const isLowStock =
-    currentStock > 0 &&
-    currentStock <= 3;
+    currentStock !== undefined && currentStock > 0 && currentStock <= 3;
 
   // ======================================
   // Wishlist
@@ -173,7 +174,7 @@ export default function ProductCard({
       name,
       image,
       price,
-      stock: currentStock,
+      stock: currentStock ?? 0,
       quantity: 1,
     });
   };
@@ -450,7 +451,7 @@ export default function ProductCard({
           </p>
 
           <Link href={`/shop/${id}`}>
-            <h3 className="line-clamp-2 font-serif text-[16px] sm:text-[18px] font-medium leading-snug text-[#2E2927] transition-colors duration-200 group-hover:text-[#C78B7B]">
+            <h3 className="line-clamp-2 font-sans text-[13px] sm:text-[15px] font-medium leading-snug text-[#252525] transition-colors duration-200 group-hover:text-[#CB8161]">
               {name}
             </h3>
           </Link>
@@ -458,19 +459,19 @@ export default function ProductCard({
           {/* Rating */}
 
           {numReviews > 0 ? (
-            <div className="flex items-center gap-1.5 text-xs text-[#777]">
+            <div className="flex items-center gap-1.5 text-xs text-[#505655]">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
 
-              <span className="text-xs font-semibold text-[#3A2528]">
+              <span className="text-xs font-medium text-[#252525]">
                 {averageRating.toFixed(1)}
               </span>
 
-              <span className="text-[11px] text-[#999]">
+              <span className="text-[11px] text-[#505655]/70">
                 ({numReviews})
               </span>
             </div>
           ) : (
-            <div className="text-[11px] text-[#AAA] italic">
+            <div className="text-[11px] text-[#505655]/60 italic">
               No reviews yet
             </div>
           )}
@@ -478,12 +479,12 @@ export default function ProductCard({
           {/* Price */}
 
           <div className="mt-auto flex flex-wrap items-baseline gap-2 border-t border-[#F5EBE6] pt-2">
-            <span className="font-serif text-base sm:text-lg font-bold tracking-tight text-[#3A2528]">
+            <span className="font-sans text-[14px] sm:text-[16px] font-medium tracking-normal text-[#252525]">
               {formatPrice(price)}
             </span>
 
             {originalPrice > price && (
-              <span className="text-xs font-normal text-[#9E8B85] line-through">
+              <span className="text-xs font-normal text-[#505655]/70 line-through">
                 {formatPrice(originalPrice)}
               </span>
             )}
@@ -504,11 +505,11 @@ export default function ProductCard({
                 {currentStock} left
                 in stock
               </p>
-            ) : (
+            ) : currentStock !== undefined && currentStock > 0 ? (
               <p className="text-xs font-medium text-emerald-700">
                 In Stock
               </p>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
