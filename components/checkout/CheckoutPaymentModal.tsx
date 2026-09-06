@@ -515,7 +515,7 @@ export default function CheckoutPaymentModal({
 
       const res = await api.post("/coupons/apply", {
         code: couponCode.trim(),
-        subtotal,
+        totalAmount: subtotal,
       });
 
       if (res.data?.success || res.data?.discount) {
