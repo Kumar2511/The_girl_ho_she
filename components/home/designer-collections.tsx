@@ -117,10 +117,10 @@ export default function DesignerCollections() {
       "https://images.pexels.com/photos/6716446/pexels-photo-6716446.jpeg",
     Chains:
       "https://images.pexels.com/photos/14111395/pexels-photo-14111395.jpeg",
-    "Jewellry Sets":
+    "Jewellery Sets":
       "https://images.pexels.com/photos/9173459/pexels-photo-9173459.jpeg",
-    Necklaces:
-      "https://images.pexels.com/photos/14856437/pexels-photo-14856437.jpeg",
+   Necklaces:
+  "https://images.pexels.com/photos/3641064/pexels-photo-3641064.jpeg",
   }[category.name] || category.image || "/products/necklace-1.png"
 }
                   alt={category.name}

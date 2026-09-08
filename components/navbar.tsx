@@ -32,9 +32,7 @@ import FindProductButton from "@/components/shop/FindProductButton";
 
 const navLinks = [
   { name: "Home", href: "/" },
-  { name: "Shop All", href: "/shop" },
-  { name: "Antique Jewellery", href: "/shop" },
-  { name: "Collections", href: "/collections" },
+  { name: "Grab your jewelles", href: "/shop" },
   { name: "Reviews", href: "/reviews" },
 ];
 
@@ -776,30 +774,36 @@ export default function Navbar() {
                 CENTER — BRAND LOGO (SUBTITLE REMOVED)
             ================================================= */}
 
-           <Link
+          <Link
   href="/"
   onClick={closeMobileMenu}
   className="
     absolute
     left-1/2
     top-1/2
+    z-20
+    flex
+    h-[58px]
+    w-[150px]
     -translate-x-1/2
     -translate-y-1/2
-    flex
     items-center
     justify-center
+    overflow-hidden
+    sm:h-[68px]
+    sm:w-[170px]
   "
 >
   <img
-  src="/the-girl-house-icon-2.png"
-  alt="The Girl House"
-  className="
-    w-[115px]
-    h-auto
-    object-contain
-    sm:w-[165px]
-  "
-/>
+    src="/the-girl-house-icon.png"
+    alt="The Girl House"
+    className="
+      block
+      h-full
+      w-full
+      object-contain
+    "
+  />
 </Link>
             {/* =================================================
                 RIGHT SIDE
@@ -1850,7 +1854,7 @@ export default function Navbar() {
                             className="flex w-full items-center justify-between border-b border-[#F3ECE7] py-3.5 text-[14px] font-medium text-[#3A302D]"
                           >
                             <span className="flex items-center gap-2">
-                              <span>Antique Jewellery</span>
+                              <span>Grab Your Jewells </span>
                               <span className="rounded-full bg-[#F5EBE6] px-2 py-0.5 text-[10px] font-bold text-[#C78B7B]">
                                 Explore
                               </span>
