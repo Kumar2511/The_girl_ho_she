@@ -367,7 +367,9 @@ export default function MyOrdersPage() {
               </p>
               <Link
                 href="/shop"
-                className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-8 text-xs font-semibold uppercase tracking-wider text-white hover:bg-[#CB8161]"
+                className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#C98C78] px-8 text-xs font-medium uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B]"
+                                        style={{ color: "#FFFFFF" }}
+
               >
                 Explore Shop <ArrowRight size={14} />
               </Link>

@@ -111,25 +111,28 @@ export default function ReviewsPage() {
     };
   }, [reviews]);
 
+  const [ratingFilter, setRatingFilter] = useState<number | "all">("all");
+
   // ==========================================
-  // SEARCH
+  // SEARCH & RATING FILTER
   // ==========================================
 
   const filteredReviews = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    if (!query) {
-      return reviews;
-    }
-
     return reviews.filter((review) => {
-      return (
+      const matchesSearch =
+        !query ||
         review.customerName?.toLowerCase().includes(query) ||
         review.comment?.toLowerCase().includes(query) ||
-        review.product?.name?.toLowerCase().includes(query)
-      );
+        review.product?.name?.toLowerCase().includes(query);
+
+      const matchesRating =
+        ratingFilter === "all" || Number(review.rating) === ratingFilter;
+
+      return matchesSearch && matchesRating;
     });
-  }, [reviews, search]);
+  }, [reviews, search, ratingFilter]);
 
   // ==========================================
   // LOADING
@@ -172,7 +175,7 @@ export default function ReviewsPage() {
 
           <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-[#806F64] sm:text-base">
             Discover what our customers have to say about
-            their experience with The Girl Who She.
+            their experience with THE GIRL HOUSE.
           </p>
 
         </div>
@@ -283,21 +286,40 @@ export default function ReviewsPage() {
             </h2>
           </div>
 
-          {/* Search */}
+          {/* Search & Rating Filter Controls */}
 
-          <div className="relative w-full sm:w-[260px]">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
 
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A887C]" />
+            {/* Search Input */}
+            <div className="relative w-full sm:w-[240px]">
+              <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A887C]" />
+              <input
+                type="text"
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+                placeholder="Search reviews"
+                className="h-10 w-full rounded-xl border border-[#EFE8DE] bg-[#FAF7F2] pl-10 pr-4 text-xs font-medium text-[#4A3428] outline-none placeholder:text-[#9A887C] focus:border-[#C98C78]"
+              />
+            </div>
 
-            <input
-              type="text"
-              value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
+            {/* Rating Filter Dropdown */}
+            <select
+              value={ratingFilter}
+              onChange={(e) =>
+                setRatingFilter(e.target.value === "all" ? "all" : Number(e.target.value))
               }
-              placeholder="Search reviews"
-              className="h-10 w-full rounded-none border border-[#DED2C9] bg-white pl-10 pr-4 text-xs text-[#40362F] outline-none placeholder:text-[#AA9990] focus:border-[#B77D64]"
-            />
+              aria-label="Filter reviews by rating"
+              className="h-10 w-full sm:w-auto rounded-xl border border-[#EFE8DE] bg-[#FAF7F2] px-4 text-xs font-medium text-[#4A3428] outline-none focus:border-[#C98C78] cursor-pointer"
+            >
+              <option value="all">All Reviews ({reviews.length})</option>
+              <option value={5}>5 Stars ({ratingCounts[5]})</option>
+              <option value={4}>4 Stars ({ratingCounts[4]})</option>
+              <option value={3}>3 Stars ({ratingCounts[3]})</option>
+              <option value={2}>2 Stars ({ratingCounts[2]})</option>
+              <option value={1}>1 Star ({ratingCounts[1]})</option>
+            </select>
 
           </div>
 

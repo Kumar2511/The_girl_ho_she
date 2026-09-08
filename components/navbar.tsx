@@ -24,6 +24,7 @@ import { useWishlist } from "@/context/wishlist-context";
 import { useAuth } from "@/context/AuthContext";
 import CartDrawer from "@/components/cart-drawer";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import FindProductButton from "@/components/shop/FindProductButton";
 
 /* =========================================================
    NAVIGATION
@@ -144,6 +145,8 @@ export default function Navbar() {
 
   const [search, setSearch] =
     useState("");
+
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const [products, setProducts] =
     useState<Product[]>([]);
@@ -652,8 +655,8 @@ export default function Navbar() {
           z-[250]
           w-full
           border-b
-          border-[#EEE5DE]
-          bg-white
+          border-[#EFE8DE]
+          bg-[#FAF7F2]
         "
       >
 
@@ -685,20 +688,18 @@ export default function Navbar() {
 
             {/* =================================================
                 MOBILE LEFT SIDE
-                MENU + SEARCH
+                MENU + SEARCH ONLY
             ================================================= */}
 
             <div
               className="
                 flex
                 items-center
-                gap-1
+                gap-0.5
                 lg:hidden
               "
             >
-
               {/* MOBILE MENU */}
-
               <button
                 type="button"
                 onClick={toggleMobileMenu}
@@ -709,57 +710,40 @@ export default function Navbar() {
                 }
                 className="
                   flex
-                  h-10
-                  w-10
+                  h-9
+                  w-9
                   items-center
                   justify-center
                   text-[#3A302D]
                   transition
-                  hover:text-[#A86C58]
+                  hover:text-[#C98C78]
                 "
               >
                 {isMobileVisible ? (
-                  <X
-                    className="
-                      h-5
-                      w-5
-                    "
-                  />
+                  <X className="h-[18px] w-[18px]" />
                 ) : (
-                  <Menu
-                    className="
-                      h-5
-                      w-5
-                    "
-                  />
+                  <Menu className="h-[18px] w-[18px]" />
                 )}
               </button>
 
               {/* MOBILE SEARCH */}
-
               <button
                 type="button"
                 onClick={openSearch}
                 aria-label="Search jewellery"
                 className="
                   flex
-                  h-10
-                  w-10
+                  h-9
+                  w-9
                   items-center
                   justify-center
                   text-[#3A302D]
                   transition
-                  hover:text-[#A86C58]
+                  hover:text-[#C98C78]
                 "
               >
-                <Search
-                  className="
-                    h-[18px]
-                    w-[18px]
-                  "
-                />
+                <Search className="h-[17px] w-[17px]" />
               </button>
-
             </div>
 
             {/* =================================================
@@ -767,98 +751,59 @@ export default function Navbar() {
                 LEFT SIDE OF LOGO
             ================================================= */}
 
-            <button
-              type="button"
-              onClick={openSearch}
-              aria-label="Search jewellery"
-              className="
-                hidden
-                h-10
-                w-10
-                items-center
-                justify-center
-                text-[#3A302D]
-                transition
-                hover:text-[#A86C58]
-                lg:flex
-              "
-            >
-              <Search
-                className="
-                  h-[18px]
-                  w-[18px]
-                "
-              />
-            </button>
-
-            {/* =================================================
-                CENTER — BRAND
-            ================================================= */}
-
-            <Link
-              href="/"
-              onClick={closeMobileMenu}
-              className="
-                absolute
-                left-1/2
-                top-1/2
-                -translate-x-1/2
-                -translate-y-1/2
-                text-center
-              "
-            >
-              <div
+            <div className="hidden lg:flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={openSearch}
+                aria-label="Search jewellery"
+                title="Search catalogue"
                 className="
                   flex
-                  flex-col
+                  h-9
+                  w-9
                   items-center
+                  justify-center
+                  text-[#3A302D]
+                  transition
+                  hover:text-[#C98C78]
                 "
               >
-
-                <span
-                  className="
-                    mb-0.5
-                    text-[11px]
-                    leading-none
-                    text-[#C98F7B]
-                  "
-                >
-                  ✦
-                </span>
-
-                <span
-                  className="
-                    whitespace-nowrap
-                    font-serif
-                    text-[18px]
-                    leading-none
-                    tracking-[-0.02em]
-                    text-[#5A3542]
-                    sm:text-[24px]
-                  "
-                >
-                  The_girl_ho_se
-                </span>
-
-                <span
-                  className="
-                    mt-1
-                    text-[6px]
-                    uppercase
-                    tracking-[0.3em]
-                    text-[#9A7B70]
-                    sm:text-[8px]
-                  "
-                >
-                  Jewellery
-                </span>
-
-              </div>
-            </Link>
+                <Search className="h-[18px] w-[18px]" />
+              </button>
+            </div>
 
             {/* =================================================
+                CENTER — BRAND LOGO (SUBTITLE REMOVED)
+            ================================================= */}
+
+           <Link
+  href="/"
+  onClick={closeMobileMenu}
+  className="
+    absolute
+    left-1/2
+    top-1/2
+    -translate-x-1/2
+    -translate-y-1/2
+    flex
+    items-center
+    justify-center
+  "
+>
+  <img
+  src="/the-girl-house-icon-2.png"
+  alt="The Girl House"
+  className="
+    w-[115px]
+    h-auto
+    object-contain
+    sm:w-[165px]
+  "
+/>
+</Link>
+            {/* =================================================
                 RIGHT SIDE
-                WISHLIST + ACCOUNT + CART
+                WISHLIST -> FIND YOUR PRODUCT -> CART
             ================================================= */}
 
             <div
@@ -866,65 +811,14 @@ export default function Navbar() {
                 ml-auto
                 flex
                 items-center
-                gap-1
+                gap-0.5
+                sm:gap-1
               "
             >
+             
 
-              {/* =================================================
-                  WISHLIST
-              ================================================= */}
-
-              <Link
-                href="/wishlist"
-                onClick={() => {
-                  closeMobileMenu();
-                  setCategoriesOpen(false);
-                  setAccountSectionOpen(false);
-                }}
-                aria-label="Wishlist"
-                className="
-                  relative
-                  flex
-                  h-10
-                  w-10
-                  items-center
-                  justify-center
-                  text-[#3A302D]
-                  transition
-                  hover:text-[#A86C58]
-                "
-              >
-                <Heart
-                  className="
-                    h-[18px]
-                    w-[18px]
-                  "
-                />
-
-                {wishlistCount >
-                  0 && (
-                  <span
-                    className="
-                      absolute
-                      right-0.5
-                      top-0.5
-                      flex
-                      h-[16px]
-                      min-w-[16px]
-                      items-center
-                      justify-center
-                      rounded-full
-                      bg-[#CB8161]
-                      px-1
-                      text-[8px]
-                      font-bold
-                      text-white
-                    "
-                  >
-                    {wishlistCount}
-                  </span>
-                )}
-              </Link>
+              {/* FIND YOUR PRODUCT (VISUAL SEARCH CAMERA LENS) - BETWEEN WISHLIST & CART */}
+              <FindProductButton isNavbarTrigger={true} />
 
               {/* =================================================
                   DESKTOP ACCOUNT

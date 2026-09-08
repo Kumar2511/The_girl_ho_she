@@ -61,7 +61,7 @@ export default function VipSubscribe() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-4 flex w-full flex-col gap-3 sm:flex-row sm:items-center"
+      className="mt-4 flex w-full flex-col items-center gap-4"
     >
       <input
         type="email"
@@ -71,14 +71,14 @@ export default function VipSubscribe() {
         }
         placeholder="Enter your email address"
         disabled={loading}
-        className="h-12 sm:h-13 w-full flex-1 rounded-xl border border-[#DCD3CE] bg-white px-4 py-3 text-sm text-[#2E2E2E] outline-none placeholder:text-[#888] shadow-xs transition focus:border-[#CB8161] focus:ring-2 focus:ring-[#CB8161]/10 disabled:opacity-60"
+        className="h-12 w-full rounded-xl border border-[#EFE8DE] bg-white px-4 py-3 text-sm text-[#4A3428] outline-none placeholder:text-[#9E8E84] shadow-xs transition focus:border-[#C98C78] focus:ring-2 focus:ring-[#C98C78]/10 disabled:opacity-60"
         required
       />
 
       <button
         type="submit"
         disabled={loading}
-        className="h-12 sm:h-13 w-full sm:w-auto shrink-0 rounded-xl bg-[#1F1F1F] px-7 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        className="h-12 w-full max-w-[220px] rounded-xl bg-[#C98C78] px-8 text-sm font-medium tracking-wide text-white shadow-md transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading
           ? "Subscribing..."

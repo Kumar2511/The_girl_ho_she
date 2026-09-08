@@ -325,7 +325,7 @@ export default function CartPage() {
 
                 <Link
                   href="/shop"
-                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#3A2528] px-8 text-sm font-semibold text-white transition hover:bg-[#29181B]"
+                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#C98C78] px-8 text-sm font-medium text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B]"
                 >
                   Continue Shopping
 
@@ -759,7 +759,7 @@ export default function CartPage() {
                             router.push("/login?redirect=/checkout");
                           }
                         }}
-                        className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                        className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#C98C78] px-5 text-xs font-medium uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98]"
                       >
                         Proceed to Checkout
 

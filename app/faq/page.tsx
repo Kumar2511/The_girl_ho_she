@@ -12,7 +12,7 @@ import {
 export const metadata = {
   title: "Frequently Asked Questions",
   description:
-    "Frequently asked questions about shipping, delivery, returns and exchanges at the_girl_ho_se.",
+    "Frequently asked questions about shipping, delivery, returns and exchanges at THE GIRL HOUSE.",
 };
 
 const faqs = [

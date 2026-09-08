@@ -194,14 +194,14 @@ export default function AddAddressPage() {
                   type="button"
                   onClick={saveAddress}
                   disabled={loading}
-                  className="flex-1 rounded-md bg-[#1F1F1F] py-3 text-xs font-semibold uppercase tracking-wider text-white shadow-md transition-all duration-300 hover:bg-[#CB8161] disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-[#C98C78] py-3 text-xs font-medium uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] disabled:opacity-60"
                 >
                   {loading ? "Saving..." : "Save Address"}
                 </button>
                 <button
                   type="button"
                   onClick={() => router.push("/account/addresses")}
-                  className="rounded-md border border-[#DCD3CE] px-6 py-3 text-xs font-semibold text-[#2E2E2E] transition hover:bg-gray-50"
+                  className="rounded-xl border border-[#EFE8DE] bg-[#FAF7F2] px-6 py-3 text-xs font-medium text-[#4A3428] transition hover:bg-[#F3ECE1]"
                 >
                   Cancel
                 </button>

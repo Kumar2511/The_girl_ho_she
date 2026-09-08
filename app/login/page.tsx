@@ -265,7 +265,7 @@ function LoginFormContent() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#3A2528] text-sm font-semibold text-white transition-all duration-200 hover:bg-[#C78B7B] disabled:cursor-not-allowed disabled:opacity-60 shadow-md"
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#C98C78] text-sm font-medium text-white transition-all duration-200 hover:bg-[#B5776B] disabled:cursor-not-allowed disabled:opacity-60 shadow-xs"
             >
               {loading ? (
                 <>

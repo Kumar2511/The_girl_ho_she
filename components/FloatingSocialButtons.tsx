@@ -247,12 +247,7 @@ export default function FloatingSocialButtons() {
         </div>
       )}
 
-      {/* ========================================================
-          RIGHT SIDE — FIND PRODUCT + COMBINED COMM BUTTON
-      ======================================================== */}
       <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-3">
-        {/* Find My Product */}
-        {showFindProduct && <FindProductButton />}
 
         {/* Combined Communication Button */}
         {showCommButtons && (

@@ -127,7 +127,7 @@ export default function ShopContainer() {
           image:
             product.images?.length > 0
               ? product.images[0]
-              : "/hero-jewelry.png",
+              : "/hero-jewelery.png",
 
           imageAlt: product.name,
 
@@ -138,9 +138,25 @@ export default function ShopContainer() {
 
           currency: "INR",
 
-          rating: 4.8,
+          rating:
+            product.averageRating !== undefined
+              ? product.averageRating
+              : product.rating || 0,
 
-          reviewCount: 125,
+          reviewCount:
+            product.numReviews !== undefined
+              ? product.numReviews
+              : product.reviews || 0,
+
+          averageRating:
+            product.averageRating !== undefined
+              ? product.averageRating
+              : product.rating || 0,
+
+          numReviews:
+            product.numReviews !== undefined
+              ? product.numReviews
+              : product.reviews || 0,
 
           isBestseller:
             product.bestSeller,

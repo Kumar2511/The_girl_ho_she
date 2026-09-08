@@ -119,7 +119,7 @@ export default function SecurityForm() {
         <button
           type="submit"
           disabled={loading}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[#1F1F1F] text-xs font-semibold uppercase tracking-wider text-white shadow-md transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98] disabled:opacity-60"
+          className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#C98C78] text-xs font-medium uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98] disabled:opacity-60"
         >
           {loading ? "Updating Password..." : "Update Password"}
         </button>

@@ -30,14 +30,14 @@ export default function Footer() {
               className="inline-block"
             >
               <span className="font-serif text-2xl tracking-wide text-[#2E2927] sm:text-3xl">
-                The Girl Ho She
+                The Girl House
               </span>
             </Link>
 
             <p className="mt-4 max-w-sm text-sm leading-7 text-[#665E59] sm:mt-5">
               Beautiful jewellery crafted to celebrate
               your style, your moments and every version
-              of the girl Ho she is.
+              of the Girl House.
             </p>
 
             {/* Contact information */}

@@ -32,15 +32,15 @@ const bodoniModa = Bodoni_Moda({
 // ========================================
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://thegirlhose.com"),
+  metadataBase: new URL("https://the-girl-ho-she.vercel.app"),
 
   title: {
-    default: "the_girl_ho_se",
-    template: "%s | the_girl_ho_se",
+    default: "THE GIRL HOUSE",
+    template: "%s | THE GIRL HOUSE",
   },
 
   description:
-    "Discover premium artificial jewellery including necklaces, earrings, bracelets, rings and exclusive collections at the_girl_ho_se.",
+    "Discover premium artificial jewellery including necklaces, earrings, bracelets, rings and exclusive collections at THE GIRL HOUSE.",
 
   keywords: [
     "Artificial Jewellery",
@@ -52,18 +52,17 @@ export const metadata: Metadata = {
     "Rose Gold Jewellery",
     "Fashion Jewellery",
     "Premium Jewellery",
-    "the_girl_ho_se",
+    "THE GIRL HOUSE",
   ],
 
   authors: [
     {
-      name: "the_girl_ho_se",
+      name: "THE GIRL HOUSE",
     },
   ],
 
-  creator: "the_girl_ho_se",
-
-  publisher: "the_girl_ho_se",
+  creator: "THE GIRL HOUSE",
+  publisher: "THE GIRL HOUSE",
 
   robots: {
     index: true,
@@ -73,50 +72,41 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://thegirlhose.com",
-    siteName: "the_girl_ho_se",
-    title: "the_girl_ho_se | Premium Artificial Jewelry",
+    url: "https://the-girl-ho-she.vercel.app",
+    siteName: "THE GIRL HOUSE",
+    title: "THE GIRL HOUSE | Premium Artificial Jewelry",
     description:
       "Premium artificial jewellery crafted for every beautiful moment.",
-
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "the_girl_ho_se",
+        alt: "THE GIRL HOUSE",
       },
     ],
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "the_girl_ho_se | Premium Artificial Jewelry",
+    title: "THE GIRL HOUSE | Premium Artificial Jewelry",
     description:
       "Premium artificial jewellery crafted for every beautiful moment.",
-
     images: ["/og-image.jpg"],
   },
 
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/the-girl-house-icon.png",
+        type: "image/png",
+        sizes: "32x32",
       },
     ],
 
-    apple: "/apple-icon.png",
+    apple: "/the-girl-house-icon.png",
 
-    shortcut: "/favicon.ico",
+    shortcut: "/the-girl-house-icon.png",
   },
 };
 

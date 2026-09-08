@@ -50,77 +50,78 @@
 :root {
   color-scheme: light;
 
-  /* ==========================================
-     THE GIRL HO SHE — CLEAN JEWELLERY PALETTE
+  /* =============  /* ==========================================
+     THE GIRL HOUSE — VISUAL IDENTITY PALETTE
      ========================================== */
 
-  --background: #FFFFFF;
-  --foreground: #1F1F1F;
+  --background: #F7F3EA;
+  --foreground: #4A3428;
 
   --card: #FFFFFF;
-  --card-foreground: #1F1F1F;
+  --card-foreground: #4A3428;
 
   --popover: #FFFFFF;
-  --popover-foreground: #1F1F1F;
+  --popover-foreground: #4A3428;
 
-  --primary: #1F1F1F;
+  --primary: #4A3428;
   --primary-foreground: #FFFFFF;
 
-  --secondary: #F7F7F7;
-  --secondary-foreground: #1F1F1F;
+  --secondary: #FAF7F2;
+  --secondary-foreground: #4A3428;
 
-  --muted: #F8F8F8;
-  --muted-foreground: #666666;
+  --muted: #F3EDE3;
+  --muted-foreground: #7A685D;
 
-  --accent: #1F1F1F;
+  --accent: #C98C78;
   --accent-foreground: #FFFFFF;
 
   --destructive: #C62828;
 
-  --border: #E6E6E6;
+  --border: #EFE8DE;
   --input: #FFFFFF;
-  --ring: #1F1F1F;
+  --ring: #C98C78;
 
-  --chart-1: #1F1F1F;
-  --chart-2: #666666;
-  --chart-3: #999999;
-  --chart-4: #CCCCCC;
-  --chart-5: #E6E6E6;
+  --chart-1: #4A3428;
+  --chart-2: #C98C78;
+  --chart-3: #C8A96B;
+  --chart-4: #7A685D;
+  --chart-5: #EFE8DE;
 
   --radius: 0.5rem;
 
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1F1F1F;
-  --sidebar-primary: #1F1F1F;
+  --sidebar-foreground: #4A3428;
+  --sidebar-primary: #4A3428;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F8F8F8;
-  --sidebar-accent-foreground: #1F1F1F;
-  --sidebar-border: #E6E6E6;
-  --sidebar-ring: #1F1F1F;
+  --sidebar-accent: #FAF7F2;
+  --sidebar-accent-foreground: #4A3428;
+  --sidebar-border: #EFE8DE;
+  --sidebar-ring: #C98C78;
 
   /* ==========================================
-     JEWELRY DESIGN SYSTEM TOKENS & ARSHIS TYPOGRAPHY
+     JEWELRY DESIGN SYSTEM TOKENS & TYPOGRAPHY
      ========================================== */
   --font-body-family: var(--font-poppins), Poppins, system-ui, -apple-system, sans-serif;
   --font-heading-family: var(--font-bodoni), "Bodoni Moda", Georgia, serif;
 
-  --color-text-primary: #252525;
-  --color-text-body: rgba(37, 37, 37, 0.75);
-  --color-text-secondary: #505655;
-  --color-text-muted: rgba(37, 37, 37, 0.55);
-  --color-border-subtle: rgba(37, 37, 37, 0.10);
+  --color-text-primary: #4A3428;
+  --color-text-body: rgba(74, 52, 40, 0.82);
+  --color-text-secondary: #7A685D;
+  --color-text-muted: rgba(74, 52, 40, 0.55);
+  --color-border-subtle: #EFE8DE;
 
-  --color-button-dark: #2C332F;
-  --color-brand-accent: #CB8161;
+  --color-button-dark: #4A3428;
+  --color-brand-accent: #C98C78;
+  --color-brand-gold: #C8A96B;
 
-  --jewelry-primary: #252525;
-  --jewelry-accent: #CB8161;
-  --jewelry-accent-hover: #B56F50;
-  --jewelry-bg: #FFFFFF;
-  --jewelry-bg-warm: #FCFAF7;
-  --jewelry-text-dark: #252525;
-  --jewelry-text-muted: #505655;
-  --jewelry-border-light: rgba(37, 37, 37, 0.10);
+  --jewelry-primary: #4A3428;
+  --jewelry-accent: #C98C78;
+  --jewelry-accent-hover: #B57764;
+  --jewelry-bg: #F7F3EA;
+  --jewelry-bg-warm: #FAF7F2;
+  --jewelry-text-dark: #4A3428;
+  --jewelry-text-muted: #7A685D;
+  --jewelry-border-light: #EFE8DE;
   --ease-luxury: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -265,6 +266,19 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* Customer-Facing Rebrand Button System */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-[#C98C78] text-white font-medium shadow-xs transition-all duration-300 hover:bg-[#B5776B] hover:shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl bg-[#FAF7F2] text-[#4A3428] border border-[#EFE8DE] font-medium transition-all duration-300 hover:bg-[#F3ECE1] hover:border-[#C98C78] hover:text-[#C98C78] active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center rounded-xl bg-[#C8A96B] text-white font-medium shadow-xs transition-all duration-300 hover:bg-[#B69656] hover:shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
   }
 }
   @keyframes fadeInScale {
@@ -806,26 +820,22 @@ select:focus-visible {
 @keyframes modalIconExpand {
   from {
     opacity: 0;
-    transform: scale(0.2) translate(40%, 40%);
-    transform-origin: bottom right;
+    transform: scale(0.2);
   }
   to {
     opacity: 1;
-    transform: scale(1) translate(0, 0);
-    transform-origin: bottom right;
+    transform: scale(1);
   }
 }
 
 @keyframes modalIconContract {
   from {
     opacity: 1;
-    transform: scale(1) translate(0, 0);
-    transform-origin: bottom right;
+    transform: scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(0.15) translate(40%, 40%);
-    transform-origin: bottom right;
+    transform: scale(0.2);
   }
 }
 
@@ -933,12 +943,12 @@ select:focus-visible {
    ====================================================== */
 
 :root {
-  --text-primary: #252525;
-  --text-secondary: #505655;
-  --text-muted: rgba(37, 37, 37, 0.55);
-  --border-subtle: rgba(37, 37, 37, 0.10);
-  --brand-accent: #CB8161;
-  --brand-accent-hover: #B56F50;
+  --text-primary: #4A3428;
+  --text-secondary: #7A685D;
+  --text-muted: rgba(74, 52, 40, 0.55);
+  --border-subtle: #EFE8DE;
+  --brand-accent: #C98C78;
+  --brand-accent-hover: #B57764;
 }
 
 body {
@@ -1001,7 +1011,7 @@ p {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 6px;
-  background-color: #2C332F;
+  background-color: #4A3428;
   padding: 12px 20px;
   font-family: var(--font-body-family);
   font-size: 15px;
@@ -1013,7 +1023,7 @@ p {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1F1F1F;
+  background-color: #C98C78;
 }
 
 .btn-accent {
@@ -1022,7 +1032,7 @@ p {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 6px;
-  background-color: #CB8161;
+  background-color: #C98C78;
   padding: 12px 20px;
   font-family: var(--font-body-family);
   font-size: 15px;
@@ -1043,21 +1053,21 @@ p {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 6px;
-  border: 1px solid rgba(37, 37, 37, 0.20);
-  background-color: #FFFFFF;
+  border: 1px solid #E6DDD2;
+  background-color: #F7F3EA;
   padding: 12px 20px;
   font-family: var(--font-body-family);
   font-size: 15px;
   font-weight: 500;
-  color: #505655;
+  color: #4A3428;
   min-height: 45px;
   transition: all 200ms ease-out;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: #CB8161;
-  background-color: #FCFAF7;
-  color: #252525;
+  border-color: #C98C78;
+  background-color: #FFFFFF;
+  color: #4A3428;
 }
 
 @media (max-width: 640px) {

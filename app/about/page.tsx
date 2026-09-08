@@ -4,14 +4,14 @@ import { Check } from 'lucide-react';
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-[#FCFAF7]">
+    <main className="min-h-screen bg-[#F7F3EA]">
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-white border-b border-[#E8E3DC] py-16">
+      <section className="bg-white border-b border-[#EFE8DE] py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="font-serif text-5xl text-[#2E2E2E] mb-4">About the_girl_ho_se</h1>
-          <p className="text-lg text-[#6B6B6B]">
+          <h1 className="font-serif text-5xl text-[#4A3428] mb-4">About THE GIRL HOUSE</h1>
+          <p className="text-lg text-[#7A685D]">
             Crafting timeless moments through premium artificial jewelry designed with elegance and affordability in mind
           </p>
         </div>
@@ -22,19 +22,19 @@ export default function AboutPage() {
         <div className="max-w-4xl mx-auto">
           <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
             <div>
-              <h2 className="font-serif text-4xl text-[#2E2E2E] mb-6">Our Story</h2>
-              <p className="text-[#6B6B6B] mb-4 leading-relaxed">
-                the_girl_House was born from a simple belief: every person deserves to wear jewelry that makes them feel confident and beautiful, without compromising on quality or breaking the bank.
+              <h2 className="font-serif text-4xl text-[#4A3428] mb-6">Our Story</h2>
+              <p className="text-[#7A685D] mb-4 leading-relaxed">
+                THE GIRL HOUSE was born from a simple belief: every person deserves to wear jewelry that makes them feel confident and beautiful, without compromising on quality or breaking the bank.
               </p>
-              <p className="text-[#6B6B6B] mb-4 leading-relaxed">
+              <p className="text-[#7A685D] mb-4 leading-relaxed">
                 What started as a passion project has grown into a premium artificial jewelry brand trusted by thousands of customers worldwide. We meticulously select each piece to ensure it reflects our commitment to elegance, craftsmanship, and accessibility.
               </p>
-              <p className="text-[#6B6B6B] leading-relaxed">
-                Today, the_girl_ho_se stands as a beacon of affordable luxury, proving that premium aesthetics and accessible prices can coexist beautifully.
+              <p className="text-[#7A685D] leading-relaxed">
+                Today, THE GIRL HOUSE stands as a beacon of affordable luxury, proving that premium aesthetics and accessible prices can coexist beautifully.
               </p>
             </div>
-            <div className="bg-[#F4EEE8] rounded-lg h-80 flex items-center justify-center">
-              <div className="text-center text-[#C0B9AE]">
+            <div className="bg-[#FAF7F2] rounded-lg h-80 flex items-center justify-center border border-[#EFE8DE]">
+              <div className="text-center text-[#C98C78]">
                 <p className="text-6xl mb-4">✨</p>
                 <p>Our Journey</p>
               </div>
@@ -74,11 +74,9 @@ export default function AboutPage() {
       {/* Why Choose Us */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
-          <h2 className="font-serif text-4xl text-center text-[#2E2E2E] mb-12">Why Choose the_girl_ho_se</h2>
+          <h2 className="font-serif text-4xl text-center text-[#2E2E2E] mb-12">Why Choose the Girl House</h2>
           <div className="grid md:grid-cols-2 gap-8">
             {[
-              'Handpicked premium artificial jewelry collections',
-              'Fast and free shipping on orders over $50',
               'Secure and encrypted checkout process',
               'Lifetime quality guarantee on all pieces',
               'Expert customer support team',
@@ -99,21 +97,34 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-[#2E2E2E] text-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-serif text-4xl mb-4">Ready to Shine?</h2>
-          <p className="text-lg text-[#C0B9AE] mb-8">
-            Explore our collection and find the perfect pieces to express your unique style
-          </p>
-          <a
-            href="/shop"
-            className="inline-block px-8 py-3 bg-[#C78B7B] hover:bg-[#D6B36A] transition-colors rounded-lg font-semibold"
-          >
-            Shop Now
-          </a>
-        </div>
-      </section>
+     {/* CTA */}
+<section className="border-y border-[#EFE8DE] bg-[#FAF7F2] px-4 py-16 sm:px-6 lg:px-8">
+  <div className="mx-auto max-w-3xl text-center">
+
+    <h2
+      className="font-serif text-4xl font-normal text-[#4A3428] mb-4"
+      style={{ color: "#4A3428" }}
+    >
+      Ready to Shine?
+    </h2>
+
+    <p
+      className="mb-8 text-lg font-normal text-[#7A685D]"
+      style={{ color: "#7A685D" }}
+    >
+      Explore our collection and find the perfect pieces to express your unique style
+    </p>
+
+    <a
+      href="/shop"
+      className="inline-flex items-center justify-center rounded-lg bg-[#C98C78] px-8 py-3 font-medium text-white transition-colors hover:bg-[#B5776B]"
+      style={{ color: "#FFFFFF" }}
+    >
+      Shop Now
+    </a>
+
+  </div>
+</section>
 
       <Footer />
     </main>

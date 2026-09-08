@@ -183,7 +183,7 @@ export default function ContactPage() {
               },
               {
                 q: 'Do you offer bulk orders?',
-                a: 'Yes! For bulk orders and corporate gifting, please contact our sales team directly at sales@luxehavenjewelry.com',
+                a: 'Yes! For bulk orders and corporate gifting, please contact our support team directly at thegirlhousecustomercare@gmail.com',
               },
             ].map((faq, i) => (
               <div key={i} className="border-b border-[#E8E3DC] pb-6">

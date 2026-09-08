@@ -2725,8 +2725,8 @@ const checkDelivery = async () => {
                           }}
                           className={`rounded-full border px-4 py-2 text-xs font-medium transition ${
                             selectedColor === color
-                              ? "border-[#1F1F1F] bg-[#1F1F1F] text-white shadow-xs"
-                              : "border-neutral-200 bg-white text-[#1F1F1F] hover:border-[#CB8161]"
+                              ? "border-[#C98C78] bg-[#C98C78] text-white shadow-xs"
+                              : "border-[#C98C78]/40 bg-[#FAF7F2] text-[#4A3428] hover:border-[#C98C78] hover:bg-[#F3ECE1]"
                           }`}
                         >
                           {color}
@@ -2756,7 +2756,7 @@ const checkDelivery = async () => {
                     <button
                       type="button"
                       onClick={handleScrollToSpecifications}
-                      className="text-xs font-medium text-[#CB8161] underline underline-offset-4"
+                      className="text-xs font-medium text-[#C98C78] underline underline-offset-4"
                     >
                       View Size Information
                     </button>
@@ -2779,8 +2779,8 @@ const checkDelivery = async () => {
                           }}
                           className={`min-w-[50px] rounded-md border px-3.5 py-2 text-xs font-medium transition ${
                             selectedSize === size
-                              ? "border-[#1F1F1F] bg-[#1F1F1F] text-white shadow-xs"
-                              : "border-neutral-200 bg-white text-[#1F1F1F] hover:border-[#CB8161]"
+                              ? "border-[#C98C78] bg-[#C98C78] text-white shadow-xs"
+                              : "border-[#C98C78]/40 bg-[#FAF7F2] text-[#4A3428] hover:border-[#C98C78] hover:bg-[#F3ECE1]"
                           }`}
                         >
                           {size}
@@ -2865,7 +2865,7 @@ const checkDelivery = async () => {
                     </div>
                   </div>
 
-                  <div className="flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center">
+                  <div className="flex w-full min-w-0 flex-col items-center gap-3">
                     <input
                       type="text"
                       inputMode="numeric"
@@ -2880,13 +2880,13 @@ const checkDelivery = async () => {
                         setDeliveryMessage("");
                       }}
                       placeholder="Enter 6-digit pincode"
-                      className="h-11 w-full min-w-0 rounded-lg border border-[#DED5D0] bg-[#FCFAF8] px-3.5 text-xs text-[#3A302D] outline-none transition focus:border-[#CB8161] sm:flex-1"
+                      className="h-11 w-full text-center rounded-xl border border-[#EFE8DE] bg-[#FAF7F2] px-4 text-xs font-medium text-[#4A3428] outline-none transition focus:border-[#C98C78]"
                     />
 
                     <button
                       type="button"
                       onClick={checkDelivery}
-                      className="h-11 w-full shrink-0 rounded-lg bg-[#1F1F1F] px-5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98] sm:w-auto"
+                      className="h-10 w-full max-w-[200px] rounded-xl bg-[#C98C78] px-5 text-xs font-bold uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98]"
                     >
                       Check Delivery
                     </button>
@@ -2898,7 +2898,7 @@ const checkDelivery = async () => {
                         deliveryMessage.startsWith("✓")
                           ? "bg-[#F3F8F1]"
                           : deliveryMessage.includes("Checking")
-                          ? "bg-[#F8F3EF]"
+                          ? "bg-[#FAF7F2]"
                           : "bg-[#FFF1F1]"
                       }`}
                     >
@@ -2922,11 +2922,11 @@ const checkDelivery = async () => {
                   ACTIONS (ADD TO CART / BUY NOW)
               ========================================== */}
 
-              <div className="mt-7 border-t border-[#E8E0DB] pt-6">
+              <div className="mt-7 border-t border-[#EFE8DE] pt-6">
                 {/* OPTION VALIDATION INLINE MESSAGE */}
                 {optionValidationError && (
-                  <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#CB8161]/40 bg-[#FAF5F2] px-4 py-3 text-xs font-medium text-[#1F1F1F] shadow-xs transition-all duration-300 animate-in fade-in slide-in-from-bottom-1">
-                    <AlertTriangle size={15} className="shrink-0 text-[#CB8161]" />
+                  <div className="mb-4 flex items-center gap-2.5 rounded-md border border-[#C98C78]/40 bg-[#FAF7F2] px-4 py-3 text-xs font-medium text-[#4A3428] shadow-xs transition-all duration-300 animate-in fade-in slide-in-from-bottom-1">
+                    <AlertTriangle size={15} className="shrink-0 text-[#C98C78]" />
                     <span className="flex-1">{optionValidationError}</span>
                     <button
                       type="button"
@@ -2945,7 +2945,7 @@ const checkDelivery = async () => {
                     <button
                       type="button"
                       onClick={handleAddToCart}
-                      className="flex h-[45px] w-full items-center justify-center gap-2 rounded-md bg-[#2C332F] px-4 font-sans text-xs sm:text-sm font-medium uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                      className="flex h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-[#C98C78] px-4 font-sans text-xs sm:text-sm font-bold uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98]"
                     >
                       <ShoppingCart size={16} />
                       Add to Cart
@@ -2955,7 +2955,7 @@ const checkDelivery = async () => {
                     <button
                       type="button"
                       onClick={handleBuyNow}
-                      className="flex h-[45px] w-full items-center justify-center gap-2 rounded-md bg-[#CB8161] px-4 font-sans text-xs sm:text-[15px] font-medium uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#2C332F] active:scale-[0.98]"
+                      className="flex h-[46px] w-full items-center justify-center gap-2 rounded-xl bg-[#C98C78] px-4 font-sans text-xs sm:text-sm font-bold uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98]"
                     >
                       <Zap size={16} />
                       Buy Now
@@ -2967,7 +2967,7 @@ const checkDelivery = async () => {
                     <button
                       type="button"
                       onClick={openNotifyModalHandler}
-                      className="flex h-13 w-full items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-4 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#C98C78] px-4 text-xs font-bold uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98]"
                     >
                       <Bell size={16} />
                       Notify Me When Available
@@ -2983,20 +2983,20 @@ const checkDelivery = async () => {
                 <div className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-[#817671]">
                   <ShieldCheck
                     size={14}
-                    className="text-[#C78B7B]"
+                    className="text-[#C98C78]"
                   />
                   Secure checkout · Carefully packed · Easy returns
                 </div>
 
-                {/* SHARE PRODUCT */}
-                <div className="mt-4 flex items-center justify-center border-t border-[#E8E0DB] pt-4">
+                {/* SHARE PRODUCT (COMPACT SECONDARY TEXT LINK) */}
+                <div className="mt-4 flex items-center justify-start border-t border-[#EFE8DE] pt-3">
                   <button
                     type="button"
                     onClick={handleShareProduct}
-                    className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#3A2528] transition hover:text-[#CB8161]"
+                    className="inline-flex items-center gap-1.5 text-xs text-[#4A3428]/75 transition-colors hover:text-[#C98C78]"
                   >
-                    <Share2 size={16} />
-                    Share Product
+                    <Share2 size={14} />
+                    <span>Share Product</span>
                   </button>
                 </div>
               </div>

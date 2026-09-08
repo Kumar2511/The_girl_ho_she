@@ -13,7 +13,7 @@ import Footer from "@/components/footer";
 export const metadata = {
   title: "Return & Exchange Policy",
   description:
-    "Return and exchange policy for the_girl_ho_se jewellery orders.",
+    "Return and exchange policy for THE GIRL HOUSE jewellery orders.",
 };
 
 export default function ReturnsPage() {
@@ -204,8 +204,8 @@ export default function ReturnsPage() {
           <div className="mt-12 text-center">
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 rounded-md bg-[#1F1F1F] px-7 py-3 text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161]"
-            >
+className="inline-flex items-center gap-2 rounded-md bg-[#C98C78] px-7 py-3 text-xs font-medium uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#B5776B]"                             style={{ color: "#FFFFFF" }}
+       >
               <ArrowLeft size={16} />
               Continue Shopping
             </Link>

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import  api  from "@/lib/api";
+import api from "@/lib/api";
+import ProductCard from "@/components/product-card";
 
 type Product = {
   _id: string;
@@ -11,27 +12,31 @@ type Product = {
   category?: string;
   price?: number;
   discountPrice?: number;
+  originalPrice?: number;
   images?: string[];
   image?: string;
+  hoverImage?: string;
   stock?: number;
+  numReviews?: number;
+  averageRating?: number;
+  featured?: boolean;
 };
+
+const TARGET_BEST_SELLING_CATEGORIES = [
+  { key: "necklaces", displayName: "Best Selling Necklaces", rawCategory: "Necklaces" },
+  { key: "chains", displayName: "Best Selling Chains", rawCategory: "Chains" },
+  { key: "bracelets", displayName: "Best Selling Bracelets", rawCategory: "Bracelets" },
+  { key: "earrings", displayName: "Best Selling Earrings", rawCategory: "Earrings" },
+  { key: "rings", displayName: "Best Selling Rings", rawCategory: "Rings" },
+];
 
 const normalizeCategory = (value?: string) =>
   String(value || "")
     .trim()
     .toLowerCase();
 
-const getProductImage = (product: Product) =>
-  product.images?.[0] ||
-  product.image ||
-  "/placeholder.jpg";
-
-const getSellingPrice = (product: Product) =>
-  Number(product.discountPrice ?? product.price ?? 0);
-
 export default function CategoryProductSections() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,27 +44,16 @@ export default function CategoryProductSections() {
 
     const loadData = async () => {
       try {
-        const [prodsRes, catsRes] = await Promise.all([
-          api.get("/products"),
-          api.get("/categories"),
-        ]);
-
-        const prods = prodsRes.data?.products || prodsRes.data || [];
-        const cats = catsRes.data?.categories || [];
+        const response = await api.get("/products");
+        const prods = response.data?.products || response.data || [];
 
         if (mounted) {
           setProducts(Array.isArray(prods) ? prods : []);
-          setDbCategories(Array.isArray(cats) ? cats.filter((c: any) => c.isActive !== false) : []);
         }
       } catch (error) {
-        console.error(
-          "Homepage category products error:",
-          error
-        );
-
+        console.error("Homepage category products error:", error);
         if (mounted) {
           setProducts([]);
-          setDbCategories([]);
         }
       } finally {
         if (mounted) {
@@ -79,56 +73,16 @@ export default function CategoryProductSections() {
     const groups = new Map<string, Product[]>();
 
     products.forEach((product) => {
-      const category = String(
-        product.category || ""
-      ).trim();
-
+      const category = String(product.category || "").trim();
       if (!category) return;
 
-      const existing =
-        groups.get(normalizeCategory(category)) || [];
-
-      groups.set(
-        normalizeCategory(category),
-        [...existing, product]
-      );
+      const norm = normalizeCategory(category);
+      const existing = groups.get(norm) || [];
+      groups.set(norm, [...existing, product]);
     });
 
     return groups;
   }, [products]);
-
-  const categories = useMemo(() => {
-    const ordered: string[] = [];
-
-    // Order according to DB categories first.
-    dbCategories.forEach((catObj) => {
-      const catName = catObj.name;
-      const match = Array.from(groupedCategories.keys()).find(
-        (key) => key === normalizeCategory(catName)
-      );
-
-      if (match && !ordered.includes(catName)) {
-        ordered.push(catName);
-      }
-    });
-
-    // Then include any remaining categories found in products.
-    groupedCategories.forEach((_items, normalizedCategory) => {
-      const originalProduct = products.find(
-        (product) =>
-          normalizeCategory(product.category) === normalizedCategory
-      );
-
-      if (
-        originalProduct?.category &&
-        !ordered.some((o) => normalizeCategory(o) === normalizedCategory)
-      ) {
-        ordered.push(originalProduct.category);
-      }
-    });
-
-    return ordered;
-  }, [dbCategories, groupedCategories, products]);
 
   if (loading) {
     return (
@@ -146,7 +100,6 @@ export default function CategoryProductSections() {
                 className="overflow-hidden rounded-xl bg-white"
               >
                 <div className="aspect-[4/5] animate-pulse bg-[#EEE5DF]" />
-
                 <div className="space-y-3 p-4">
                   <div className="h-4 animate-pulse rounded bg-[#EEE5DF]" />
                   <div className="h-4 w-20 animate-pulse rounded bg-[#EEE5DF]" />
@@ -159,174 +112,127 @@ export default function CategoryProductSections() {
     );
   }
 
-  if (!categories.length) {
-    return null;
-  }
-
   return (
     <section className="bg-[#FDF9F5] py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
 
         {/* =========================================
-            CATEGORY PRODUCT SECTIONS
+            5 BEST SELLING CATEGORY SECTIONS
         ========================================== */}
 
-        {categories.map((category) => {
-          const categoryProducts =
-            groupedCategories.get(
-              normalizeCategory(category)
-            ) || [];
+        {TARGET_BEST_SELLING_CATEGORIES.map((catConfig) => {
+          const matchingProducts =
+            groupedCategories.get(catConfig.key) || [];
+
+          const categoryProducts = matchingProducts.length
+            ? matchingProducts
+            : products.filter(
+                (p) => normalizeCategory(p.category) === catConfig.key
+              );
 
           if (!categoryProducts.length) {
             return null;
           }
 
-          const visibleProducts =
-            categoryProducts;
-
           return (
             <CategorySection
-              key={category}
-              category={category}
-              products={visibleProducts}
-              totalProducts={categoryProducts.length}
+              key={catConfig.key}
+              displayName={catConfig.displayName}
+              rawCategory={catConfig.rawCategory}
+              products={categoryProducts}
             />
           );
         })}
+
+        {/* =========================================
+            VIEW ALL CATEGORIES PAGE CTA BUTTON
+        ========================================== */}
+        <div className="mt-14 text-center">
+          <Link
+            href="/collections"
+            className="inline-flex items-center gap-2.5 rounded-xl bg-[#C98C78] px-8 py-3.5 text-xs font-bold  tracking-wider text-white shadow-md transition-all duration-300 hover:bg-[#B5776B] hover:shadow-lg active:scale-95"
+                                    style={{ color: "#FFFFFF" }}
+
+          >
+            <span>View All Categories</span>
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+
       </div>
     </section>
   );
 }
 
 /* =========================================================
-   CATEGORY SECTION
+   CATEGORY SECTION COMPONENT
 ========================================================= */
 
 function CategorySection({
-  category,
+  displayName,
+  rawCategory,
   products,
-  totalProducts,
 }: {
-  category: string;
+  displayName: string;
+  rawCategory: string;
   products: Product[];
-  totalProducts: number;
 }) {
-  const productsRef =
-    useRef<HTMLDivElement | null>(null);
+  const productsRef = useRef<HTMLDivElement | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const [activeIndex, setActiveIndex] =
-    useState(0);
-
-  /*
-   * Keep the selected number synchronized
-   * with the horizontal scroll position.
-   */
   useEffect(() => {
-    const container =
-      productsRef.current;
-
+    const container = productsRef.current;
     if (!container) return;
 
     const handleScroll = () => {
-      const cards =
-        Array.from(
-          container.children
-        ) as HTMLElement[];
-
+      const cards = Array.from(container.children) as HTMLElement[];
       if (!cards.length) return;
 
-      const containerLeft =
-        container.getBoundingClientRect()
-          .left;
-
+      const containerLeft = container.getBoundingClientRect().left;
       let closestIndex = 0;
-      let closestDistance =
-        Infinity;
+      let closestDistance = Infinity;
 
-      cards.forEach(
-        (card, index) => {
-          const distance = Math.abs(
-            card.getBoundingClientRect()
-              .left - containerLeft
-          );
-
-          if (
-            distance < closestDistance
-          ) {
-            closestDistance = distance;
-            closestIndex = index;
-          }
+      cards.forEach((card, index) => {
+        const distance = Math.abs(
+          card.getBoundingClientRect().left - containerLeft
+        );
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndex = index;
         }
-      );
+      });
 
       setActiveIndex(closestIndex);
     };
 
-    container.addEventListener(
-      "scroll",
-      handleScroll,
-      { passive: true }
-    );
-
+    container.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
-      container.removeEventListener(
-        "scroll",
-        handleScroll
-      );
+      container.removeEventListener("scroll", handleScroll);
     };
   }, [products.length]);
 
-  /*
-   * Scroll to a specific product.
-   */
-  const scrollToProduct = (
-    index: number
-  ) => {
-    const container =
-      productsRef.current;
-
+  const scrollToProduct = (index: number) => {
+    const container = productsRef.current;
     if (!container) return;
 
-    const card =
-      container.children[
-        index
-      ] as HTMLElement | undefined;
-
+    const card = container.children[index] as HTMLElement | undefined;
     if (!card) return;
 
     container.scrollTo({
-      left:
-        card.offsetLeft -
-        container.offsetLeft,
+      left: card.offsetLeft - container.offsetLeft,
       behavior: "smooth",
     });
 
     setActiveIndex(index);
   };
 
-  /*
-   * Previous product.
-   */
   const handlePrevious = () => {
-    const nextIndex =
-      Math.max(
-        activeIndex - 1,
-        0
-      );
-
+    const nextIndex = Math.max(activeIndex - 1, 0);
     scrollToProduct(nextIndex);
   };
 
-  /*
-   * Next product.
-   */
   const handleNext = () => {
-    const nextIndex =
-      Math.min(
-        activeIndex + 1,
-        products.length - 1
-      );
-
+    const nextIndex = Math.min(activeIndex + 1, products.length - 1);
     scrollToProduct(nextIndex);
   };
 
@@ -334,52 +240,14 @@ function CategorySection({
     <section className="mb-16 last:mb-0 sm:mb-20">
 
       {/* =========================================
-          CATEGORY HEADER
+          CENTERED CATEGORY HEADING
       ========================================== */}
 
-      <div className="mb-6 flex items-end justify-between gap-4 sm:mb-8">
-
-        <div>
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.28em] text-[#C78B7B] sm:text-xs">
-            The Girl Ho She
-          </p>
-
-          <h2 className="font-serif text-2xl font-medium text-[#2E2E2E] sm:text-3xl lg:text-4xl">
-            {category}
-          </h2>
-        </div>
-
-        {/* VIEW ALL */}
-
-        <Link
-          href={`/shop?category=${encodeURIComponent(
-            category
-          )}`}
-          className="
-            group
-            flex
-            shrink-0
-            items-center
-            gap-1.5
-            border-b
-            border-[#C78B7B]
-            pb-1
-            text-xs
-            font-medium
-            text-[#3A2528]
-            transition-all
-            hover:gap-2.5
-            sm:text-sm
-          "
-        >
-          View All
-
-          <ArrowRight
-            size={14}
-            className="transition-transform group-hover:translate-x-1"
-          />
-        </Link>
-
+      <div className="mb-8 text-center">
+  
+        <h2 className="font-serif mt-1.5 text-2xl font-normal text-[#4A3428] sm:text-3xl lg:text-4xl">
+          {displayName}
+        </h2>
       </div>
 
       {/* =========================================
@@ -400,22 +268,53 @@ function CategorySection({
           sm:gap-4
         "
       >
-        {products.map((product) => (
-          <div
-            key={product._id}
-            className="
-              w-[72vw]
-              shrink-0
-              snap-start
-              sm:w-[280px]
-              lg:w-[300px]
-            "
-          >
-            <ProductCard
-              product={product}
-            />
-          </div>
-        ))}
+        {products.map((product) => {
+          const img =
+            product.images?.[0] ||
+            product.image ||
+            "/placeholder-product.jpg";
+
+          const hImg =
+            product.images?.[1] ||
+            product.hoverImage;
+
+          const pPrice =
+            product.discountPrice && product.discountPrice > 0
+              ? product.discountPrice
+              : product.price || 0;
+
+          const origPrice =
+            product.discountPrice && product.discountPrice > 0
+              ? product.price || 0
+              : product.originalPrice || 0;
+
+          return (
+            <div
+              key={product._id}
+              className="
+                w-[72vw]
+                shrink-0
+                snap-start
+                sm:w-[280px]
+                lg:w-[300px]
+              "
+            >
+              <ProductCard
+                id={product._id}
+                name={product.name}
+                category={product.category || rawCategory}
+                image={img}
+                hoverImage={hImg}
+                price={pPrice}
+                originalPrice={origPrice}
+                badge={product.featured ? "Featured" : undefined}
+                numReviews={product.numReviews}
+                averageRating={product.averageRating}
+                stock={product.stock}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* =========================================
@@ -423,14 +322,11 @@ function CategorySection({
       ========================================== */}
 
       <div className="mt-5 flex items-center justify-center gap-2">
-
-        {/* PREVIOUS */}
-
         <button
           type="button"
           onClick={handlePrevious}
           disabled={activeIndex === 0}
-          aria-label={`Previous ${category} product`}
+          aria-label={`Previous ${displayName} product`}
           className="
             flex
             h-8
@@ -439,77 +335,53 @@ function CategorySection({
             justify-center
             rounded-full
             border
-            border-[#E5D9D2]
-            text-[#5A4742]
+            border-[#EFE8DE]
+            text-[#4A3428]
             transition-all
-            hover:border-[#C78B7B]
-            hover:text-[#C78B7B]
+            hover:border-[#C98C78]
+            hover:text-[#C98C78]
             disabled:cursor-not-allowed
             disabled:opacity-30
           "
         >
-          <ChevronLeft
-            size={15}
-          />
+          <ChevronLeft size={15} />
         </button>
 
-        {/* PRODUCT NUMBERS */}
-
         <div className="flex max-w-[70vw] items-center gap-1 overflow-x-auto px-1 scrollbar-hide">
-
-          {products.map(
-            (_product, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() =>
-                  scrollToProduct(
-                    index
-                  )
-                }
-                aria-label={`View ${category} product ${
-                  index + 1
-                }`}
-                aria-current={
+          {products.map((_product, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => scrollToProduct(index)}
+              aria-label={`View product ${index + 1}`}
+              className={`
+                flex
+                h-8
+                min-w-8
+                items-center
+                justify-center
+                rounded-full
+                px-2
+                text-[11px]
+                font-medium
+                transition-all
+                ${
                   activeIndex === index
-                    ? "true"
-                    : undefined
+                    ? "bg-[#C98C78] text-white shadow-xs"
+                    : "text-[#4A3428]/70 hover:bg-[#FAF7F2]"
                 }
-                className={`
-                  flex
-                  h-8
-                  min-w-8
-                  items-center
-                  justify-center
-                  rounded-full
-                  px-2
-                  text-[11px]
-                  font-medium
-                  transition-all
-                  ${
-                    activeIndex === index
-                      ? "bg-[#C78B7B] text-white shadow-sm"
-                      : "text-[#6E625D] hover:bg-[#F4EAE4]"
-                  }
-                `}
-              >
-                {index + 1}
-              </button>
-            )
-          )}
-
+              `}
+            >
+              {index + 1}
+            </button>
+          ))}
         </div>
-
-        {/* NEXT */}
 
         <button
           type="button"
           onClick={handleNext}
-          disabled={
-            activeIndex ===
-            products.length - 1
-          }
-          aria-label={`Next ${category} product`}
+          disabled={activeIndex === products.length - 1}
+          aria-label={`Next ${displayName} product`}
           className="
             flex
             h-8
@@ -518,187 +390,52 @@ function CategorySection({
             justify-center
             rounded-full
             border
-            border-[#E5D9D2]
-            text-[#5A4742]
+            border-[#EFE8DE]
+            text-[#4A3428]
             transition-all
-            hover:border-[#C78B7B]
-            hover:text-[#C78B7B]
+            hover:border-[#C98C78]
+            hover:text-[#C98C78]
             disabled:cursor-not-allowed
             disabled:opacity-30
           "
         >
-          <ChevronRight
-            size={15}
-          />
+          <ChevronRight size={15} />
         </button>
-
       </div>
 
       {/* =========================================
-          PRODUCT COUNT
+          CENTERED SECTION VIEW ALL BUTTON
       ========================================== */}
+      <div className="mt-6 text-center">
+        <Link
+          href={`/shop?category=${encodeURIComponent(rawCategory)}`}
+          className="
+            inline-flex
+            items-center
+            gap-2
+            rounded-xl
+            bg-[#C98C78]
+            px-6
+            py-2.5
+            text-xs
+            font-bold
+            tracking-wider
+            text-white
+            shadow-xs
+            transition-all
+            duration-300
+            hover:bg-[#B5776B]
+            hover:shadow-md
+            active:scale-95
+          "
+                                  style={{ color: "#FFFFFF" }}
 
-      <p className="mt-3 text-center text-[9px] uppercase tracking-[0.2em] text-[#A49791]">
-        {activeIndex + 1} of{" "}
-        {totalProducts}
-      </p>
+        >
+          <span>View All</span>
+          <ArrowRight size={14} />
+        </Link>
+      </div>
 
     </section>
-  );
-}
-
-/* =========================================================
-   PRODUCT CARD
-========================================================= */
-
-function ProductCard({
-  product,
-}: {
-  product: Product;
-}) {
-  const originalPrice = Number(product.price || 0);
-
-  const sellingPrice = getSellingPrice(product);
-
-  const hasDiscount =
-    Number(product.discountPrice || 0) > 0 &&
-    Number(product.discountPrice) <
-      originalPrice;
-
-  return (
-    <Link
-      href={`/shop/${product._id}`}
-      className="
-        group
-        min-w-0
-        overflow-hidden
-        bg-white
-        transition-all
-        duration-300
-        hover:-translate-y-1
-        hover:shadow-[0_14px_35px_rgba(58,37,40,0.10)]
-      "
-    >
-
-      {/* IMAGE */}
-
-      <div className="relative aspect-[4/5] overflow-hidden bg-[#F3ECE7]">
-
-        <img
-          src={getProductImage(product)}
-          alt={product.name}
-          className="
-            h-full
-            w-full
-            object-cover
-            transition-transform
-            duration-700
-            ease-out
-            group-hover:scale-[1.04]
-          "
-        />
-
-        {/* SALE */}
-
-        {hasDiscount && (
-          <span
-            className="
-              absolute
-              left-2
-              top-2
-              rounded-full
-              bg-white
-              px-2.5
-              py-1
-              text-[9px]
-              font-medium
-              uppercase
-              tracking-wider
-              text-[#3A2528]
-              shadow-sm
-              sm:left-3
-              sm:top-3
-            "
-          >
-            Sale
-          </span>
-        )}
-
-        {/* OUT OF STOCK */}
-
-        {Number(product.stock ?? 1) <= 0 && (
-          <span
-            className="
-              absolute
-              bottom-2
-              left-2
-              rounded-full
-              bg-[#3A2528]
-              px-2.5
-              py-1
-              text-[9px]
-              font-medium
-              uppercase
-              tracking-wider
-              text-white
-              sm:bottom-3
-              sm:left-3
-            "
-          >
-            Sold Out
-          </span>
-        )}
-
-      </div>
-
-      {/* DETAILS */}
-
-      <div className="p-3 sm:p-4 space-y-1.5">
-
-        <p className="font-sans text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.18em] text-[#C78B7B]">
-          {product.category}
-        </p>
-
-        <h3
-          className="
-            line-clamp-2
-            font-serif
-            text-[13px]
-            sm:text-[15px]
-            font-normal
-            leading-tight
-            sm:leading-snug
-            text-[#252525]
-            transition-colors
-            duration-200
-            group-hover:text-[#CB8161]
-          "
-        >
-          {product.name}
-        </h3>
-
-        <div className="flex items-center gap-1 font-sans text-[10px] sm:text-[11px] font-normal text-[#505655]">
-          <span className="text-amber-400">★</span>
-          <span>5.0</span>
-          <span className="text-[#505655]/70">(Reviews)</span>
-        </div>
-
-        <div className="pt-1.5 border-t border-[#F5EBE6] flex flex-wrap items-baseline gap-1.5 sm:gap-2">
-
-          <span className="font-sans text-[13px] sm:text-[15px] font-medium text-[#252525]">
-            ₹{sellingPrice.toLocaleString("en-IN")}
-          </span>
-
-          {hasDiscount && (
-            <span className="font-sans text-[11px] sm:text-xs font-normal text-[#505655]/70 line-through">
-              ₹{originalPrice.toLocaleString("en-IN")}
-            </span>
-          )}
-
-        </div>
-
-      </div>
-
-    </Link>
   );
 }

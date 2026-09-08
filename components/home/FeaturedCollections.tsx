@@ -37,28 +37,28 @@ export default function FeaturedCollections() {
     {
       title: "Lakshmi Collection",
       description: "Auspicious handcrafted temple designs dedicated to divine grace.",
-      image: "/products/necklace-1.jpg",
+      image: "/products/necklace-1.png",
       highlight: "Best Seller",
       gradient: true,
     },
     {
       title: "Temple Collection",
       description: "Timeless antique heritage carved with traditional Indian motifs.",
-      image: "/products/necklace-2.jpg",
+      image: "/products/earrings-1.png",
       highlight: "New",
       gradient: false,
     },
     {
       title: "Bridal Collection",
       description: "Royal statement sets designed for unforgettable wedding moments.",
-      image: "/products/necklace-3.jpg",
+      image: "/products/bracelet-1.png",
       highlight: "Trending",
       gradient: false,
     },
     {
       title: "Peacock Collection",
       description: "Intricate peacock artistry with vibrant Kemp and kundan stones.",
-      image: "/products/necklace-4.jpg",
+      image: "/products/ring-1.png",
       highlight: "Exclusive",
       gradient: true,
     },
@@ -79,11 +79,17 @@ export default function FeaturedCollections() {
         }).length;
 
         const highlights = ["Best Seller", "New", "Trending", "Exclusive"];
+        const fallbackImgs = [
+          "/products/necklace-1.png",
+          "/products/earrings-1.png",
+          "/products/bracelet-1.png",
+          "/products/ring-1.png",
+        ];
 
         return {
           title: col.name,
           description: col.description || "Handcrafted antique jewellery for unforgettable celebrations.",
-          image: col.image || `/products/necklace-${(idx % 4) + 1}.jpg`,
+          image: col.image || fallbackImgs[idx % fallbackImgs.length],
           productsCount: count || Math.max(12, products.length / 4 | 0),
           highlight: highlights[idx % highlights.length],
           gradient: idx % 2 === 0,

@@ -457,7 +457,7 @@ export default function CartDrawer() {
                   onClick={
                     handleCheckout
                   }
-                  className="flex h-11 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-[#CB8161] active:scale-[0.98]"
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#C98C78] text-xs font-medium uppercase tracking-wider text-white shadow-xs transition hover:bg-[#B5776B] active:scale-[0.98]"
                 >
                   Checkout
 
@@ -471,7 +471,7 @@ export default function CartDrawer() {
                   onClick={
                     handleViewCart
                   }
-                  className="h-10 rounded-md border border-[#1F1F1F] bg-white text-xs font-semibold uppercase tracking-wider text-[#1F1F1F] transition hover:bg-[#1F1F1F] hover:text-white active:scale-[0.98]"
+                  className="h-10 rounded-xl border border-[#C98C78] bg-[#FAF7F2] text-xs font-medium uppercase tracking-wider text-[#4A3428] transition hover:bg-[#C98C78] hover:text-white active:scale-[0.98]"
                 >
                   View Cart
                 </button>

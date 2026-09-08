@@ -94,7 +94,7 @@ export default function ProductCard({
   const image =
     product.image ||
     product.images?.[0] ||
-    "/placeholder-product.jpg";
+    "/placeholder.jpg";
 
   const hoverImage =
     product.hoverImage ||
@@ -396,15 +396,13 @@ export default function ProductCard({
               )}
 
             {/* ======================================
-                OUT OF STOCK OVERLAY
+                SOLD OUT BADGE (TOP-LEFT)
             ====================================== */}
 
             {isOutOfStock && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/35">
-                <span className="rounded-md bg-[#1F1F1F]/95 px-3.5 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-[0.12em] text-white shadow-xs">
-                  Out of Stock
-                </span>
-              </div>
+              <span className="absolute left-2.5 top-2.5 z-10 rounded-md bg-[#3A2528] px-2.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                SOLD OUT
+              </span>
             )}
 
             {/* Low Stock */}

@@ -103,10 +103,26 @@ export default function DesignerCollections() {
               {/* IMAGE */}
               <div className="relative h-[240px] w-full overflow-hidden sm:h-auto sm:aspect-[0.82]">
                 <Image
-                  src={
-                    category.image ||
-                    `/products/necklace-${(idx % 4) + 1}.jpg`
-                  }
+                 src={
+  {
+    Accessories:
+      "https://images.pexels.com/photos/6716443/pexels-photo-6716443.jpeg",
+    Pendants:
+      "https://images.pexels.com/photos/28985980/pexels-photo-28985980.jpeg",
+    Rings:
+      "https://images.pexels.com/photos/28985981/pexels-photo-28985981.jpeg",
+    Earrings:
+      "https://images.pexels.com/photos/6689398/pexels-photo-6689398.jpeg",
+    Bracelets:
+      "https://images.pexels.com/photos/6716446/pexels-photo-6716446.jpeg",
+    Chains:
+      "https://images.pexels.com/photos/14111395/pexels-photo-14111395.jpeg",
+    "Jewellry Sets":
+      "https://images.pexels.com/photos/9173459/pexels-photo-9173459.jpeg",
+    Necklaces:
+      "https://images.pexels.com/photos/14856437/pexels-photo-14856437.jpeg",
+  }[category.name] || category.image || "/products/necklace-1.png"
+}
                   alt={category.name}
                   fill
                   sizes="(max-width: 639px) 50vw, (max-width: 1023px) 33vw, 16vw"

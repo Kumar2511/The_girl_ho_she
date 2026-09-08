@@ -5,29 +5,29 @@ import { ArrowLeft, FileText, ShoppingBag, Truck, RefreshCcw } from "lucide-reac
 
 export const metadata = {
   title: "Terms of Service",
-  description: "Terms of Service for the_girl_ho_se jewellery store.",
+  description: "Terms of Service for THE GIRL HOUSE jewellery store.",
 };
 
 export default function TermsPage() {
   return (
-    <main className="min-h-screen bg-[#FCFAF7] text-[#2E2E2E]">
+    <main className="min-h-screen bg-[#F7F3EA] text-[#4A3428]">
       <Navbar />
 
       {/* ========================================
           Hero
       ======================================== */}
-      <section className="border-b border-[#E8E0DB] bg-[#F8F3EF]">
+      <section className="border-b border-[#EFE8DE] bg-[#FAF7F2]">
         <div className="mx-auto max-w-5xl px-6 py-16 text-center sm:px-10 lg:py-24">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C78B7B]">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#C98C78]">
             Customer Information
           </p>
 
-          <h1 className="mt-4 font-serif text-4xl text-[#2E2E2E] sm:text-5xl lg:text-6xl">
+          <h1 className="mt-4 font-serif text-4xl text-[#4A3428] sm:text-5xl lg:text-6xl">
             Terms of Service
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl text-base text-[#6B6B6B] sm:text-lg">
-            Terms and conditions governing purchases and usage of the_girl_ho_se storefront.
+          <p className="mx-auto mt-4 max-w-2xl text-base text-[#7A685D] sm:text-lg">
+            Terms and conditions governing purchases and usage of THE GIRL HOUSE storefront.
           </p>
         </div>
       </section>
@@ -38,23 +38,23 @@ export default function TermsPage() {
       <section className="mx-auto max-w-4xl px-6 py-14 sm:px-10 lg:py-20">
 
         {/* General Terms */}
-        <div className="mb-8 rounded-2xl border border-[#E8E0DB] bg-white p-7 sm:p-10">
+        <div className="mb-8 rounded-2xl border border-[#EFE8DE] bg-white p-7 sm:p-10">
           <div className="flex items-start gap-5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F7ECE7] text-[#C78B7B]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#FAF7F2] text-[#C98C78]">
               <FileText size={22} />
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#C78B7B]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#C98C78]">
                 Terms
               </p>
 
-              <h2 className="mt-2 font-serif text-2xl text-[#2E2E2E] sm:text-3xl">
+              <h2 className="mt-2 font-serif text-2xl text-[#4A3428] sm:text-3xl">
                 Store Terms &amp; Usage
               </h2>
 
-              <p className="mt-4 leading-7 text-[#6B6B6B]">
-                By browsing or placing an order on the_girl_ho_se storefront, you agree to comply with our general terms of service.
+              <p className="mt-4 leading-7 text-[#7A685D]">
+                By browsing or placing an order on THE GIRL HOUSE storefront, you agree to comply with our general terms of service.
                 All product pricing, product availability, and promotional offers are subject to market conditions and stock availability.
               </p>
             </div>
@@ -137,8 +137,8 @@ export default function TermsPage() {
         <div className="mt-12 text-center">
           <Link
             href="/shop"
-            className="inline-flex items-center gap-2 border border-[#2E2024] bg-[#2E2024] px-7 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#4A3439]"
-          >
+className="inline-flex items-center gap-2 rounded-md bg-[#C98C78] px-7 py-3 text-sm font-medium text-white transition-all duration-300 hover:bg-[#B5776B]"                         style={{ color: "#FFFFFF" }}
+         >
             <ArrowLeft size={16} />
             Continue Shopping
           </Link>

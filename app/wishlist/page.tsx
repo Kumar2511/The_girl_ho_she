@@ -185,11 +185,13 @@ export default function WishlistPage() {
 
                 <Link
                   href="/shop"
-                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-8 text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#C98C78] px-8 text-xs font-bold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#C98C78] active:scale-[0.98]"
+                        style={{ color: "#FFFFFF" }}
+
                 >
                   Explore Jewellery
 
-                  <ShoppingBag size={16} />
+                  <ShoppingBag size={20} />
                 </Link>
 
               </div>

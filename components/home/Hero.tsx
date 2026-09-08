@@ -29,38 +29,27 @@ export default function Hero({
     "/hero-jewelery.png";
 
   return (
-    <section className="relative w-full overflow-hidden bg-[#24201F]">
+    <section className="relative w-full overflow-hidden bg-[#F7F3EA]">
       {/* 
-        Responsive hero image
-
-        Mobile:
-        - Portrait-friendly height
-        - Full viewport width
-        - Cropped naturally
-
-        Tablet:
-        - Slightly taller image
-
-        Desktop:
-        - Wide editorial presentation
+        Single Responsive Hero Image Strategy
+        Dimensions: 1698 x 926 (Aspect Ratio ~1.83:1)
+        Preserves logo mark, "THE GIRL HOUSE" signature, tagline, floral motifs,
+        and dusty rose jewellery details cleanly on desktop & mobile without aggressive side cropping.
       */}
       <div
         className="
           relative
-          h-[330px]
           w-full
+          aspect-[1698/926]
+          max-h-[85vh]
           overflow-hidden
-          sm:h-[420px]
-          md:h-[500px]
-          lg:h-[560px]
-          xl:h-[620px]
         "
       >
         {/* Soft loading background */}
         <div
           className={`
             absolute inset-0
-            bg-[#D8D0C8]
+            bg-[#FAF7F2]
             transition-opacity
             duration-700
             ${
@@ -73,12 +62,10 @@ export default function Hero({
 
         <Image
           src={heroImage}
-          alt="The Girl Ho She Jewellery"
+          alt="THE GIRL HOUSE Jewellery"
           fill
           priority
-          sizes="
-            100vw
-          "
+          sizes="100vw"
           onLoad={() => setImageLoaded(true)}
           className="
             object-cover
@@ -86,20 +73,16 @@ export default function Hero({
           "
         />
 
-        {/* Very subtle cinematic dimming.
-            No text or UI is placed over the image. */}
-        <div className="pointer-events-none absolute inset-0 bg-black/[0.06]" />
-
-        {/* Soft bottom fade to blend into the next section */}
+        {/* Soft bottom blend into warm section background */}
         <div
           className="
             pointer-events-none
             absolute
             inset-x-0
             bottom-0
-            h-16
+            h-12
             bg-gradient-to-t
-            from-black/[0.10]
+            from-[#F7F3EA]/30
             to-transparent
           "
         />

@@ -137,7 +137,7 @@ export default function AccountPage() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-[#1F1F1F] px-5 text-xs font-semibold uppercase tracking-wider text-white transition-all duration-300 hover:bg-[#CB8161] active:scale-[0.98]"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#C98C78] px-5 text-xs font-medium uppercase tracking-wider text-white shadow-xs transition-all duration-300 hover:bg-[#B5776B] active:scale-[0.98]"
               >
                 <LogOut size={15} />
                 Sign Out
