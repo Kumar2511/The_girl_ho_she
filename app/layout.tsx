@@ -13,19 +13,15 @@ import "./globals.css";
 // Fonts (Arshis-Inspired Typography System)
 // ========================================
 
-const poppins = Poppins({
-  subsets: ["latin"],
+const poppins = {
   variable: "--font-poppins",
-  display: "swap",
-  weight: ["300", "400", "500", "600", "700"],
-});
+  className: "font-sans",
+};
 
-const bodoniModa = Bodoni_Moda({
-  subsets: ["latin"],
+const bodoniModa = {
   variable: "--font-bodoni",
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-});
+  className: "font-serif",
+};
 
 // ========================================
 // Metadata
