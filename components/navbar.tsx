@@ -795,7 +795,7 @@ export default function Navbar() {
   "
 >
   <img
-    src="/the-girl-house-icon.png"
+    src="/the-girl-house-icon-2.png"
     alt="The Girl House"
     className="
       block
