@@ -18,7 +18,7 @@ import {
   RotateCcw,
   Camera,
   CheckCircle2,
-  AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 import api from "@/lib/api";
@@ -35,6 +35,17 @@ const normalizeInstagramUrl = (urlStr: string): string => {
   }
 };
 
+const GIRL_HOUSE_8_CATEGORIES = [
+  { name: "Necklaces", slug: "Necklaces", image: "/products/necklace-1.png" },
+  { name: "Chains", slug: "Chains", image: "/products/chain-1.png" },
+  { name: "Bracelets", slug: "Bracelets", image: "/products/bracelet-1.png" },
+  { name: "Earrings", slug: "Earrings", image: "/products/earrings-1.png" },
+  { name: "Rings", slug: "Rings", image: "/products/ring-1.png" },
+  { name: "Pendants", slug: "Pendants", image: "/products/necklace-1.png" },
+  { name: "Jewelry Sets", slug: "Jewelry Sets", image: "/products/necklace-1.png" },
+  { name: "Accessories", slug: "Accessories", image: "/products/bracelet-1.png" },
+];
+
 export default function FindProductButton({
   isNavbarTrigger = false,
 }: {
@@ -42,10 +53,11 @@ export default function FindProductButton({
 }) {
   const router = useRouter();
 
-  // Modal State
+  // Modal & Category State
   const [open, setOpen] = useState(false);
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"url" | "screenshot">("url");
+  const [dbCategories, setDbCategories] = useState<any[]>([]);
   const [originStyle, setOriginStyle] = useState<{ transformOrigin: string }>({
     transformOrigin: "center center",
   });
@@ -72,6 +84,7 @@ export default function FindProductButton({
       setError("");
       setMatches([]);
       setExactMatch(null);
+      setMatchType(null);
       setProductLink("");
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
@@ -93,7 +106,7 @@ export default function FindProductButton({
   // Search Results
   const [matches, setMatches] = useState<any[]>([]);
   const [exactMatch, setExactMatch] = useState<any | null>(null);
-  const [matchType, setMatchType] = useState<"exact" | "similar" | null>(null);
+  const [matchType, setMatchType] = useState<"exact" | "similar" | "none" | null>(null);
   const [error, setError] = useState("");
 
   // Escape key listener & preview cleanup
@@ -111,6 +124,40 @@ export default function FindProductButton({
       }
     };
   }, [open, imagePreview]);
+
+  // Fetch real categories with images from API
+  useEffect(() => {
+    let isMounted = true;
+    const loadCategories = async () => {
+      try {
+        const response = await api.get("/categories");
+        const list = Array.isArray(response.data?.categories)
+          ? response.data.categories.filter((c: any) => c.isActive !== false)
+          : [];
+        if (isMounted && list.length > 0) {
+          setDbCategories(list);
+        }
+      } catch (err) {
+        console.error("Error fetching categories for FindProductButton:", err);
+      }
+    };
+    loadCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Consolidate categories with images
+  const finalCategories = GIRL_HOUSE_8_CATEGORIES.map((defCat) => {
+    const dbCat = dbCategories.find(
+      (c) => String(c.name).toLowerCase() === defCat.name.toLowerCase()
+    );
+    return {
+      name: defCat.name,
+      slug: defCat.slug,
+      image: dbCat?.image || defCat.image,
+    };
+  });
 
   // ==========================================
   // EXACT INSTAGRAM URL MATCHING
@@ -133,7 +180,6 @@ export default function FindProductButton({
       setSearchingUrl(true);
 
       // 1. First attempt API URL lookup
-      let apiMatch: any = null;
       try {
         const response = await api.post("/image-search/url", { url: link });
         if (response.data?.success && response.data?.redirectUrl) {
@@ -142,10 +188,13 @@ export default function FindProductButton({
           return;
         }
         if (response.data?.product) {
-          apiMatch = response.data.product;
+          setExactMatch(response.data.product);
+          setMatches([response.data.product]);
+          setMatchType("exact");
+          return;
         }
       } catch (err) {
-        // API search fallback to client catalogue search
+        // Fallback to client-side catalogue Instagram URL match
       }
 
       // 2. Fetch full catalogue to perform deterministic exact URL match
@@ -157,29 +206,18 @@ export default function FindProductButton({
         return normalizeInstagramUrl(p.instagramLink) === normalizedInputUrl;
       });
 
-      const matchedProduct = exactMatch || apiMatch || exactInstaMatch;
-
-      if (matchedProduct) {
-        setExactMatch(matchedProduct);
+      if (exactInstaMatch) {
+        setExactMatch(exactInstaMatch);
         setMatchType("exact");
-        setMatches([matchedProduct]);
+        setMatches([exactInstaMatch]);
       } else {
-        // Look for similar products by category/keywords as fallback
-        const keyword = link.split("/").pop() || "";
-        const similar = catalogue.filter((p) =>
-          p.name?.toLowerCase().includes(keyword.toLowerCase())
-        ).slice(0, 6);
-
-        if (similar.length > 0) {
-          setMatches(similar);
-          setMatchType("similar");
-        } else {
-          setError("No matching product found in our catalogue for this Instagram link.");
-        }
+        setMatchType("none");
+        setError("This product is not available in our store.");
       }
     } catch (err: any) {
       console.error("Instagram URL Search Error:", err);
-      setError("No matching product found in our catalogue for this Instagram link.");
+      setMatchType("none");
+      setError("This product is not available in our store.");
     } finally {
       setSearchingUrl(false);
     }
@@ -217,7 +255,7 @@ export default function FindProductButton({
   };
 
   // ==========================================
-  // SCREENSHOT MATCHING (EXACT FIRST, THEN SIMILARITY FALLBACK)
+  // SCREENSHOT MATCHING (LEVEL 1 -> LEVEL 2 -> LEVEL 3)
   // ==========================================
   const findProductByScreenshot = async () => {
     if (!selectedImage) {
@@ -232,59 +270,30 @@ export default function FindProductButton({
       setExactMatch(null);
       setMatchType(null);
 
-      // Fetch catalogue products to check exact image filename/hash fingerprint
-      const prodsRes = await api.get("/products");
-      const catalogue: any[] = prodsRes.data?.products || prodsRes.data || [];
+      const formData = new FormData();
+      formData.append("media", selectedImage);
 
-      const selectedName = selectedImage.name.toLowerCase();
-
-      // Priority 1: Check for exact filename match or exact URL fingerprint
-      let exactFound = catalogue.find((p) => {
-        const pImgs = [p.image, ...(p.images || [])].filter(Boolean);
-        return pImgs.some((imgUrl: string) => {
-          const imgFilename = imgUrl.split("/").pop()?.toLowerCase() || "";
-          return imgFilename && selectedName.includes(imgFilename);
-        });
+      const response = await api.post("/image-search", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // Priority 2: API visual search endpoint
-      if (!exactFound) {
-        try {
-          const formData = new FormData();
-          formData.append("media", selectedImage);
-          const response = await api.post("/image-search", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
+      const resData = response.data || {};
 
-          if (response.data?.exactMatch) {
-            exactFound = response.data.exactMatch;
-          } else if (Array.isArray(response.data?.matches) && response.data.matches.length > 0) {
-            setMatches(response.data.matches.slice(0, 6));
-            setMatchType("similar");
-            return;
-          }
-        } catch {
-          // Fallback to visual similarity heuristics below
-        }
-      }
-
-      if (exactFound) {
-        setExactMatch(exactFound);
-        setMatches([exactFound]);
+      if (resData.matchType === "exact" && resData.exactMatch) {
+        setExactMatch(resData.exactMatch);
+        setMatches([resData.exactMatch]);
         setMatchType("exact");
+      } else if (resData.matchType === "similar" && Array.isArray(resData.matches) && resData.matches.length > 0) {
+        setMatches(resData.matches.slice(0, 6));
+        setMatchType("similar");
       } else {
-        // Priority 3: Similarity Fallback (Up to 6 relevant products)
-        const sampleMatches = catalogue.slice(0, 6);
-        if (sampleMatches.length > 0) {
-          setMatches(sampleMatches);
-          setMatchType("similar");
-        } else {
-          setError("No matching products found in our catalogue. Try another screenshot.");
-        }
+        setMatchType("none");
+        setError(resData.message || "⚠️ We couldn't identify a jewellery product. Please upload a jewellery image or choose a category below.");
       }
     } catch (err: any) {
       console.error("Screenshot Search Error:", err);
-      setError("Unable to process screenshot. Please try again.");
+      setMatchType("none");
+      setError("⚠️ We couldn't identify a jewellery product. Please upload a jewellery image or choose a category below.");
     } finally {
       setSearchingImage(false);
     }
@@ -302,9 +311,14 @@ export default function FindProductButton({
     setError("");
   };
 
+  const handleCategoryClick = (catSlug: string) => {
+    closeModal();
+    router.push(`/shop?category=${encodeURIComponent(catSlug)}`);
+  };
+
   return (
     <>
-      {/* TRIGGER BUTTON (NAVBAR ICON OR STANDALONE FLOATING) */}
+      {/* TRIGGER BUTTON */}
       {isNavbarTrigger ? (
         <button
           type="button"
@@ -400,11 +414,13 @@ export default function FindProductButton({
               </button>
             </div>
 
-            {/* ERROR ALERT */}
+            {/* ERROR / LEVEL 3 ALERT */}
             {error && (
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{error}</span>
+              <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-medium text-amber-800">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-bold">{error}</p>
+                </div>
               </div>
             )}
 
@@ -485,7 +501,7 @@ export default function FindProductButton({
                           {selectedImage?.name}
                         </p>
                         <p className="text-[10px] text-[#4A3428]/60">
-                          Temporary local preview
+                          Uploaded image preview
                         </p>
                       </div>
                       <button
@@ -497,7 +513,7 @@ export default function FindProductButton({
                       </button>
                     </div>
 
-                    {!matches.length && !searchingImage && (
+                    {!exactMatch && !matches.length && !searchingImage && (
                       <button
                         type="button"
                         onClick={findProductByScreenshot}
@@ -511,7 +527,7 @@ export default function FindProductButton({
                     {searchingImage && (
                       <div className="flex items-center justify-center gap-2 py-4 text-xs font-bold text-[#4A3428]">
                         <Loader2 size={18} className="animate-spin text-[#C98C78]" />
-                        <span>Scanning catalogue for exact &amp; similar jewellery...</span>
+                        <span>Analyzing catalogue images...</span>
                       </div>
                     )}
                   </div>
@@ -519,26 +535,57 @@ export default function FindProductButton({
               </div>
             )}
 
-            {/* RESULTS VIEW */}
-            {matches.length > 0 && (
+            {/* LEVEL 1: EXACT MATCH RESULT */}
+            {matchType === "exact" && exactMatch && (
               <div className="mt-5 border-t border-[#EFE8DE] pt-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#4A3428] flex items-center gap-1.5">
-                    {matchType === "exact" ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span className="text-green-700">Exact Product Match Found</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 text-[#C98C78]" />
-                        <span>Similar Products ({matches.length})</span>
-                      </>
-                    )}
+                  <span className="text-xs font-bold uppercase tracking-wider text-green-700 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span>✓ Product Found</span>
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-1">
+                <div className="flex items-center gap-4 rounded-2xl border border-green-200 bg-green-50/50 p-3.5">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white border border-green-200">
+                    <img
+                      src={exactMatch.image || exactMatch.images?.[0]}
+                      alt={exactMatch.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="truncate text-sm font-bold text-[#4A3428]">
+                      {exactMatch.name}
+                    </p>
+                    <p className="text-xs font-bold text-[#C98C78] mt-0.5">
+                      ₹{(exactMatch.discountPrice > 0 ? exactMatch.discountPrice : exactMatch.price).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeModal();
+                      router.push(`/shop/${exactMatch._id}`);
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl bg-[#C98C78] px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-[#B5776B] transition"
+                  >
+                    <span>View Product</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* LEVEL 2: SIMILAR CATEGORY RELATED PRODUCTS */}
+            {matchType === "similar" && matches.length > 0 && (
+              <div className="mt-5 border-t border-[#EFE8DE] pt-4">
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-[#4A3428]">
+                    We couldn&apos;t find the exact product, but these may be related:
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto pr-1">
                   {matches.map((item) => {
                     const priceVal =
                       item.discountPrice && item.discountPrice > 0
@@ -552,34 +599,71 @@ export default function FindProductButton({
                           closeModal();
                           router.push(`/shop/${item._id}`);
                         }}
-                        className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-[#EFE8DE] bg-white p-2.5 transition hover:border-[#C98C78] hover:shadow-md"
+                        className="group flex flex-col cursor-pointer rounded-xl border border-[#EFE8DE] bg-[#FAF7F2] p-2 transition hover:border-[#C98C78] hover:shadow-xs"
                       >
-                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#FAF7F2]">
-                          {item.image || item.images?.[0] ? (
-                            <img
-                              src={item.image || item.images?.[0]}
-                              alt={item.name}
-                              className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[9px] text-gray-400">
-                              No Img
-                            </div>
-                          )}
+                        <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-white">
+                          <img
+                            src={item.image || item.images?.[0]}
+                            alt={item.name}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                          />
                         </div>
-                        <div className="flex-1 overflow-hidden">
-                          <p className="truncate text-xs font-bold text-[#4A3428] group-hover:text-[#C98C78]">
-                            {item.name}
-                          </p>
-                          <p className="text-[11px] font-semibold text-[#C98C78]">
-                            ₹{priceVal.toLocaleString("en-IN")}
-                          </p>
-                        </div>
-                        <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-0.5 group-hover:text-[#C98C78] transition-transform" />
+                        <p className="mt-1.5 truncate text-[11px] font-bold text-[#4A3428]">
+                          {item.name}
+                        </p>
+                        <p className="text-[10px] font-semibold text-[#C98C78]">
+                          ₹{priceVal.toLocaleString("en-IN")}
+                        </p>
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* MINIATURE 8-CATEGORY IMAGE CARD MARQUEE (LEFT -> RIGHT CONTINUOUS MOVEMENT) */}
+            {(matchType === "similar" || matchType === "none" || (error && matchType !== "exact")) && (
+              <div className="mt-5 border-t border-[#EFE8DE] pt-4">
+                <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[#4A3428]/70">
+                  Or Explore by Category
+                </p>
+                <div className="relative overflow-hidden w-full py-1">
+                  <div className="flex gap-3 animate-marquee-right hover:[animation-play-state:paused]">
+                    {[...finalCategories, ...finalCategories, ...finalCategories, ...finalCategories].map((cat, idx) => (
+                      <div
+                        key={`${cat.name}-${idx}`}
+                        onClick={() => handleCategoryClick(cat.name)}
+                        className="group flex flex-col items-center cursor-pointer shrink-0 w-20 transition-transform duration-200 hover:scale-105"
+                      >
+                        <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-[#FAF7F2] border border-[#EFE8DE] shadow-xs group-hover:border-[#C98C78]">
+                          <img
+                            src={cat.image}
+                            alt={cat.name}
+                            className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                        </div>
+                        <span className="mt-1.5 text-center text-[10px] font-bold text-[#4A3428] truncate w-full group-hover:text-[#C98C78]">
+                          {cat.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <style jsx>{`
+                  @keyframes marqueeRight {
+                    0% {
+                      transform: translateX(-50%);
+                    }
+                    100% {
+                      transform: translateX(0%);
+                    }
+                  }
+                  .animate-marquee-right {
+                    display: flex;
+                    width: max-content;
+                    animation: marqueeRight 22s linear infinite;
+                  }
+                `}</style>
               </div>
             )}
 
