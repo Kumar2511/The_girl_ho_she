@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { MessageCircle, X, Sparkles, Star, ChevronRight, MessageSquareText } from "lucide-react";
-import FindProductButton from "@/components/shop/FindProductButton";
 import api from "@/lib/api";
 
 type AnnouncementItem = {
@@ -168,20 +167,11 @@ export default function FloatingSocialButtons() {
   const isCart = pathname === "/cart";
   const isPDP = Boolean(pathname?.startsWith("/shop/") && pathname !== "/shop");
 
-  // Visibility Rules:
-  // 1. Find Your Product: Visible ONLY on Home (/), Cart (/cart), PDP (/shop/[id])
-  //    Hidden on Login, Register, Profile/Account, Checkout, or Checkout Modal open
-  const showFindProduct =
-    (isHome || isCart || isPDP) &&
-    !isProfileOrAccount &&
-    !isAuthRoute &&
-    !isCheckoutOrPaymentRoute;
-
-  // 2. WhatsApp & Instagram: Visible on Home, Cart, PDP, Profile/Account, and normal shopping pages
-  //    Hidden on Login, Register, Checkout, and Checkout Modal open
+  // WhatsApp & Instagram: Visible on Home, Cart, PDP, Profile/Account, and normal shopping pages
+  // Hidden on Login, Register, Checkout, and Checkout Modal open
   const showCommButtons = !isAuthRoute && !isCheckoutOrPaymentRoute;
 
-  if (!showFindProduct && !showCommButtons) {
+  if (!showCommButtons) {
     return null;
   }
 

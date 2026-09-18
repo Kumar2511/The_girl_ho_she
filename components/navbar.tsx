@@ -24,7 +24,6 @@ import { useWishlist } from "@/context/wishlist-context";
 import { useAuth } from "@/context/AuthContext";
 import CartDrawer from "@/components/cart-drawer";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import FindProductButton from "@/components/shop/FindProductButton";
 
 /* =========================================================
    NAVIGATION
@@ -807,7 +806,7 @@ export default function Navbar() {
 </Link>
             {/* =================================================
                 RIGHT SIDE
-                WISHLIST -> FIND YOUR PRODUCT -> CART
+                WISHLIST -> CART
             ================================================= */}
 
             <div
@@ -819,10 +818,6 @@ export default function Navbar() {
                 sm:gap-1
               "
             >
-             
-
-              {/* FIND YOUR PRODUCT (VISUAL SEARCH CAMERA LENS) - BETWEEN WISHLIST & CART */}
-              <FindProductButton isNavbarTrigger={true} />
 
               {/* =================================================
                   DESKTOP ACCOUNT

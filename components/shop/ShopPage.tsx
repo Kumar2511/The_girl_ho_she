@@ -3,7 +3,6 @@
 import type { ComponentType } from 'react'
 
 import { FilterSidebar, type FilterSidebarProps } from "@/components/shop/FilterSidebar";
-import FindProductButton from "@/components/shop/FindProductButton";
 import { Pagination, type PaginationProps } from "@/components/shop/Pagination";
 import { ProductGrid } from "@/components/shop/ProductGrid";
 import { ShopHero } from "@/components/shop/ShopHero";
@@ -35,8 +34,6 @@ export function ShopPage<TProduct = unknown>({
   <div
     className={`min-h-screen bg-[#FCFAF7] text-[#2E2E2E] ${className}`}
   >
-    <FindProductButton />
-
     <main
       id="shop"
       className="mx-auto w-full max-w-7xl px-6 py-16 sm:px-10 lg:px-16 lg:py-24"
