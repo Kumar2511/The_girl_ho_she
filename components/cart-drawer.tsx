@@ -136,11 +136,11 @@ export default function CartDrawer() {
 
       <aside
         data-scrollable="true"
-        className={`fixed right-0 top-0 z-[260] flex h-screen w-full max-w-[430px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
-          isCartVisible
-            ? "translate-x-0"
-            : "translate-x-full"
-        }`}
+        className={`fixed right-0 top-0 z-[260] flex h-[100dvh] w-full max-w-[430px] flex-col overflow-hidden bg-white shadow-2xl transition-transform duration-300 ease-out ${
+  isCartVisible
+    ? "translate-x-0"
+    : "translate-x-full"
+}`}
         aria-hidden={!isCartVisible}
       >
 
@@ -218,159 +218,279 @@ export default function CartDrawer() {
                 CART ITEMS
             ================================== */}
 
-            <div className="flex-1 overflow-y-auto px-5 py-5">
+            <div
+  data-scrollable="true"
+  className="
+    min-h-0
+    flex-1
+    overflow-y-auto
+    overscroll-contain
+    px-3.5
+    py-4
+    sm:px-5
+    sm:py-5
+  "
+>
+  <div className="space-y-4">
 
-              <div className="space-y-4">
+    {cart.map((item) => {
+      const itemTotal =
+        Number(item.price || 0) *
+        Number(item.quantity || 0);
 
-                {cart.map((item) => (
-                  <div
-                    key={`${item._id}-${item.color || ""}-${item.size || ""}`}
-                    className="flex gap-4 border-b border-neutral-100 pb-4"
-                  >
+      return (
+        <div
+          key={`${item._id}-${item.color || ""}-${item.size || ""}`}
+          className="
+            flex
+            min-w-0
+            gap-3
+            border-b
+            border-neutral-100
+            pb-4
+          "
+        >
 
-                    {/* Image */}
+          {/* ==============================
+              IMAGE
+          ============================== */}
 
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-[#FAF7F4] border border-neutral-200/60">
+          <div
+            className="
+              relative
+              h-[76px]
+              w-[76px]
+              shrink-0
+              overflow-hidden
+              rounded-lg
+              border
+              border-neutral-200/60
+              bg-[#FAF7F4]
+              sm:h-20
+              sm:w-20
+            "
+          >
+            <Image
+              src={
+                item.image ||
+                "/placeholder-product.jpg"
+              }
+              alt={item.name}
+              fill
+              sizes="80px"
+              className="object-cover"
+            />
+          </div>
 
-                      <Image
-                        src={
-                          item.image ||
-                          "/placeholder-product.jpg"
-                        }
-                        alt={item.name}
-                        fill
-                        sizes="80px"
-                        className="object-cover"
-                      />
+          {/* ==============================
+              PRODUCT INFORMATION
+          ============================== */}
 
-                    </div>
+          <div className="min-w-0 flex-1">
 
-                    {/* Information */}
+            {/* NAME + DELETE */}
 
-                    <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-start gap-1.5">
 
-                      <div className="flex items-start justify-between gap-2">
+              <h3
+                className="
+                  min-w-0
+                  flex-1
+                  line-clamp-2
+                  text-[12px]
+                  font-medium
+                  leading-[1.35]
+                  text-[#3A302D]
+                "
+              >
+                {item.name}
+              </h3>
 
-                        <h3 className="line-clamp-2 text-xs font-semibold leading-snug text-[#1F1F1F]">
-                          {item.name}
-                        </h3>
+              <button
+                type="button"
+                onClick={() =>
+                  removeFromCart(
+                    item._id,
+                    item.color,
+                    item.size
+                  )
+                }
+                className="
+                  flex
+                  h-7
+                  w-7
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  text-gray-400
+                  transition
+                  hover:bg-red-50
+                  hover:text-red-500
+                "
+                aria-label={`Remove ${item.name}`}
+              >
+                <Trash2 size={14} />
+              </button>
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeFromCart(
-                              item._id,
-                              item.color,
-                              item.size
-                            )
-                          }
-                          className="shrink-0 text-gray-400 transition hover:text-red-500"
-                          aria-label={`Remove ${item.name}`}
-                        >
-                          <Trash2
-                            size={15}
-                          />
-                        </button>
+            </div>
 
-                      </div>
+            {/* VARIANTS */}
 
-                      {/* Variant */}
+            {(item.color || item.size) && (
+              <div
+                className="
+                  mt-1.5
+                  flex
+                  flex-wrap
+                  gap-x-2
+                  gap-y-1
+                  text-[10px]
+                  leading-4
+                  text-[#77706C]
+                "
+              >
+                {item.color && (
+                  <span className="max-w-full truncate">
+                    Color: {item.color}
+                  </span>
+                )}
 
-                      {(item.color ||
-                        item.size) && (
-                        <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-[#666666]">
+                {item.size && (
+                  <span>
+                    Size: {item.size}
+                  </span>
+                )}
+              </div>
+            )}
 
-                          {item.color && (
-                            <span>
-                              Color:{" "}
-                              {item.color}
-                            </span>
-                          )}
+            {/* PRICE */}
 
-                          {item.size && (
-                            <span>
-                              Size:{" "}
-                              {item.size}
-                            </span>
-                          )}
+            <p className="mt-1 text-xs font-medium text-[#4A3428]">
+              {formatPrice(item.price || 0)}
+            </p>
 
-                        </div>
-                      )}
+            {/* QUANTITY + TOTAL */}
 
-                      {/* Price */}
+            <div
+              className="
+                mt-2.5
+                flex
+                min-w-0
+                items-center
+                justify-between
+                gap-2
+              "
+            >
 
-                      <p className="mt-1 text-xs font-semibold text-[#1F1F1F]">
-                        {formatPrice(item.price)}
-                      </p>
+              {/* QUANTITY */}
 
-                      {/* Quantity */}
+              <div
+                className="
+                  flex
+                  h-7
+                  shrink-0
+                  items-center
+                  rounded-md
+                  border
+                  border-neutral-200
+                "
+              >
 
-                      <div className="mt-2.5 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() =>
+                    decreaseQuantity(
+                      item._id,
+                      item.color,
+                      item.size
+                    )
+                  }
+                  className="
+                    flex
+                    h-full
+                    w-7
+                    items-center
+                    justify-center
+                    rounded-l-md
+                    text-[#4A3428]
+                    transition
+                    hover:bg-neutral-100
+                  "
+                  aria-label="Decrease quantity"
+                >
+                  <Minus size={11} />
+                </button>
 
-                        <div className="flex h-7 items-center rounded-md border border-neutral-200">
+                <span
+                  className="
+                    flex
+                    h-full
+                    w-7
+                    items-center
+                    justify-center
+                    border-x
+                    border-neutral-200
+                    text-[11px]
+                    font-medium
+                    text-[#4A3428]
+                  "
+                >
+                  {item.quantity}
+                </span>
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              decreaseQuantity(
-                                item._id,
-                                item.color,
-                                item.size
-                              )
-                            }
-                            className="flex h-full w-7 items-center justify-center rounded-l-md transition hover:bg-neutral-100"
-                          >
-                            <Minus
-                              size={11}
-                            />
-                          </button>
-
-                          <span className="w-7 text-center text-xs font-semibold text-[#1F1F1F]">
-                            {item.quantity}
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              increaseQuantity(
-                                item._id,
-                                item.color,
-                                item.size
-                              )
-                            }
-                            className="flex h-full w-7 items-center justify-center rounded-r-md transition hover:bg-neutral-100"
-                          >
-                            <Plus
-                              size={11}
-                            />
-                          </button>
-
-                        </div>
-
-                        <span className="text-xs font-bold text-[#1F1F1F]">
-                          ₹
-                          {(
-                            Number(
-                              item.price
-                            ) *
-                            Number(
-                              item.quantity
-                            )
-                          ).toLocaleString(
-                            "en-IN"
-                          )}
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    increaseQuantity(
+                      item._id,
+                      item.color,
+                      item.size
+                    )
+                  }
+                  className="
+                    flex
+                    h-full
+                    w-7
+                    items-center
+                    justify-center
+                    rounded-r-md
+                    text-[#4A3428]
+                    transition
+                    hover:bg-neutral-100
+                  "
+                  aria-label="Increase quantity"
+                >
+                  <Plus size={11} />
+                </button>
 
               </div>
 
+              {/* ITEM TOTAL */}
+
+              <span
+                className="
+                  min-w-0
+                  truncate
+                  text-right
+                  text-xs
+                  font-medium
+                  text-[#3A302D]
+                "
+              >
+                {formatPrice(itemTotal)}
+              </span>
+
             </div>
+
+          </div>
+
+        </div>
+      );
+    })}
+
+  </div>
+</div>
 
             {/* ==================================
                 SUMMARY

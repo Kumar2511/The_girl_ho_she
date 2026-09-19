@@ -433,210 +433,348 @@ export default function CartPage() {
 
                 <div className="space-y-4">
 
-                  {cart.map((item) => {
+                 {cart.map((item) => {
+  const variantKey =
+    `${item._id}-${item.color || ""}-${item.size || ""}`;
 
-                    const variantKey =
-                      `${item._id}-${item.color || ""}-${item.size || ""}`;
+  const itemTotal =
+    Number(item.price || 0) *
+    Number(item.quantity || 0);
 
-                    const itemTotal =
-                      Number(item.price || 0) *
-                      Number(item.quantity || 0);
+  return (
+    <div
+      key={variantKey}
+      className="
+        group
+        relative
+        overflow-hidden
+        rounded-2xl
+        border
+        border-[#E8DFD9]
+        bg-white
+        p-3
+        sm:p-5
+      "
+    >
+      <div className="flex min-w-0 gap-3 sm:gap-5">
 
-                    return (
-                      <div
-                        key={variantKey}
-                        className="group relative overflow-hidden rounded-2xl border border-[#E8DFD9] bg-white p-4 transition hover:shadow-md sm:p-5"
-                      >
+        {/* =================================
+            PRODUCT IMAGE
+        ================================= */}
 
-                        <div className="flex gap-4 sm:gap-5">
+        <Link
+          href={`/shop/${item._id}`}
+          className="
+            relative
+            h-[104px]
+            w-[82px]
+            shrink-0
+            overflow-hidden
+            rounded-xl
+            bg-[#FAF7F4]
+            sm:h-32
+            sm:w-28
+          "
+        >
+          <Image
+            src={
+              item.image ||
+              "/placeholder.png"
+            }
+            alt={item.name}
+            fill
+            sizes="112px"
+            className="
+              object-cover
+              transition
+              duration-500
+              group-hover:scale-105
+            "
+          />
+        </Link>
 
-                          {/* =========================
-                              IMAGE
-                          ========================= */}
+        {/* =================================
+            PRODUCT CONTENT
+        ================================= */}
 
-                          <Link
-                            href={`/shop/${item._id}`}
-                            className="relative h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-[#FAF7F4] sm:h-32 sm:w-28"
-                          >
+        <div className="min-w-0 flex-1">
 
-                            <Image
-                              src={
-                                item.image ||
-                                "/placeholder.png"
-                              }
-                              alt={item.name}
-                              fill
-                              sizes="112px"
-                              className="object-cover transition duration-500 group-hover:scale-105"
-                            />
+          {/* PRODUCT NAME + REMOVE */}
 
-                          </Link>
+          <div className="flex min-w-0 items-start gap-2">
 
-                          {/* =========================
-                              PRODUCT DETAILS
-                          ========================= */}
+            <div className="min-w-0 flex-1">
 
-                          <div className="min-w-0 flex-1">
+              <Link
+                href={`/shop/${item._id}`}
+                className="
+                  block
+                  line-clamp-2
+                  font-serif
+                  text-[16px]
+                  leading-5
+                  text-[#2E2E2E]
+                  transition
+                  hover:text-[#C78B7B]
+                  sm:text-xl
+                  sm:leading-6
+                "
+              >
+                {item.name}
+              </Link>
 
-                            <div className="flex items-start justify-between gap-3">
+              <p className="mt-1 text-[10px] leading-4 text-[#918681] sm:text-xs">
+                Premium Artificial Jewellery
+              </p>
 
-                              <div className="min-w-0">
+            </div>
 
-                                <Link
-                                  href={`/shop/${item._id}`}
-                                  className="line-clamp-2 font-serif text-lg leading-6 text-[#2E2E2E] transition hover:text-[#C78B7B] sm:text-xl"
-                                >
-                                  {item.name}
-                                </Link>
+            {/* REMOVE */}
 
-                                <p className="mt-1 text-xs text-[#918681]">
-                                  Premium Artificial
-                                  Jewellery
-                                </p>
+            <button
+              type="button"
+              onClick={() =>
+                removeFromCart(
+                  item._id,
+                  item.color,
+                  item.size
+                )
+              }
+              className="
+                flex
+                h-7
+                w-7
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                text-[#AAA]
+                transition
+                hover:bg-red-50
+                hover:text-red-500
+                sm:h-8
+                sm:w-8
+              "
+              aria-label={`Remove ${item.name}`}
+            >
+              <Trash2
+                size={15}
+                strokeWidth={1.7}
+              />
+            </button>
 
-                              </div>
+          </div>
 
-                              {/* DELETE */}
+          {/* =================================
+              VARIANTS
+          ================================= */}
 
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeFromCart(
-                                    item._id,
-                                    item.color,
-                                    item.size
-                                  )
-                                }
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#AAA] transition hover:bg-red-50 hover:text-red-500"
-                                aria-label={`Remove ${item.name}`}
-                              >
-                                <Trash2
-                                  size={16}
-                                  strokeWidth={1.7}
-                                />
-                              </button>
+          {(item.color || item.size) && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
 
-                            </div>
+              {item.color && (
+                <span
+                  className="
+                    max-w-full
+                    truncate
+                    rounded-full
+                    bg-[#FCF7F4]
+                    px-2.5
+                    py-1
+                    text-[10px]
+                    text-[#655A55]
+                    sm:px-3
+                    sm:text-[11px]
+                  "
+                >
+                  <span className="font-medium">
+                    Color:
+                  </span>{" "}
+                  {item.color}
+                </span>
+              )}
 
-                            {/* VARIANTS */}
+              {item.size && (
+                <span
+                  className="
+                    rounded-full
+                    bg-[#FCF7F4]
+                    px-2.5
+                    py-1
+                    text-[10px]
+                    text-[#655A55]
+                    sm:px-3
+                    sm:text-[11px]
+                  "
+                >
+                  <span className="font-medium">
+                    Size:
+                  </span>{" "}
+                  {item.size}
+                </span>
+              )}
 
-                            {(item.color ||
-                              item.size) && (
+            </div>
+          )}
 
-                              <div className="mt-3 flex flex-wrap gap-2">
+          {/* =================================
+              MOBILE UNIT PRICE
+          ================================= */}
 
-                                {item.color && (
-                                  <span className="rounded-full bg-[#FCF7F4] px-3 py-1 text-[11px] text-[#655A55]">
+          <div className="mt-2 sm:hidden">
+            <span className="text-sm font-medium text-[#4A3428]">
+              {formatPrice(item.price || 0)}
+            </span>
+          </div>
 
-                                    <span className="font-medium">
-                                      Color:
-                                    </span>{" "}
-                                    {item.color}
+          {/* =================================
+              QUANTITY + TOTAL
+          ================================= */}
 
-                                  </span>
-                                )}
+          <div
+            className="
+              mt-3
+              flex
+              min-w-0
+              items-center
+              justify-between
+              gap-2
+              sm:mt-4
+            "
+          >
 
-                                {item.size && (
-                                  <span className="rounded-full bg-[#FCF7F4] px-3 py-1 text-[11px] text-[#655A55]">
+            {/* QUANTITY */}
 
-                                    <span className="font-medium">
-                                      Size:
-                                    </span>{" "}
-                                    {item.size}
+            <div
+              className="
+                flex
+                h-8
+                shrink-0
+                items-center
+                rounded-full
+                border
+                border-[#DED5D0]
+                sm:h-9
+              "
+            >
 
-                                  </span>
-                                )}
+              <button
+                type="button"
+                onClick={() =>
+                  decreaseQuantity(
+                    item._id,
+                    item.color,
+                    item.size
+                  )
+                }
+                className="
+                  flex
+                  h-full
+                  w-8
+                  items-center
+                  justify-center
+                  rounded-l-full
+                  text-[#3A2528]
+                  transition
+                  hover:bg-[#F7F2EF]
+                  sm:w-9
+                "
+                aria-label="Decrease quantity"
+              >
+                <Minus size={13} />
+              </button>
 
-                              </div>
-                            )}
+              <span
+                className="
+                  flex
+                  h-full
+                  w-8
+                  items-center
+                  justify-center
+                  border-x
+                  border-[#DED5D0]
+                  text-[11px]
+                  font-medium
+                  text-[#4A3428]
+                  sm:w-9
+                  sm:text-xs
+                "
+              >
+                {item.quantity}
+              </span>
 
-                            {/* MOBILE PRICE */}
+              <button
+                type="button"
+                onClick={() =>
+                  increaseQuantity(
+                    item._id,
+                    item.color,
+                    item.size
+                  )
+                }
+                className="
+                  flex
+                  h-full
+                  w-8
+                  items-center
+                  justify-center
+                  rounded-r-full
+                  text-[#3A2528]
+                  transition
+                  hover:bg-[#F7F2EF]
+                  sm:w-9
+                "
+                aria-label="Increase quantity"
+              >
+                <Plus size={13} />
+              </button>
 
-                            <div className="mt-4 sm:hidden">
+            </div>
 
-                              <span className="text-lg font-semibold text-[#2E2E2E]">
-                                {formatPrice(item.price || 0)}
-                              </span>
+            {/* MOBILE ITEM TOTAL */}
 
-                            </div>
+            <span
+              className="
+                min-w-0
+                truncate
+                text-right
+                text-sm
+                font-medium
+                text-[#3A2528]
+                sm:hidden
+              "
+            >
+              {formatPrice(itemTotal)}
+            </span>
 
-                            {/* BOTTOM */}
+          </div>
 
-                            <div className="mt-4 flex items-center justify-between gap-3">
+        </div>
 
-                              {/* QUANTITY */}
+        {/* =================================
+            DESKTOP PRICE
+        ================================= */}
 
-                              <div className="flex h-9 items-center rounded-full border border-[#DED5D0]">
+        <div className="hidden shrink-0 text-right sm:block">
 
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    decreaseQuantity(
-                                      item._id,
-                                      item.color,
-                                      item.size
-                                    )
-                                  }
-                                  className="flex h-full w-9 items-center justify-center rounded-l-full text-[#3A2528] transition hover:bg-[#F7F2EF]"
-                                  aria-label="Decrease quantity"
-                                >
-                                  <Minus size={14} />
-                                </button>
+          <p className="text-sm text-[#8A807B]">
+            Unit Price
+          </p>
 
-                                <span className="flex h-full w-9 items-center justify-center border-x border-[#DED5D0] text-xs font-semibold">
-                                  {item.quantity}
-                                </span>
+          <p className="mt-1 text-lg font-medium text-[#2E2E2E]">
+            {formatPrice(item.price || 0)}
+          </p>
 
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    increaseQuantity(
-                                      item._id,
-                                      item.color,
-                                      item.size
-                                    )
-                                  }
-                                  className="flex h-full w-9 items-center justify-center rounded-r-full text-[#3A2528] transition hover:bg-[#F7F2EF]"
-                                  aria-label="Increase quantity"
-                                >
-                                  <Plus size={14} />
-                                </button>
+          <p className="mt-8 text-sm font-medium text-[#3A2528]">
+            {formatPrice(itemTotal)}
+          </p>
 
-                              </div>
+        </div>
 
-                              {/* MOBILE TOTAL */}
-
-                              <span className="text-sm font-semibold text-[#3A2528] sm:hidden">
-                                {formatPrice(itemTotal)}
-                              </span>
-
-                            </div>
-
-                          </div>
-
-                          {/* DESKTOP PRICE */}
-
-                          <div className="hidden shrink-0 text-right sm:block">
-
-                            <p className="text-sm text-[#8A807B]">
-                              Unit Price
-                            </p>
-
-                            <p className="mt-1 text-lg font-semibold text-[#2E2E2E]">
-                              {formatPrice(item.price || 0)}
-                            </p>
-
-                            <p className="mt-8 text-sm font-semibold text-[#3A2528]">
-                              {formatPrice(itemTotal)}
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                      </div>
-                    );
-                  })}
+      </div>
+    </div>
+  );
+})}
 
                   {/* CONTINUE SHOPPING */}
 
